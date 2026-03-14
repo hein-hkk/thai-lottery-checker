@@ -1,6 +1,6 @@
 # Thai Lottery Checker
 
-Slice 0 sets up the monorepo foundation for the Thai Lottery Checker project. It includes a Next.js web app, an Express API, shared TypeScript packages, Prisma-based PostgreSQL access, and minimal locale-aware routing.
+Slice 0 sets up the monorepo foundation for the Thai Lottery Checker project. It includes a Next.js web app with Tailwind CSS 4, an Express API, shared TypeScript packages, Prisma-based PostgreSQL access, and minimal locale-aware routing.
 
 ## Requirements
 
@@ -59,6 +59,7 @@ pnpm --filter @thai-lottery-checker/api dev
   - Open `http://localhost:3000/th`
   - Open `http://localhost:3000/my`
   - Open `http://localhost:3000/` and confirm it redirects to the default locale
+  - Confirm the locale shell page is styled through Tailwind CSS
 - API:
   - Request `GET http://localhost:4000/health`
   - Confirm the response reports API status and database reachability

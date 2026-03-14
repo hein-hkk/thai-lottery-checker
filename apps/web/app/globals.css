@@ -1,53 +1,35 @@
-:root {
-  color-scheme: light;
-  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  background:
-    radial-gradient(circle at top, rgba(11, 71, 142, 0.08), transparent 40%),
-    linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
-  color: #12314f;
+@import "tailwindcss";
+
+@theme {
+  --color-shell-ink: #12314f;
+  --color-shell-border: rgba(18, 49, 79, 0.12);
+  --color-shell-pill: #e3eefb;
 }
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  :root {
+    color-scheme: light;
+  }
 
-body {
-  margin: 0;
-  min-height: 100vh;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-a {
-  color: inherit;
-}
+  html {
+    min-height: 100%;
+  }
 
-.shell {
-  min-height: 100vh;
-  padding: 48px 20px;
-}
+  body {
+    min-height: 100vh;
+    margin: 0;
+    color: var(--color-shell-ink);
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background:
+      radial-gradient(circle at top, rgba(11, 71, 142, 0.08), transparent 40%),
+      linear-gradient(180deg, #f8fbff 0%, #eef4fb 100%);
+  }
 
-.panel {
-  max-width: 760px;
-  margin: 0 auto;
-  padding: 32px;
-  border: 1px solid rgba(18, 49, 79, 0.12);
-  border-radius: 24px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 60px rgba(18, 49, 79, 0.08);
+  a {
+    color: inherit;
+  }
 }
-
-.locale-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding: 0;
-  list-style: none;
-}
-
-.locale-pill {
-  display: inline-flex;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: #e3eefb;
-  text-decoration: none;
-}
-

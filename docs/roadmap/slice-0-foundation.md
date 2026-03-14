@@ -36,6 +36,7 @@ This slice must stop at platform scaffolding only. No lottery/result/blog/auth/c
 - Provide a minimal localized shell page for each locale route and a root redirect to the default locale.
 - Add shared config for reading public env values safely in the web app.
 - Keep styling minimal; TailwindCSS is added only as foundation, not for full feature UI in Slice 0.
+- Replace the current handcrafted locale shell styling with Tailwind utility classes so the baseline styling system is exercised immediately.
 
 ### API, database, and migrations
 
@@ -84,6 +85,7 @@ This slice must stop at platform scaffolding only. No lottery/result/blog/auth/c
   - `/en`, `/th`, `/my` render
   - unsupported locale path is rejected or redirected per middleware behavior
   - `/` redirects to the chosen default locale
+  - Tailwind styles are loaded and applied to the locale shell page
 - Start API and verify:
   - `GET /health` returns `200`
   - health response reflects service readiness and DB status
@@ -94,6 +96,7 @@ This slice must stop at platform scaffolding only. No lottery/result/blog/auth/c
 ## Assumptions and Defaults
 
 - TailwindCSS 4 is only for the web app in Slice 0, not yet for a shared ui package or admin design system.
+- TailwindCSS 4 uses the CSS-first setup in the Next.js app rather than introducing a Tailwind config file unless later slices need one.
 - Database/migration tooling: Prisma 7.
 - Local database provisioning: developers provide an external PostgreSQL instance; Slice 0 will not add Docker Compose.
 - Default locale: `en` unless the repo owner wants a different default later.
