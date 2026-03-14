@@ -22,3 +22,7 @@ export async function checkDatabaseConnection(): Promise<boolean> {
     return false;
   }
 }
+
+export async function disconnectDatabase(): Promise<void> {
+  await prisma.$disconnect();
+}

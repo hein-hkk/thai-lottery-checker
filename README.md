@@ -63,6 +63,7 @@ pnpm --filter @thai-lottery-checker/api dev
 - API:
   - Request `GET http://localhost:4000/health`
   - Confirm the response reports API status and database reachability
+  - Stop the API with `Ctrl+C` and confirm it shuts down cleanly
 - Database:
   - Confirm `pnpm db:migrate:dev` completes successfully
   - Confirm the API health response reports the database as reachable
@@ -98,3 +99,4 @@ packages/
 
 - This slice intentionally excludes lottery result features, blog features, auth, and ticket-checking business logic.
 - Local development expects an externally provided PostgreSQL instance.
+- The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
