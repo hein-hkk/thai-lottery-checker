@@ -73,8 +73,9 @@ Backend API connects to
 
 Technology:
 
-- Next.js
+- Next.js 16
 - TypeScript
+- Tailwind CSS 4
 
 Responsibilities:
 
@@ -84,6 +85,7 @@ Responsibilities:
 - Display blog content
 - Provide SEO optimized pages
 - Support multilingual routing
+- Use Tailwind CSS 4 as the baseline styling system for public web pages
 
 Example routes:
 - `/results`
@@ -150,12 +152,15 @@ Admin routes example:
 - Node.js
 - Express
 - TypeScript
+- Prisma 7
 
 The backend exposes **REST API endpoints** used by:
 
 - Web application
 - Mobile application
 - Admin dashboard
+
+The API bootstrap handles graceful shutdown on `SIGINT` and `SIGTERM` by closing the HTTP server cleanly and disconnecting Prisma before exit.
 
 ---
 
@@ -276,6 +281,7 @@ Responsibilities:
 Technology:
 
 - PostgreSQL
+- Prisma 7 client and migration tooling
 
 PostgreSQL is the **canonical source of truth** for all system data.
 

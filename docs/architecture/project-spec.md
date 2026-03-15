@@ -131,7 +131,8 @@ Internal operators who manage:
 
 ### Frontend
 
-- **Next.js** for the public website and protected admin area
+- **Next.js 16** for the public website and protected admin area
+- **Tailwind CSS 4** as the baseline styling system for the web app
 - **React Native + Expo** for the mobile app
 
 ### Backend
@@ -144,13 +145,13 @@ Internal operators who manage:
 - **PostgreSQL** as the primary source of truth
 - **Managed Redis** for result-data caching on hot read paths
 - **Cloud object storage** for blog banners and media uploads
+- **Prisma 7** for PostgreSQL client generation and migrations
 - **Monorepo** for web, mobile, API, and shared packages
 
 ### Shared tooling
 
 - **TypeScript** across the stack
 - **Zod** for validation schemas
-- **Prisma** or equivalent ORM for PostgreSQL access
 - Shared packages for:
   - types
   - schemas
@@ -188,6 +189,7 @@ Frontend clients
 - Use **Redis only for hot result reads and cache invalidation workflows**
 - Avoid early microservices; keep a modular monolith structure
 - Keep admin separated logically inside the web app
+- Handle API process shutdown gracefully on `SIGINT` and `SIGTERM`, including clean HTTP server closure and Prisma disconnect
 
 ## 8. Core System Components
 
@@ -465,4 +467,3 @@ The MVP is successful when:
 - Blog content supports organic discovery and monetization goals
 - The system remains stable during draw-day traffic spikes
 - Redis improves hot-path performance without compromising correctness
-

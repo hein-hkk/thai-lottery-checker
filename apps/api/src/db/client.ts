@@ -1,4 +1,10 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { getApiEnv } from "../config/env.js";
+import { PrismaClient } from "../generated/prisma/client.js";
+
+const adapter = new PrismaPg({
+  connectionString: getApiEnv().DATABASE_URL
+});
 
 declare global {
   var __thaiLotteryPrisma__: PrismaClient | undefined;
@@ -7,6 +13,7 @@ declare global {
 export const prisma =
   globalThis.__thaiLotteryPrisma__ ??
   new PrismaClient({
+    adapter,
     log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"]
   });
 
@@ -21,4 +28,8 @@ export async function checkDatabaseConnection(): Promise<boolean> {
   } catch {
     return false;
   }
+}
+
+export async function disconnectDatabase(): Promise<void> {
+  await prisma.$disconnect();
 }

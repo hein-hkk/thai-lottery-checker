@@ -1,6 +1,6 @@
 # Thai Lottery Checker
 
-Slice 0 sets up the monorepo foundation for the Thai Lottery Checker project. It includes a Next.js web app, an Express API, shared TypeScript packages, Prisma-based PostgreSQL access, and minimal locale-aware routing.
+Slice 0 sets up the monorepo foundation for the Thai Lottery Checker project. It includes a Next.js web app with Tailwind CSS 4, an Express API, shared TypeScript packages, Prisma 7-based PostgreSQL access, and minimal locale-aware routing.
 
 ## Requirements
 
@@ -24,7 +24,7 @@ cp .env.example .env
 
 3. Update `DATABASE_URL` in `.env` so it points to your PostgreSQL instance.
 
-4. Generate the Prisma client:
+4. Generate the Prisma 7 client:
 
 ```bash
 pnpm db:generate
@@ -59,9 +59,11 @@ pnpm --filter @thai-lottery-checker/api dev
   - Open `http://localhost:3000/th`
   - Open `http://localhost:3000/my`
   - Open `http://localhost:3000/` and confirm it redirects to the default locale
+  - Confirm the locale shell page is styled through Tailwind CSS
 - API:
   - Request `GET http://localhost:4000/health`
   - Confirm the response reports API status and database reachability
+  - Stop the API with `Ctrl+C` and confirm it shuts down cleanly
 - Database:
   - Confirm `pnpm db:migrate:dev` completes successfully
   - Confirm the API health response reports the database as reachable
@@ -97,3 +99,4 @@ packages/
 
 - This slice intentionally excludes lottery result features, blog features, auth, and ticket-checking business logic.
 - Local development expects an externally provided PostgreSQL instance.
+- The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
