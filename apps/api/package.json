@@ -9,14 +9,18 @@
     "start": "dotenv -e ../../.env -- node dist/index.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test tests/results-api.test.ts",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
-    "db:studio": "prisma studio"
+    "db:studio": "prisma studio",
+    "db:seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.0.0",
     "@prisma/client": "^7.0.0",
+    "@thai-lottery-checker/domain": "workspace:*",
+    "@thai-lottery-checker/schemas": "workspace:*",
     "@thai-lottery-checker/types": "workspace:*",
     "@thai-lottery-checker/utils": "workspace:*",
     "dotenv": "^16.4.7",

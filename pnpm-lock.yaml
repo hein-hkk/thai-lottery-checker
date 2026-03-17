@@ -53,6 +53,12 @@ importers:
       '@prisma/client':
         specifier: ^7.0.0
         version: 7.5.0(prisma@7.5.0(@types/react@19.2.14)(react-dom@19.2.4(react@19.2.4))(react@19.2.4)(typescript@5.9.3))(typescript@5.9.3)
+      '@thai-lottery-checker/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
+      '@thai-lottery-checker/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@thai-lottery-checker/types':
         specifier: workspace:*
         version: link:../../packages/types
@@ -87,6 +93,9 @@ importers:
       '@thai-lottery-checker/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@thai-lottery-checker/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@thai-lottery-checker/types':
         specifier: workspace:*
         version: link:../../packages/types
