@@ -56,6 +56,9 @@ importers:
       '@thai-lottery-checker/domain':
         specifier: workspace:*
         version: link:../../packages/domain
+      '@thai-lottery-checker/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@thai-lottery-checker/types':
         specifier: workspace:*
         version: link:../../packages/types

@@ -69,7 +69,7 @@ const draftDrawGroups: SeedPrizeGroup[] = [
   { type: "FRONT_THREE", numbers: ["111"] }
 ];
 
-async function seed(): Promise<void> {
+export async function seed(): Promise<void> {
   const bootstrapAdmin = await prisma.admin.upsert({
     where: { email: "seed-admin@thai-lottery-checker.local" },
     update: {
@@ -150,12 +150,14 @@ async function seed(): Promise<void> {
   });
 }
 
-seed()
-  .then(async () => {
-    await prisma.$disconnect();
-  })
-  .catch(async (error) => {
-    console.error("Seed failed", error);
-    await prisma.$disconnect();
-    process.exit(1);
-  });
+if (import.meta.url === new URL(process.argv[1], "file:").href) {
+  seed()
+    .then(async () => {
+      await prisma.$disconnect();
+    })
+    .catch(async (error) => {
+      console.error("Seed failed", error);
+      await prisma.$disconnect();
+      process.exit(1);
+    });
+}
