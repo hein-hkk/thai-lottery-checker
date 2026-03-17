@@ -271,7 +271,7 @@ Tracks sensitive admin actions such as result creation, updates, publication, an
 Represents a draw event by date and publish status.
 
 #### `lottery_results`
-Stores the actual prize numbers associated with a draw.
+Stores one winning number per row for a draw, using `PrizeType` and `prize_index` to group and order canonical Thai Government Lottery prize results.
 
 #### `blog_posts`
 Stores blog post metadata such as slug, banner, and publish state.
@@ -307,10 +307,30 @@ Stores product analytics events for business reporting.
 
 - `Locale`: `en`, `th`, `my`
 - `PublishStatus`: `draft`, `published`
-- `PrizeType`: `FIRST_PRIZE`, `FRONT_THREE`, `LAST_THREE`, `LAST_TWO`
+- `PrizeType`: `FIRST_PRIZE`, `NEAR_FIRST_PRIZE`, `SECOND_PRIZE`, `THIRD_PRIZE`, `FOURTH_PRIZE`, `FIFTH_PRIZE`, `FRONT_THREE`, `LAST_THREE`, `LAST_TWO`
 - `AdminRole`: `super_admin`, `editor`
 - `AuthProvider`: `email`, `google`, `apple`
 - `NotificationType`: `buy_reminder`, `draw_reminder`, `check_reminder`
+
+### Lottery result model summary
+
+- `lottery_draws` and `lottery_results` remain the only result-domain tables
+- Each `lottery_result` row stores one winning number as a string so leading zeros are preserved
+- Canonical expected prize-group counts per draw are:
+  - `FIRST_PRIZE`: 1
+  - `NEAR_FIRST_PRIZE`: 2
+  - `SECOND_PRIZE`: 5
+  - `THIRD_PRIZE`: 10
+  - `FOURTH_PRIZE`: 50
+  - `FIFTH_PRIZE`: 100
+  - `FRONT_THREE`: 2
+  - `LAST_THREE`: 2
+  - `LAST_TWO`: 1
+- Canonical digit lengths are:
+  - six digits for `FIRST_PRIZE`, `NEAR_FIRST_PRIZE`, `SECOND_PRIZE`, `THIRD_PRIZE`, `FOURTH_PRIZE`, and `FIFTH_PRIZE`
+  - three digits for `FRONT_THREE` and `LAST_THREE`
+  - two digits for `LAST_TWO`
+- Public result payloads should expose grouped prize data in canonical order while preserving number strings exactly as stored
 
 ## 10. API Design Summary
 
@@ -322,6 +342,73 @@ Stores product analytics events for business reporting.
 - `POST /api/v1/checker/check`
 - `GET /api/v1/blogs`
 - `GET /api/v1/blogs/:slug`
+
+### Public result browsing contract
+
+The public result browsing APIs remain:
+
+- `GET /api/v1/results/latest`
+- `GET /api/v1/results`
+- `GET /api/v1/results/:drawDate`
+
+These endpoints support Slice 1 public browsing for:
+
+- latest result browsing
+- result history
+- result detail by draw date
+- published-only visibility
+- multilingual-ready UI labels
+
+Slice 1 result browsing is read-only. Admin entry, corrections, and checker logic remain later-slice concerns even though they are part of the broader product roadmap.
+
+### Latest / detail response shape
+
+Detailed result responses should support grouped prize data using canonical prize order:
+
+1. `FIRST_PRIZE`
+2. `NEAR_FIRST_PRIZE`
+3. `SECOND_PRIZE`
+4. `THIRD_PRIZE`
+5. `FOURTH_PRIZE`
+6. `FIFTH_PRIZE`
+7. `FRONT_THREE`
+8. `LAST_THREE`
+9. `LAST_TWO`
+
+Example latest or detail response:
+
+```json
+{
+  "drawDate": "2026-03-01",
+  "drawCode": "2026-03-01",
+  "publishedAt": "2026-03-01T09:30:00.000Z",
+  "prizeGroups": [
+    { "type": "FIRST_PRIZE", "numbers": ["820866"] },
+    { "type": "NEAR_FIRST_PRIZE", "numbers": ["820865", "820867"] },
+    { "type": "SECOND_PRIZE", "numbers": ["328032", "716735", "320227", "000001", "999999"] },
+    { "type": "THIRD_PRIZE", "numbers": ["123456", "234567", "345678", "456789", "567890", "678901", "789012", "890123", "901234", "012345"] },
+    { "type": "FOURTH_PRIZE", "numbers": ["..."] },
+    { "type": "FIFTH_PRIZE", "numbers": ["..."] },
+    { "type": "FRONT_THREE", "numbers": ["068", "837"] },
+    { "type": "LAST_THREE", "numbers": ["054", "479"] },
+    { "type": "LAST_TWO", "numbers": ["06"] }
+  ]
+}
+```
+
+### History response shape
+
+History responses remain summarized rather than returning full grouped detail for every row.
+
+Example history item:
+
+```json
+{
+  "drawDate": "2026-03-01",
+  "firstPrize": "820866",
+  "lastTwo": "06"
+}
+```
 
 ### Authenticated user endpoints
 
@@ -422,6 +509,7 @@ This supports both SEO and audience-specific user journeys.
 - Ticket numbers and prize numbers are stored as strings
 - Numeric strings must preserve leading zeros
 - Prize lengths must match prize type requirements
+- Public result browsing must read only published draws
 - Blog locale values must match supported locales
 
 ## 14. Non-Functional Requirements

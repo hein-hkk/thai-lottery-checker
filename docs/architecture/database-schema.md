@@ -50,9 +50,14 @@ Used for result and blog publishing workflow:
 
 ## 2.3 PrizeType
 
-Supported lottery prize groups for MVP:
+Supported lottery prize groups for the canonical Thai Government Lottery public result structure:
 
 - `FIRST_PRIZE`
+- `NEAR_FIRST_PRIZE`
+- `SECOND_PRIZE`
+- `THIRD_PRIZE`
+- `FOURTH_PRIZE`
+- `FIFTH_PRIZE`
 - `FRONT_THREE`
 - `LAST_THREE`
 - `LAST_TWO`
@@ -161,7 +166,10 @@ Represents one lottery draw event.
 ### Notes
 
 - One row represents one draw date
+- `draw_date` must be unique
 - Public users should only see rows where `status = published`
+- `published_at` should be non-null when `status = published`
+- Slice 1 may rely on a seeded or bootstrap admin row for `created_by_admin_id` and `updated_by_admin_id` until later admin slices provide the full result-entry workflow
 
 ---
 
@@ -181,16 +189,25 @@ Stores prize numbers belonging to a draw.
 
 ### Notes
 
+- One row represents exactly one winning number for one draw
+- `prize_index` is zero-based and defines stable order within a prize type
 - `number` is stored as a string to preserve leading zeros
-- `prize_index` supports prize groups with multiple numbers
+- `number` must contain digits only, with no separators or spaces
+- Public APIs and shared result types should return `number` exactly as stored
 
 ### Example
 
 For one draw:
 
 - `FIRST_PRIZE`, index `0`, number `123456`
+- `NEAR_FIRST_PRIZE`, index `0`, number `012345`
+- `NEAR_FIRST_PRIZE`, index `1`, number `987654`
+- `SECOND_PRIZE`, index `0`, number `234567`
+- `THIRD_PRIZE`, index `0`, number `345678`
+- `FOURTH_PRIZE`, index `0`, number `456789`
+- `FIFTH_PRIZE`, index `0`, number `567890`
 - `FRONT_THREE`, index `0`, number `123`
-- `FRONT_THREE`, index `1`, number `456`
+- `FRONT_THREE`, index `1`, number `045`
 - `LAST_THREE`, index `0`, number `111`
 - `LAST_THREE`, index `1`, number `222`
 - `LAST_TWO`, index `0`, number `89`
@@ -200,6 +217,47 @@ For one draw:
 Unique composite constraint:
 
 - `(draw_id, prize_type, prize_index)`
+
+### Canonical prize-group rules
+
+| Prize type | Expected rows per draw | Digit length |
+| --- | ---: | ---: |
+| `FIRST_PRIZE` | 1 | 6 |
+| `NEAR_FIRST_PRIZE` | 2 | 6 |
+| `SECOND_PRIZE` | 5 | 6 |
+| `THIRD_PRIZE` | 10 | 6 |
+| `FOURTH_PRIZE` | 50 | 6 |
+| `FIFTH_PRIZE` | 100 | 6 |
+| `FRONT_THREE` | 2 | 3 |
+| `LAST_THREE` | 2 | 3 |
+| `LAST_TWO` | 1 | 2 |
+
+### Canonical display order
+
+Shared domain helpers, shared types, shared schemas, and public result payloads should use this stable prize-group order:
+
+1. `FIRST_PRIZE`
+2. `NEAR_FIRST_PRIZE`
+3. `SECOND_PRIZE`
+4. `THIRD_PRIZE`
+5. `FOURTH_PRIZE`
+6. `FIFTH_PRIZE`
+7. `FRONT_THREE`
+8. `LAST_THREE`
+9. `LAST_TWO`
+
+### Draw completeness rule
+
+- A draw is result-complete only when every canonical prize group exists with the expected row counts listed above
+- Draft draws may be incomplete
+- Published draws should be treated as complete
+- Slice 1 public browsing should expose published draws only
+
+### Public result shape assumption
+
+- Shared result DTOs and validation schemas should represent all canonical prize groups
+- Prize numbers must remain strings in API payloads and shared types
+- Prize groups should be emitted in canonical display order so web and API consumers can reuse the same shared logic
 
 ---
 
@@ -458,14 +516,34 @@ Stores product analytics and usage events.
 
 ## Lottery Results
 - `draw_date` must be valid
-- result rows must match expected digit length
+- result rows must match expected digit length for their `prize_type`
+- each draw must preserve uniqueness on `(draw_id, prize_type, prize_index)`
+- `prize_index` must be zero-based
+- result numbers must contain digits only
+- result numbers must preserve leading zeros
 - only published draws should be visible publicly
 
 ## Prize digit rules
 - `FIRST_PRIZE` → 6 digits
+- `NEAR_FIRST_PRIZE` → 6 digits
+- `SECOND_PRIZE` → 6 digits
+- `THIRD_PRIZE` → 6 digits
+- `FOURTH_PRIZE` → 6 digits
+- `FIFTH_PRIZE` → 6 digits
 - `FRONT_THREE` → 3 digits
 - `LAST_THREE` → 3 digits
 - `LAST_TWO` → 2 digits
+
+## Prize count rules per draw
+- `FIRST_PRIZE` → exactly 1 row
+- `NEAR_FIRST_PRIZE` → exactly 2 rows
+- `SECOND_PRIZE` → exactly 5 rows
+- `THIRD_PRIZE` → exactly 10 rows
+- `FOURTH_PRIZE` → exactly 50 rows
+- `FIFTH_PRIZE` → exactly 100 rows
+- `FRONT_THREE` → exactly 2 rows
+- `LAST_THREE` → exactly 2 rows
+- `LAST_TWO` → exactly 1 row
 
 ## Ticket Numbers
 - must be numeric strings
@@ -490,10 +568,17 @@ Stores product analytics and usage events.
 ## Lottery Results
 Before publish:
 - draw must exist
-- first prize must exist
-- front three must have exactly 2 numbers
-- last three must have exactly 2 numbers
-- last two must have exactly 1 number
+- all canonical prize groups must exist
+- `FIRST_PRIZE` must have exactly 1 number
+- `NEAR_FIRST_PRIZE` must have exactly 2 numbers
+- `SECOND_PRIZE` must have exactly 5 numbers
+- `THIRD_PRIZE` must have exactly 10 numbers
+- `FOURTH_PRIZE` must have exactly 50 numbers
+- `FIFTH_PRIZE` must have exactly 100 numbers
+- `FRONT_THREE` must have exactly 2 numbers
+- `LAST_THREE` must have exactly 2 numbers
+- `LAST_TWO` must have exactly 1 number
+- every result row must satisfy the prize-type digit length rule
 
 After publish:
 - draw status becomes published
