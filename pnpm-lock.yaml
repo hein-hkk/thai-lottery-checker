@@ -93,6 +93,9 @@ importers:
       '@thai-lottery-checker/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n
+      '@thai-lottery-checker/schemas':
+        specifier: workspace:*
+        version: link:../../packages/schemas
       '@thai-lottery-checker/types':
         specifier: workspace:*
         version: link:../../packages/types

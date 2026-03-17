@@ -1,4 +1,4 @@
-import { defaultLocale, getLocaleLabel, isSupportedLocale, supportedLocales } from "@thai-lottery-checker/i18n";
+import { defaultLocale, getLocaleLabel, getResultsMessages, isSupportedLocale, supportedLocales } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -32,6 +32,7 @@ export default async function LocalePage({ params }: LocalePageProps) {
 
   const publicEnv = getPublicEnv();
   const copy = copyByLocale[locale];
+  const resultsMessages = getResultsMessages(locale);
 
   return (
     <main className="min-h-screen px-5 py-12 md:px-8">
@@ -41,10 +42,10 @@ export default async function LocalePage({ params }: LocalePageProps) {
         <p className="mt-4 text-base leading-7 text-slate-700">{copy.body}</p>
         <div className="mt-8 grid gap-3 text-sm text-slate-600">
           <p>
-            <span className="font-semibold text-slate-900">Current locale:</span> {getLocaleLabel(locale)}
+            <span className="font-semibold text-slate-900">{resultsMessages.currentLocale}:</span> {getLocaleLabel(locale)}
           </p>
           <p>
-            <span className="font-semibold text-slate-900">Default locale:</span> {getLocaleLabel(defaultLocale)}
+            <span className="font-semibold text-slate-900">{resultsMessages.defaultLocale}:</span> {getLocaleLabel(defaultLocale)}
           </p>
         </div>
         <ul className="mt-8 flex flex-wrap gap-3">
@@ -59,6 +60,20 @@ export default async function LocalePage({ params }: LocalePageProps) {
             </li>
           ))}
         </ul>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link
+            className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
+            href={`/${locale}/results`}
+          >
+            {resultsMessages.browseLatest}
+          </Link>
+          <Link
+            className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
+            href={`/${locale}/results/history`}
+          >
+            {resultsMessages.viewHistory}
+          </Link>
+        </div>
       </section>
     </main>
   );
