@@ -7,6 +7,28 @@ datasource db {
   provider = "postgresql"
 }
 
+enum PublishStatus {
+  draft
+  published
+}
+
+enum PrizeType {
+  FIRST_PRIZE
+  NEAR_FIRST_PRIZE
+  SECOND_PRIZE
+  THIRD_PRIZE
+  FOURTH_PRIZE
+  FIFTH_PRIZE
+  FRONT_THREE
+  LAST_THREE
+  LAST_TWO
+}
+
+enum AdminRole {
+  super_admin
+  editor
+}
+
 model SystemHeartbeat {
   id        Int      @id @default(1)
   label     String   @default("foundation")
@@ -14,4 +36,54 @@ model SystemHeartbeat {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("system_heartbeat")
+}
+
+model Admin {
+  id             String        @id @default(uuid()) @db.Uuid
+  email          String        @unique
+  passwordHash   String        @map("password_hash")
+  role           AdminRole     @default(editor)
+  isActive       Boolean       @default(true) @map("is_active")
+  lastLoginAt    DateTime?     @map("last_login_at")
+  createdAt      DateTime      @default(now()) @map("created_at")
+  updatedAt      DateTime      @updatedAt @map("updated_at")
+  createdDraws   LotteryDraw[] @relation("draw_created_by_admin")
+  updatedDraws   LotteryDraw[] @relation("draw_updated_by_admin")
+
+  @@map("admins")
+}
+
+model LotteryDraw {
+  id               String         @id @default(uuid()) @db.Uuid
+  drawDate         DateTime       @unique @db.Date @map("draw_date")
+  drawCode         String?        @map("draw_code")
+  status           PublishStatus  @default(draft)
+  publishedAt      DateTime?      @map("published_at")
+  createdByAdminId String         @db.Uuid @map("created_by_admin_id")
+  updatedByAdminId String         @db.Uuid @map("updated_by_admin_id")
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  createdByAdmin   Admin          @relation("draw_created_by_admin", fields: [createdByAdminId], references: [id])
+  updatedByAdmin   Admin          @relation("draw_updated_by_admin", fields: [updatedByAdminId], references: [id])
+  results          LotteryResult[]
+
+  @@index([status])
+  @@index([publishedAt], map: "lottery_draws_published_at_idx")
+  @@map("lottery_draws")
+}
+
+model LotteryResult {
+  id         String      @id @default(uuid()) @db.Uuid
+  drawId     String      @db.Uuid @map("draw_id")
+  prizeType  PrizeType   @map("prize_type")
+  prizeIndex Int         @default(0) @map("prize_index")
+  number     String
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+  draw       LotteryDraw @relation(fields: [drawId], references: [id], onDelete: Cascade)
+
+  @@index([drawId], map: "lottery_results_draw_id_idx")
+  @@index([drawId, prizeType], map: "lottery_results_draw_id_prize_type_idx")
+  @@unique([drawId, prizeType, prizeIndex], map: "lottery_results_draw_id_prize_type_prize_index_key")
+  @@map("lottery_results")
 }
