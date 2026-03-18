@@ -2,6 +2,7 @@ import express, { type Express } from "express";
 import { getApiEnv } from "./config/env.js";
 import { adminAuthRouter } from "./modules/admin-auth/admin-auth.routes.js";
 import { adminGovernanceRouter } from "./modules/admin-governance/admin-governance.routes.js";
+import { adminResultsRouter } from "./modules/admin-results/admin-results.routes.js";
 import { resultsRouter } from "./modules/results/results.routes.js";
 import { healthRouter } from "./routes/health.js";
 
@@ -43,6 +44,7 @@ export function createApp(): Express {
   app.use("/health", healthRouter);
   app.use("/api/v1/admin/auth", adminAuthRouter);
   app.use("/api/v1/admin", adminGovernanceRouter);
+  app.use("/api/v1/admin", adminResultsRouter);
   app.use("/api/v1/results", resultsRouter);
 
   return app;

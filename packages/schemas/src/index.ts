@@ -3,6 +3,7 @@ import { z } from "zod";
 export const localeSchema = z.enum(["en", "th", "my"]);
 export const adminRoleSchema = z.enum(["super_admin", "editor"]);
 export const adminPermissionSchema = z.enum(["manage_results", "manage_blogs"]);
+export const publishStatusSchema = z.enum(["draft", "published"]);
 
 export type LocaleSchema = z.infer<typeof localeSchema>;
 
@@ -161,8 +162,46 @@ export const resultHistoryResponseSchema = z.object({
   total: z.number().int().min(0)
 });
 
+export const adminResultListItemSchema = z.object({
+  id: z.string().uuid(),
+  drawDate: z.string().regex(drawDatePattern),
+  drawCode: z.string().nullable(),
+  status: publishStatusSchema,
+  publishedAt: z.string().datetime({ offset: true }).nullable(),
+  updatedAt: z.string().datetime({ offset: true })
+});
+
+export const adminResultListResponseSchema = z.object({
+  items: z.array(adminResultListItemSchema)
+});
+
+export const adminResultDetailSchema = z.object({
+  id: z.string().uuid(),
+  drawDate: z.string().regex(drawDatePattern),
+  drawCode: z.string().nullable(),
+  status: publishStatusSchema,
+  publishedAt: z.string().datetime({ offset: true }).nullable(),
+  updatedAt: z.string().datetime({ offset: true }),
+  prizeGroups: z.array(prizeGroupSchema)
+});
+
+export const adminResultDetailResponseSchema = z.object({
+  result: adminResultDetailSchema
+});
+
+export const adminResultWriteRequestSchema = z.object({
+  drawDate: z.string().regex(drawDatePattern),
+  drawCode: z.string().trim().min(1).nullable().optional(),
+  prizeGroups: z.array(prizeGroupSchema)
+});
+
+export const adminResultPublishResponseSchema = z.object({
+  result: adminResultDetailSchema
+});
+
 export type AdminRoleSchema = z.infer<typeof adminRoleSchema>;
 export type AdminPermissionSchema = z.infer<typeof adminPermissionSchema>;
+export type PublishStatusSchema = z.infer<typeof publishStatusSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
 export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
 export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;
@@ -187,3 +226,9 @@ export type PrizeGroupSchema = z.infer<typeof prizeGroupSchema>;
 export type ResultDetailResponseSchema = z.infer<typeof resultDetailResponseSchema>;
 export type ResultHistoryItemSchema = z.infer<typeof resultHistoryItemSchema>;
 export type ResultHistoryResponseSchema = z.infer<typeof resultHistoryResponseSchema>;
+export type AdminResultListItemSchema = z.infer<typeof adminResultListItemSchema>;
+export type AdminResultListResponseSchema = z.infer<typeof adminResultListResponseSchema>;
+export type AdminResultDetailSchema = z.infer<typeof adminResultDetailSchema>;
+export type AdminResultDetailResponseSchema = z.infer<typeof adminResultDetailResponseSchema>;
+export type AdminResultWriteRequestSchema = z.infer<typeof adminResultWriteRequestSchema>;
+export type AdminResultPublishResponseSchema = z.infer<typeof adminResultPublishResponseSchema>;

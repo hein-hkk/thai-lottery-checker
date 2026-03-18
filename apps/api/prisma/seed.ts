@@ -74,19 +74,36 @@ const draftDrawGroups: SeedPrizeGroup[] = [
 export async function seed(): Promise<void> {
   const env = getApiEnv();
   const passwordHash = await hashPassword(env.ADMIN_BOOTSTRAP_PASSWORD);
+  const bootstrapEmail = env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase();
+
+  await prisma.adminAuditLog.deleteMany();
+  await prisma.adminPasswordReset.deleteMany();
+  await prisma.adminInvitation.deleteMany();
+  await prisma.adminPermissionGrant.deleteMany();
+  await prisma.lotteryResult.deleteMany();
+  await prisma.lotteryDraw.deleteMany();
+  await prisma.admin.deleteMany({
+    where: {
+      email: {
+        not: bootstrapEmail
+      }
+    }
+  });
 
   const bootstrapAdmin = await prisma.admin.upsert({
-    where: { email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase() },
+    where: { email: bootstrapEmail },
     update: {
       name: env.ADMIN_BOOTSTRAP_NAME,
       passwordHash,
       role: "super_admin",
       isActive: true,
       deactivatedAt: null,
+      invitedByAdminId: null,
+      lastLoginAt: null,
       passwordUpdatedAt: new Date()
     },
     create: {
-      email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase(),
+      email: bootstrapEmail,
       name: env.ADMIN_BOOTSTRAP_NAME,
       passwordHash,
       role: "super_admin",
@@ -94,9 +111,6 @@ export async function seed(): Promise<void> {
       passwordUpdatedAt: new Date()
     }
   });
-
-  await prisma.lotteryResult.deleteMany();
-  await prisma.lotteryDraw.deleteMany();
 
   const publishedDraws = [
     {

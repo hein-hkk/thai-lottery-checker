@@ -112,6 +112,8 @@ export interface AdminUpdateResponse {
   admin: AdminListItem;
 }
 
+export type PublishStatus = "draft" | "published";
+
 export const prizeTypes = [
   "FIRST_PRIZE",
   "NEAR_FIRST_PRIZE",
@@ -164,4 +166,41 @@ export interface ResultHistoryResponse {
   page: number;
   limit: number;
   total: number;
+}
+
+export interface AdminResultListItem {
+  id: string;
+  drawDate: string;
+  drawCode: string | null;
+  status: PublishStatus;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AdminResultListResponse {
+  items: AdminResultListItem[];
+}
+
+export interface AdminResultDetail {
+  id: string;
+  drawDate: string;
+  drawCode: string | null;
+  status: PublishStatus;
+  publishedAt: string | null;
+  updatedAt: string;
+  prizeGroups: PrizeGroup[];
+}
+
+export interface AdminResultDetailResponse {
+  result: AdminResultDetail;
+}
+
+export interface AdminResultWriteRequest {
+  drawDate: string;
+  drawCode?: string | null;
+  prizeGroups: PrizeGroup[];
+}
+
+export interface AdminResultPublishResponse {
+  result: AdminResultDetail;
 }

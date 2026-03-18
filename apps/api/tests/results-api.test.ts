@@ -4,6 +4,7 @@ import { after, before, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
+import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
 import { createResultsService } from "../src/modules/results/results.service.js";
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
@@ -101,6 +102,62 @@ function getCookieValue(setCookieHeader: string | null): string | null {
 
   const [cookie] = setCookieHeader.split(";");
   return cookie ?? null;
+}
+
+async function ensureEditorAdmin(email: string, password: string, permissions: Array<"manage_results" | "manage_blogs">): Promise<void> {
+  const passwordHash = await hashPassword(password);
+  const existing = await prisma.admin.findUnique({
+    where: { email }
+  });
+
+  if (existing) {
+    await prisma.adminPermissionGrant.deleteMany({
+      where: { adminId: existing.id }
+    });
+
+    await prisma.admin.update({
+      where: { id: existing.id },
+      data: {
+        name: email,
+        passwordHash,
+        role: "editor",
+        isActive: true,
+        deactivatedAt: null,
+        passwordUpdatedAt: new Date()
+      }
+    });
+
+    if (permissions.length > 0) {
+      await prisma.adminPermissionGrant.createMany({
+        data: permissions.map((permission) => ({
+          adminId: existing.id,
+          permission
+        }))
+      });
+    }
+
+    return;
+  }
+
+  const admin = await prisma.admin.create({
+    data: {
+      email,
+      name: email,
+      passwordHash,
+      role: "editor",
+      isActive: true,
+      passwordUpdatedAt: new Date()
+    }
+  });
+
+  if (permissions.length > 0) {
+    await prisma.adminPermissionGrant.createMany({
+      data: permissions.map((permission) => ({
+        adminId: admin.id,
+        permission
+      }))
+    });
+  }
 }
 
 describe("results api", () => {
@@ -508,6 +565,234 @@ describe("results api", () => {
     assert.deepEqual(deactivateLastSuperAdmin.body, {
       code: "LAST_SUPER_ADMIN_PROTECTED",
       message: "The last active super admin cannot be deactivated or demoted"
+    });
+  });
+
+  it("supports admin result draft, publish, and correction workflows", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    const draftCreate = await postJson(
+      "/api/v1/admin/results",
+      {
+        drawDate: "2026-04-01",
+        drawCode: "special-april-draft",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["123456"] },
+          { type: "LAST_TWO", numbers: ["45"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(draftCreate.status, 201);
+    assert.equal((draftCreate.body as { result: { status: string } }).result.status, "draft");
+    assert.equal((draftCreate.body as { result: { publishedAt: string | null } }).result.publishedAt, null);
+
+    const createdDrawId = (draftCreate.body as { result: { id: string } }).result.id;
+
+    const publicDraft = await getJson("/api/v1/results/2026-04-01");
+    assert.equal(publicDraft.status, 404);
+
+    const duplicateDraw = await postJson(
+      "/api/v1/admin/results",
+      {
+        drawDate: "2026-04-01",
+        drawCode: "duplicate",
+        prizeGroups: []
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(duplicateDraw.status, 409);
+    assert.deepEqual(duplicateDraw.body, {
+      code: "ADMIN_RESULT_DUPLICATE_DRAW_DATE",
+      message: "A result draw already exists for this draw date"
+    });
+
+    const invalidDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "invalid-draft",
+        prizeGroups: [{ type: "LAST_TWO", numbers: ["4A"] }]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(invalidDraftUpdate.status, 400);
+    assert.deepEqual(invalidDraftUpdate.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Invalid prize number for LAST_TWO: 4A"
+    });
+
+    const incompleteDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "updated-incomplete-draft",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["654321"] },
+          { type: "FRONT_THREE", numbers: ["111", "222"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(incompleteDraftUpdate.status, 200);
+    assert.equal((incompleteDraftUpdate.body as { result: { status: string } }).result.status, "draft");
+
+    const publishIncomplete = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(publishIncomplete.status, 400);
+    assert.deepEqual(publishIncomplete.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Result prize groups are incomplete or invalid for publish/correction"
+    });
+
+    const completeDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["820866"] },
+          { type: "NEAR_FIRST_PRIZE", numbers: ["820865", "820867"] },
+          { type: "SECOND_PRIZE", numbers: ["328032", "716735", "320227", "000001", "999999"] },
+          { type: "THIRD_PRIZE", numbers: ["123456", "234567", "345678", "456789", "567890", "678901", "789012", "890123", "901234", "012345"] },
+          { type: "FOURTH_PRIZE", numbers: Array.from({ length: 50 }, (_, index) => String(400001 + index).padStart(6, "0")) },
+          { type: "FIFTH_PRIZE", numbers: Array.from({ length: 100 }, (_, index) => String(500001 + index).padStart(6, "0")) },
+          { type: "FRONT_THREE", numbers: ["068", "837"] },
+          { type: "LAST_THREE", numbers: ["054", "479"] },
+          { type: "LAST_TWO", numbers: ["06"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(completeDraftUpdate.status, 200);
+
+    const publish = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(publish.status, 200);
+    assert.equal((publish.body as { result: { status: string } }).result.status, "published");
+    const originalPublishedAt = (publish.body as { result: { publishedAt: string } }).result.publishedAt;
+    assert.ok(originalPublishedAt);
+
+    const republish = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(republish.status, 400);
+    assert.deepEqual(republish.body, {
+      code: "ADMIN_RESULT_INVALID_STATE",
+      message: "Only draft results can be published"
+    });
+
+    const publicPublished = await getJson("/api/v1/results/2026-04-01");
+    assert.equal(publicPublished.status, 200);
+
+    const invalidCorrection = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}/correct`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw",
+        prizeGroups: [{ type: "FIRST_PRIZE", numbers: ["999999"] }]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(invalidCorrection.status, 400);
+    assert.deepEqual(invalidCorrection.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Result prize groups are incomplete or invalid for publish/correction"
+    });
+
+    const correction = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}/correct`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw-corrected",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["999999"] },
+          { type: "NEAR_FIRST_PRIZE", numbers: ["820865", "820867"] },
+          { type: "SECOND_PRIZE", numbers: ["328032", "716735", "320227", "000001", "999999"] },
+          { type: "THIRD_PRIZE", numbers: ["123456", "234567", "345678", "456789", "567890", "678901", "789012", "890123", "901234", "012345"] },
+          { type: "FOURTH_PRIZE", numbers: Array.from({ length: 50 }, (_, index) => String(400001 + index).padStart(6, "0")) },
+          { type: "FIFTH_PRIZE", numbers: Array.from({ length: 100 }, (_, index) => String(500001 + index).padStart(6, "0")) },
+          { type: "FRONT_THREE", numbers: ["068", "837"] },
+          { type: "LAST_THREE", numbers: ["054", "479"] },
+          { type: "LAST_TWO", numbers: ["06"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(correction.status, 200);
+    assert.equal((correction.body as { result: { publishedAt: string } }).result.publishedAt, originalPublishedAt);
+    assert.equal((correction.body as { result: { drawCode: string } }).result.drawCode, "published-april-draw-corrected");
+
+    const adminResults = await getJsonWithCookie("/api/v1/admin/results", sessionCookie ?? undefined);
+    assert.equal(adminResults.status, 200);
+    assert.equal(
+      (adminResults.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdDrawId),
+      true
+    );
+
+    const correctionAuditLog = await prisma.adminAuditLog.findFirst({
+      where: {
+        entityId: createdDrawId,
+        action: "correct_result"
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    assert.ok(correctionAuditLog);
+    assert.equal(correctionAuditLog?.beforeData !== null, true);
+    assert.equal(correctionAuditLog?.afterData !== null, true);
+
+    await prisma.lotteryDraw.delete({
+      where: { id: createdDrawId }
+    });
+  });
+
+  it("enforces admin result permissions for editors", async () => {
+    await ensureEditorAdmin("editor-results@thai-lottery-checker.local", "EditorResults123!", ["manage_results"]);
+    await ensureEditorAdmin("editor-no-results@thai-lottery-checker.local", "EditorNoResults123!", ["manage_blogs"]);
+
+    const allowedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-results@thai-lottery-checker.local",
+      password: "EditorResults123!"
+    });
+    const allowedCookie = getCookieValue(allowedLogin.setCookie);
+
+    const blockedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-no-results@thai-lottery-checker.local",
+      password: "EditorNoResults123!"
+    });
+    const blockedCookie = getCookieValue(blockedLogin.setCookie);
+
+    const allowedList = await getJsonWithCookie("/api/v1/admin/results", allowedCookie ?? undefined);
+    assert.equal(allowedList.status, 200);
+
+    const blockedList = await getJsonWithCookie("/api/v1/admin/results", blockedCookie ?? undefined);
+    assert.equal(blockedList.status, 403);
+    assert.deepEqual(blockedList.body, {
+      code: "ADMIN_FORBIDDEN",
+      message: "Admin does not have permission to perform this action"
     });
   });
 
