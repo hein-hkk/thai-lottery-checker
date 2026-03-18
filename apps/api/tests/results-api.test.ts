@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { after, before, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
+import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
 import { createResultsService } from "../src/modules/results/results.service.js";
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
@@ -39,7 +40,51 @@ async function getJson(pathname: string): Promise<{ status: number; body: unknow
   };
 }
 
+async function getJsonWithCookie(pathname: string, cookie?: string): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    headers: cookie ? { cookie } : undefined
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+async function postJson(
+  pathname: string,
+  body: unknown,
+  cookie?: string
+): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { cookie } : {})
+    },
+    body: JSON.stringify(body)
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+function getCookieValue(setCookieHeader: string | null): string | null {
+  if (!setCookieHeader) {
+    return null;
+  }
+
+  const [cookie] = setCookieHeader.split(";");
+  return cookie ?? null;
+}
+
 describe("results api", () => {
+  const env = getApiEnv();
+
   before(async () => {
     await seed();
     baseUrl = await startServer();
@@ -72,6 +117,110 @@ describe("results api", () => {
 
     assert.equal(health.status, 200);
     assert.equal((health.body as { status: string }).status === "ok" || (health.body as { status: string }).status === "degraded", true);
+  });
+
+  it("logs in the seeded super admin and returns the current session", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+
+    assert.equal(login.status, 200);
+    assert.deepEqual(login.body, {
+      admin: {
+        id: (login.body as { admin: { id: string } }).admin.id,
+        email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase(),
+        name: env.ADMIN_BOOTSTRAP_NAME,
+        role: "super_admin",
+        effectivePermissions: ["manage_results", "manage_blogs"]
+      }
+    });
+
+    const sessionCookie = getCookieValue(login.setCookie);
+    assert.ok(sessionCookie);
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me", sessionCookie ?? undefined);
+
+    assert.equal(me.status, 200);
+    assert.deepEqual(me.body, login.body);
+  });
+
+  it("rejects invalid credentials and unauthenticated me requests", async () => {
+    const invalidLogin = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: "wrong-password"
+    });
+
+    assert.equal(invalidLogin.status, 401);
+    assert.deepEqual(invalidLogin.body, {
+      code: "INVALID_ADMIN_CREDENTIALS",
+      message: "Email or password is incorrect"
+    });
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me");
+
+    assert.equal(me.status, 401);
+    assert.deepEqual(me.body, {
+      code: "ADMIN_UNAUTHORIZED",
+      message: "Admin authentication is required"
+    });
+  });
+
+  it("blocks deactivated admins from authenticating", async () => {
+    const admin = await prisma.admin.findUniqueOrThrow({
+      where: { email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase() }
+    });
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date()
+      }
+    });
+
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+
+    assert.equal(login.status, 401);
+    assert.deepEqual(login.body, {
+      code: "INVALID_ADMIN_CREDENTIALS",
+      message: "Email or password is incorrect"
+    });
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: {
+        isActive: true,
+        deactivatedAt: null
+      }
+    });
+  });
+
+  it("clears the session cookie on logout and blocks further me access", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    assert.ok(sessionCookie);
+
+    const logout = await postJson("/api/v1/admin/auth/logout", {}, sessionCookie ?? undefined);
+
+    assert.equal(logout.status, 200);
+    assert.deepEqual(logout.body, { success: true });
+    assert.match(logout.setCookie ?? "", /admin_session=/);
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me");
+
+    assert.equal(me.status, 401);
+    assert.deepEqual(me.body, {
+      code: "ADMIN_UNAUTHORIZED",
+      message: "Admin authentication is required"
+    });
   });
 
   it("returns the latest published draw with grouped prize data in canonical order", async () => {

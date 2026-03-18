@@ -1,8 +1,38 @@
 export type SupportedLocale = "en" | "th" | "my";
 
+export const adminRoles = ["super_admin", "editor"] as const;
+export type AdminRole = (typeof adminRoles)[number];
+
+export const adminPermissions = ["manage_results", "manage_blogs"] as const;
+export type AdminPermission = (typeof adminPermissions)[number];
+
 export interface ServiceStatus {
   name: string;
   status: "up" | "down";
+}
+
+export interface AdminSessionPayload {
+  adminId: string;
+  email: string;
+  role: AdminRole;
+  passwordUpdatedAt: string | null;
+}
+
+export interface AuthenticatedAdmin {
+  id: string;
+  email: string;
+  name: string | null;
+  role: AdminRole;
+  effectivePermissions: AdminPermission[];
+}
+
+export interface AdminAuthResponse {
+  admin: AuthenticatedAdmin;
+}
+
+export interface AdminLoginRequest {
+  email: string;
+  password: string;
 }
 
 export const prizeTypes = [

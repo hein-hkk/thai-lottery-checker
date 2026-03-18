@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 export const localeSchema = z.enum(["en", "th", "my"]);
+export const adminRoleSchema = z.enum(["super_admin", "editor"]);
+export const adminPermissionSchema = z.enum(["manage_results", "manage_blogs"]);
 
 export type LocaleSchema = z.infer<typeof localeSchema>;
 
@@ -18,6 +20,30 @@ const prizeTypes = [
 ] as const;
 
 export const prizeTypeSchema = z.enum(prizeTypes);
+
+export const adminSessionPayloadSchema = z.object({
+  adminId: z.string().uuid(),
+  email: z.string().email(),
+  role: adminRoleSchema,
+  passwordUpdatedAt: z.string().datetime({ offset: true }).nullable()
+});
+
+export const authenticatedAdminSchema = z.object({
+  id: z.string().uuid(),
+  email: z.string().email(),
+  name: z.string().nullable(),
+  role: adminRoleSchema,
+  effectivePermissions: z.array(adminPermissionSchema)
+});
+
+export const adminLoginRequestSchema = z.object({
+  email: z.string().trim().email(),
+  password: z.string().min(1)
+});
+
+export const adminAuthResponseSchema = z.object({
+  admin: authenticatedAdminSchema
+});
 
 export const drawDateParamSchema = z.object({
   drawDate: z.string().regex(drawDatePattern, "drawDate must use YYYY-MM-DD format")
@@ -54,7 +80,13 @@ export const resultHistoryResponseSchema = z.object({
   total: z.number().int().min(0)
 });
 
+export type AdminRoleSchema = z.infer<typeof adminRoleSchema>;
+export type AdminPermissionSchema = z.infer<typeof adminPermissionSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
+export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
+export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;
+export type AdminLoginRequestSchema = z.infer<typeof adminLoginRequestSchema>;
+export type AdminAuthResponseSchema = z.infer<typeof adminAuthResponseSchema>;
 export type HistoryQuerySchema = z.infer<typeof historyQuerySchema>;
 export type PrizeGroupSchema = z.infer<typeof prizeGroupSchema>;
 export type ResultDetailResponseSchema = z.infer<typeof resultDetailResponseSchema>;

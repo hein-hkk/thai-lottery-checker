@@ -1,6 +1,8 @@
 import { assertValidPrizeNumber, groupPrizeRows, hasCompletePrizeGroups } from "@thai-lottery-checker/domain";
 import type { GroupableLotteryResult, PrizeType } from "@thai-lottery-checker/types";
+import { getApiEnv } from "../src/config/env.js";
 import { prisma } from "../src/db/client.js";
+import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
 
 type SeedPrizeGroup = {
   type: PrizeType;
@@ -70,17 +72,26 @@ const draftDrawGroups: SeedPrizeGroup[] = [
 ];
 
 export async function seed(): Promise<void> {
+  const env = getApiEnv();
+  const passwordHash = await hashPassword(env.ADMIN_BOOTSTRAP_PASSWORD);
+
   const bootstrapAdmin = await prisma.admin.upsert({
-    where: { email: "seed-admin@thai-lottery-checker.local" },
+    where: { email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase() },
     update: {
-      role: "editor",
-      isActive: true
+      name: env.ADMIN_BOOTSTRAP_NAME,
+      passwordHash,
+      role: "super_admin",
+      isActive: true,
+      deactivatedAt: null,
+      passwordUpdatedAt: new Date()
     },
     create: {
-      email: "seed-admin@thai-lottery-checker.local",
-      passwordHash: "seed-only-bootstrap-admin",
-      role: "editor",
-      isActive: true
+      email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase(),
+      name: env.ADMIN_BOOTSTRAP_NAME,
+      passwordHash,
+      role: "super_admin",
+      isActive: true,
+      passwordUpdatedAt: new Date()
     }
   });
 
