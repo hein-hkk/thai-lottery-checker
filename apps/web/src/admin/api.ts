@@ -6,6 +6,9 @@ import {
   adminListResponseSchema,
   adminPasswordResetConfirmResponseSchema,
   adminPasswordResetRequestResponseSchema,
+  adminResultDetailResponseSchema,
+  adminResultListResponseSchema,
+  adminResultPublishResponseSchema,
   adminUpdateResponseSchema
 } from "@thai-lottery-checker/schemas";
 import type {
@@ -19,6 +22,10 @@ import type {
   AdminPasswordResetConfirmRequest,
   AdminPasswordResetRequest,
   AdminPasswordResetRequestResponse,
+  AdminResultDetailResponse,
+  AdminResultListResponse,
+  AdminResultPublishResponse,
+  AdminResultWriteRequest,
   AdminUpdateRequest,
   AdminUpdateResponse
 } from "@thai-lottery-checker/types";
@@ -211,4 +218,102 @@ export async function updateAdminAccount(adminId: string, input: AdminUpdateRequ
   }
 
   return adminUpdateResponseSchema.parse(await response.json());
+}
+
+export async function getAdminResults(cookieHeader?: string): Promise<AdminResultListResponse> {
+  const response = await fetch(getAdminApiUrl("/api/v1/admin/results"), {
+    method: "GET",
+    cache: "no-store",
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    credentials: cookieHeader ? undefined : "include"
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to load admin results");
+  }
+
+  return adminResultListResponseSchema.parse(await response.json());
+}
+
+export async function getAdminResultDetail(drawId: string, cookieHeader?: string): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}`), {
+    method: "GET",
+    cache: "no-store",
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    credentials: cookieHeader ? undefined : "include"
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to load admin result");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
+}
+
+export async function createAdminResult(input: AdminResultWriteRequest): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl("/api/v1/admin/results"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to create result");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
+}
+
+export async function updateAdminResult(drawId: string, input: AdminResultWriteRequest): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}`), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to update result");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
+}
+
+export async function publishAdminResult(drawId: string): Promise<AdminResultPublishResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}/publish`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to publish result");
+  }
+
+  return adminResultPublishResponseSchema.parse(await response.json());
+}
+
+export async function correctAdminResult(drawId: string, input: AdminResultWriteRequest): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}/correct`), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to correct result");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
 }

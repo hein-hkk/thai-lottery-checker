@@ -3,6 +3,7 @@ import { requireAdminAuth } from "../admin-auth/admin-auth.middleware.js";
 import {
   correctAdminPublishedResult,
   createAdminResultDraft,
+  getAdminResultDetail,
   listAdminResults,
   publishAdminResultDraft,
   updateAdminResultDraft
@@ -11,6 +12,7 @@ import {
 export const adminResultsRouter: ExpressRouter = Router();
 
 adminResultsRouter.get("/results", requireAdminAuth, listAdminResults);
+adminResultsRouter.get("/results/:id", requireAdminAuth, getAdminResultDetail);
 adminResultsRouter.post("/results", requireAdminAuth, createAdminResultDraft);
 adminResultsRouter.patch("/results/:id", requireAdminAuth, updateAdminResultDraft);
 adminResultsRouter.post("/results/:id/publish", requireAdminAuth, publishAdminResultDraft);

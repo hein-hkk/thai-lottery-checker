@@ -18,6 +18,21 @@ export async function listAdminResults(request: Request, response: Response): Pr
   }
 }
 
+export async function getAdminResultDetail(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const drawId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const payload = await adminResultsService.getResultDetail(request.currentAdmin, drawId ?? "");
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminResultsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
 export async function createAdminResultDraft(request: Request, response: Response): Promise<void> {
   try {
     if (!request.currentAdmin) {

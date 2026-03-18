@@ -26,6 +26,14 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
               <Link className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900" href="/admin">
                 Home
               </Link>
+              {session.admin.effectivePermissions.includes("manage_results") ? (
+                <Link
+                  className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900"
+                  href="/admin/results"
+                >
+                  Results
+                </Link>
+              ) : null}
               {session.admin.role === "super_admin" ? (
                 <Link
                   className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900"

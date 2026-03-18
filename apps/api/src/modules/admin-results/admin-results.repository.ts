@@ -89,7 +89,7 @@ export const prismaAdminResultsRepository: AdminResultsRepository = {
   async findRowsByDrawId(drawId) {
     return prisma.lotteryResult.findMany({
       where: { drawId },
-      orderBy: [{ prizeIndex: "asc" }],
+      orderBy: [{ prizeType: "asc" }, { prizeIndex: "asc" }],
       select: {
         drawId: true,
         prizeType: true,

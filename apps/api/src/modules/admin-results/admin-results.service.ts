@@ -70,6 +70,7 @@ async function createAuditLog(input: {
 
 export interface AdminResultsService {
   listResults(actor: AuthenticatedAdmin): Promise<AdminResultListResponse>;
+  getResultDetail(actor: AuthenticatedAdmin, drawId: string): Promise<AdminResultDetailResponse>;
   createDraft(actor: AuthenticatedAdmin, input: unknown): Promise<AdminResultDetailResponse>;
   updateDraft(actor: AuthenticatedAdmin, drawId: string, input: unknown): Promise<AdminResultDetailResponse>;
   publishDraft(actor: AuthenticatedAdmin, drawId: string): Promise<AdminResultPublishResponse>;
@@ -85,6 +86,18 @@ export function createAdminResultsService(
       requireAdminPermission(actor, "manage_results");
       const draws = await repository.listAdminResults();
       return mapAdminResultListResponse(draws);
+    },
+
+    async getResultDetail(actor, drawId) {
+      requireAdminPermission(actor, "manage_results");
+      const draw = await repository.findDrawById(drawId);
+
+      if (!draw) {
+        throw adminResultNotFoundError();
+      }
+
+      const rows = await repository.findRowsByDrawId(draw.id);
+      return mapAdminResultDetailResponse(draw, rows);
     },
 
     async createDraft(actor, input) {
