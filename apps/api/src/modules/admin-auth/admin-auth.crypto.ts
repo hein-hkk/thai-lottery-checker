@@ -44,6 +44,14 @@ export async function verifyPassword(password: string, storedHash: string): Prom
   return timingSafeEqual(expectedHash, derivedKey);
 }
 
+export function createOpaqueToken(byteLength = 32): string {
+  return toBase64Url(randomBytes(byteLength));
+}
+
+export function hashOpaqueToken(token: string, secret: string): string {
+  return createHmac("sha256", secret).update(token).digest("hex");
+}
+
 export function signAdminSession(payload: AdminSessionPayload, secret: string): string {
   const encodedPayload = toBase64Url(JSON.stringify(payload));
   const signature = createSignature(encodedPayload, secret);

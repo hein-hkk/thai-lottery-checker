@@ -35,6 +35,83 @@ export interface AdminLoginRequest {
   password: string;
 }
 
+export interface AdminInvitationCreateRequest {
+  email: string;
+  role: AdminRole;
+  permissions: AdminPermission[];
+}
+
+export interface AdminInvitationCreateResponse {
+  invitationId: string;
+  email: string;
+  role: AdminRole;
+  permissions: AdminPermission[];
+  expiresAt: string;
+  inviteUrl?: string;
+}
+
+export interface AdminInvitationAcceptRequest {
+  token: string;
+  name: string;
+  password: string;
+}
+
+export interface AdminInvitationAcceptResponse {
+  success: true;
+}
+
+export interface AdminInvitationRevokeRequest {
+  invitationId: string;
+}
+
+export interface AdminInvitationRevokeResponse {
+  success: true;
+}
+
+export interface AdminPasswordResetRequest {
+  email: string;
+}
+
+export interface AdminPasswordResetRequestResponse {
+  success: true;
+  resetUrl?: string;
+}
+
+export interface AdminPasswordResetConfirmRequest {
+  token: string;
+  password: string;
+}
+
+export interface AdminPasswordResetConfirmResponse {
+  success: true;
+}
+
+export interface AdminListItem {
+  id: string;
+  email: string;
+  name: string | null;
+  role: AdminRole;
+  isActive: boolean;
+  deactivatedAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  permissions: AdminPermission[];
+}
+
+export interface AdminListResponse {
+  items: AdminListItem[];
+}
+
+export interface AdminUpdateRequest {
+  role?: AdminRole;
+  permissions?: AdminPermission[];
+  isActive?: boolean;
+}
+
+export interface AdminUpdateResponse {
+  admin: AdminListItem;
+}
+
 export const prizeTypes = [
   "FIRST_PRIZE",
   "NEAR_FIRST_PRIZE",
