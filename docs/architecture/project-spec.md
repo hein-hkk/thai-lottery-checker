@@ -6,7 +6,7 @@ Thai Lottery Checker is a multilingual digital product ecosystem for Thai lotter
 
 - A **public website** for result browsing, number checking, and SEO-focused blogs
 - A **mobile application** for the same core experience plus saved tickets, notes, and reminder notifications
-- A shared **admin system** for result entry, blog publishing, and business reporting
+- A shared **admin system** for result operations, blog operations, business reporting, and secure admin access and governance
 
 The product is designed as a real-world monetization-focused platform, with primary audience acquisition aimed at **Myanmar users**, followed by **Thai users**, while keeping **English** available for broader global reach.
 
@@ -32,7 +32,7 @@ Supported languages:
 - **Speed**: result pages and checker flows must remain responsive during draw-day spikes
 - **Simplicity**: users should be able to check numbers with minimal friction
 - **Localization**: Thai, Myanmar, and English experiences are first-class from the beginning
-- **Operational safety**: manual result entry must support draft, publish, correction, and audit logging
+- **Operational safety**: admin access must support authenticated entry, controlled onboarding and recovery, draft/publish/correction workflows, and audit logging for sensitive actions
 
 ## 3. Target Users
 
@@ -58,9 +58,9 @@ Users who want additional convenience features:
 
 Internal operators who manage:
 
-- Lottery result entry and publication
-- Blog creation and publishing
-- Business metrics and platform oversight
+- Lottery result management and publication
+- Blog management responsibilities
+- Platform oversight and business metrics
 
 ## 4. Core Features
 
@@ -90,11 +90,17 @@ Internal operators who manage:
 ### Admin panel
 
 - Admin authentication
+- Invitation-based admin onboarding
+- Password reset and account recovery flow
+- Admin user management by `super_admin`
+- Role and permission-based access control
 - Manual entry of official lottery result numbers
-- Draft and publish workflow
-- Blog CRUD with banner image support
-- Basic dashboard metrics for website and mobile usage
+- Draft, publish, and correction workflow for results
+- Blog management capabilities as part of the final admin platform
+- Dashboard metrics as part of the final admin platform
 - Audit logging for sensitive changes
+
+The admin area is implemented inside the same Next.js web application under protected `/admin` routes and uses the shared backend API.
 
 ## 5. MVP Scope
 
@@ -121,11 +127,15 @@ Internal operators who manage:
 ### Admin MVP
 
 - Admin login
+- Invitation-based admin onboarding
+- Password reset flow
+- Admin management basics for `super_admin`
+- Role and permission-based admin access baseline
 - Create and edit lottery results
 - Publish lottery results
-- Create and edit blogs
-- Publish blogs
-- View summary metrics
+- Correct published lottery results
+- Audit logging foundation for admin governance and result changes
+- Invitation and password reset links may be returned or displayed for manual sharing in MVP or development flows
 
 ## 6. Recommended Technology Stack
 
@@ -188,7 +198,8 @@ Frontend clients
 - Keep **PostgreSQL** as canonical storage
 - Use **Redis only for hot result reads and cache invalidation workflows**
 - Avoid early microservices; keep a modular monolith structure
-- Keep admin separated logically inside the web app
+- Keep admin separated logically inside the web app as a protected area in Next.js
+- Enforce admin authorization through the shared backend
 - Handle API process shutdown gracefully on `SIGINT` and `SIGTERM`, including clean HTTP server closure and Prisma disconnect
 
 ## 8. Core System Components
@@ -201,7 +212,7 @@ Responsible for:
 - draw history retrieval
 - draw detail retrieval
 - publish and correction workflows
-- Redis cache invalidation triggers
+- cache invalidation triggers for publish/correction, with Redis-backed execution added in the performance-hardening slice
 
 ### Number checker service
 
@@ -241,7 +252,11 @@ Responsible for:
 Responsible for:
 
 - admin authentication
+- invitation and onboarding support
+- password recovery support
+- permission-aware admin governance
 - manual result entry
+- result publishing and correction
 - blog management
 - dashboard summaries
 - audit logs
@@ -264,8 +279,17 @@ Responsible for:
 #### `admins`
 Stores admin accounts used for dashboard access.
 
+#### `admin_permissions`
+Stores scoped permissions for admin accounts.
+
+#### `admin_invitations`
+Stores invitation records for admin onboarding.
+
+#### `admin_password_resets`
+Stores password reset requests for admin accounts.
+
 #### `admin_audit_logs`
-Tracks sensitive admin actions such as result creation, updates, publication, and blog publishing.
+Tracks sensitive admin actions such as onboarding, governance, result creation, updates, publication, correction, and blog publishing.
 
 #### `lottery_draws`
 Represents a draw event by date and publish status.
@@ -301,6 +325,9 @@ Stores product analytics events for business reporting.
 - One `user` has many `saved_tickets`
 - One `user` has many `user_devices`
 - One `user` has one `notification_preferences`
+- One `admin` has many `admin_permissions`
+- One `admin` has many `admin_invitations`
+- One `admin` has many `admin_password_resets`
 - One `admin` has many `admin_audit_logs`
 
 ### Key enums
@@ -309,8 +336,20 @@ Stores product analytics events for business reporting.
 - `PublishStatus`: `draft`, `published`
 - `PrizeType`: `FIRST_PRIZE`, `NEAR_FIRST_PRIZE`, `SECOND_PRIZE`, `THIRD_PRIZE`, `FOURTH_PRIZE`, `FIFTH_PRIZE`, `FRONT_THREE`, `LAST_THREE`, `LAST_TWO`
 - `AdminRole`: `super_admin`, `editor`
+- `AdminPermission`: `manage_results`, `manage_blogs`
 - `AuthProvider`: `email`, `google`, `apple`
 - `NotificationType`: `buy_reminder`, `draw_reminder`, `check_reminder`
+
+### Admin platform summary
+
+- Slice 2 establishes the production-ready admin platform foundation for the final product
+- Bootstrap `super_admin` access may be created through seed data or environment setup
+- Admin onboarding is invitation-based
+- MVP and development flows may return or display invitation and password reset links for manual sharing before real email delivery is added
+- `super_admin` has full access
+- `editor` access is scoped through `manage_results` and `manage_blogs`
+- Editors with `manage_results` may create, edit, publish, and correct results
+- Correction history is handled through audit logs rather than a dedicated version-history UI in MVP
 
 ### Lottery result model summary
 

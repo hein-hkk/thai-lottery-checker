@@ -90,6 +90,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@thai-lottery-checker/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@thai-lottery-checker/i18n':
         specifier: workspace:*
         version: link:../../packages/i18n

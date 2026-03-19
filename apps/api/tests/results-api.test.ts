@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
 import { after, before, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
+import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
+import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
 import { createResultsService } from "../src/modules/results/results.service.js";
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
@@ -39,7 +41,128 @@ async function getJson(pathname: string): Promise<{ status: number; body: unknow
   };
 }
 
+async function getJsonWithCookie(pathname: string, cookie?: string): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    headers: cookie ? { cookie } : undefined
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+async function postJson(
+  pathname: string,
+  body: unknown,
+  cookie?: string
+): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { cookie } : {})
+    },
+    body: JSON.stringify(body)
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+async function patchJson(
+  pathname: string,
+  body: unknown,
+  cookie?: string
+): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { cookie } : {})
+    },
+    body: JSON.stringify(body)
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+function getCookieValue(setCookieHeader: string | null): string | null {
+  if (!setCookieHeader) {
+    return null;
+  }
+
+  const [cookie] = setCookieHeader.split(";");
+  return cookie ?? null;
+}
+
+async function ensureEditorAdmin(email: string, password: string, permissions: Array<"manage_results" | "manage_blogs">): Promise<void> {
+  const passwordHash = await hashPassword(password);
+  const existing = await prisma.admin.findUnique({
+    where: { email }
+  });
+
+  if (existing) {
+    await prisma.adminPermissionGrant.deleteMany({
+      where: { adminId: existing.id }
+    });
+
+    await prisma.admin.update({
+      where: { id: existing.id },
+      data: {
+        name: email,
+        passwordHash,
+        role: "editor",
+        isActive: true,
+        deactivatedAt: null,
+        passwordUpdatedAt: new Date()
+      }
+    });
+
+    if (permissions.length > 0) {
+      await prisma.adminPermissionGrant.createMany({
+        data: permissions.map((permission) => ({
+          adminId: existing.id,
+          permission
+        }))
+      });
+    }
+
+    return;
+  }
+
+  const admin = await prisma.admin.create({
+    data: {
+      email,
+      name: email,
+      passwordHash,
+      role: "editor",
+      isActive: true,
+      passwordUpdatedAt: new Date()
+    }
+  });
+
+  if (permissions.length > 0) {
+    await prisma.adminPermissionGrant.createMany({
+      data: permissions.map((permission) => ({
+        adminId: admin.id,
+        permission
+      }))
+    });
+  }
+}
+
 describe("results api", () => {
+  const env = getApiEnv();
+
   before(async () => {
     await seed();
     baseUrl = await startServer();
@@ -72,6 +195,605 @@ describe("results api", () => {
 
     assert.equal(health.status, 200);
     assert.equal((health.body as { status: string }).status === "ok" || (health.body as { status: string }).status === "degraded", true);
+  });
+
+  it("logs in the seeded super admin and returns the current session", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+
+    assert.equal(login.status, 200);
+    assert.deepEqual(login.body, {
+      admin: {
+        id: (login.body as { admin: { id: string } }).admin.id,
+        email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase(),
+        name: env.ADMIN_BOOTSTRAP_NAME,
+        role: "super_admin",
+        effectivePermissions: ["manage_results", "manage_blogs"]
+      }
+    });
+
+    const sessionCookie = getCookieValue(login.setCookie);
+    assert.ok(sessionCookie);
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me", sessionCookie ?? undefined);
+
+    assert.equal(me.status, 200);
+    assert.deepEqual(me.body, login.body);
+  });
+
+  it("rejects invalid credentials and unauthenticated me requests", async () => {
+    const invalidLogin = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: "wrong-password"
+    });
+
+    assert.equal(invalidLogin.status, 401);
+    assert.deepEqual(invalidLogin.body, {
+      code: "INVALID_ADMIN_CREDENTIALS",
+      message: "Email or password is incorrect"
+    });
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me");
+
+    assert.equal(me.status, 401);
+    assert.deepEqual(me.body, {
+      code: "ADMIN_UNAUTHORIZED",
+      message: "Admin authentication is required"
+    });
+  });
+
+  it("blocks deactivated admins from authenticating", async () => {
+    const admin = await prisma.admin.findUniqueOrThrow({
+      where: { email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase() }
+    });
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: {
+        isActive: false,
+        deactivatedAt: new Date()
+      }
+    });
+
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+
+    assert.equal(login.status, 401);
+    assert.deepEqual(login.body, {
+      code: "INVALID_ADMIN_CREDENTIALS",
+      message: "Email or password is incorrect"
+    });
+
+    await prisma.admin.update({
+      where: { id: admin.id },
+      data: {
+        isActive: true,
+        deactivatedAt: null
+      }
+    });
+  });
+
+  it("clears the session cookie on logout and blocks further me access", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    assert.ok(sessionCookie);
+
+    const logout = await postJson("/api/v1/admin/auth/logout", {}, sessionCookie ?? undefined);
+
+    assert.equal(logout.status, 200);
+    assert.deepEqual(logout.body, { success: true });
+    assert.match(logout.setCookie ?? "", /admin_session=/);
+
+    const me = await getJsonWithCookie("/api/v1/admin/auth/me");
+
+    assert.equal(me.status, 401);
+    assert.deepEqual(me.body, {
+      code: "ADMIN_UNAUTHORIZED",
+      message: "Admin authentication is required"
+    });
+  });
+
+  it("supports invitation creation and acceptance for editors", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    const invite = await postJson(
+      "/api/v1/admin/invitations",
+      {
+        email: "editor-one@thai-lottery-checker.local",
+        role: "editor",
+        permissions: ["manage_results"]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(invite.status, 201);
+    assert.equal((invite.body as { email: string }).email, "editor-one@thai-lottery-checker.local");
+    assert.equal((invite.body as { role: string }).role, "editor");
+    assert.deepEqual((invite.body as { permissions: string[] }).permissions, ["manage_results"]);
+    assert.equal(typeof (invite.body as { inviteUrl?: string }).inviteUrl, "string");
+
+    const invitation = await prisma.adminInvitation.findUniqueOrThrow({
+      where: { id: (invite.body as { invitationId: string }).invitationId }
+    });
+
+    assert.equal(invitation.tokenHash.includes("editor-one"), false);
+    assert.equal(typeof invitation.permissionsJson, "object");
+
+    const inviteUrl = new URL((invite.body as { inviteUrl: string }).inviteUrl);
+    const token = inviteUrl.searchParams.get("token");
+
+    assert.ok(token);
+
+    const accept = await postJson("/api/v1/admin/invitations/accept", {
+      token,
+      name: "Editor One",
+      password: "EditorPass123!"
+    });
+
+    assert.equal(accept.status, 200);
+    assert.deepEqual(accept.body, { success: true });
+
+    const createdAdmin = await prisma.admin.findUniqueOrThrow({
+      where: { email: "editor-one@thai-lottery-checker.local" },
+      include: { permissions: true }
+    });
+
+    assert.equal(createdAdmin.role, "editor");
+    assert.equal(createdAdmin.invitedByAdminId !== null, true);
+    assert.deepEqual(createdAdmin.permissions.map((permission) => permission.permission), ["manage_results"]);
+
+    const acceptedInvitation = await prisma.adminInvitation.findUniqueOrThrow({
+      where: { id: invitation.id }
+    });
+
+    assert.equal(acceptedInvitation.acceptedAt !== null, true);
+
+    const reused = await postJson("/api/v1/admin/invitations/accept", {
+      token,
+      name: "Editor Again",
+      password: "EditorPass123!"
+    });
+
+    assert.equal(reused.status, 400);
+    assert.deepEqual(reused.body, {
+      code: "INVALID_ADMIN_INVITATION",
+      message: "Invitation token is invalid or can no longer be used"
+    });
+  });
+
+  it("supports invitation revocation and blocks non-super-admin governance access", async () => {
+    const superAdminLogin = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const superAdminCookie = getCookieValue(superAdminLogin.setCookie);
+
+    const invite = await postJson(
+      "/api/v1/admin/invitations",
+      {
+        email: "editor-two@thai-lottery-checker.local",
+        role: "editor",
+        permissions: ["manage_results"]
+      },
+      superAdminCookie ?? undefined
+    );
+
+    const revoke = await postJson(
+      "/api/v1/admin/invitations/revoke",
+      {
+        invitationId: (invite.body as { invitationId: string }).invitationId
+      },
+      superAdminCookie ?? undefined
+    );
+
+    assert.equal(revoke.status, 200);
+    assert.deepEqual(revoke.body, { success: true });
+
+    const revokedInvitation = await prisma.adminInvitation.findUniqueOrThrow({
+      where: { id: (invite.body as { invitationId: string }).invitationId }
+    });
+
+    assert.equal(revokedInvitation.revokedAt !== null, true);
+
+    const acceptRevoked = await postJson("/api/v1/admin/invitations/accept", {
+      token: new URL((invite.body as { inviteUrl: string }).inviteUrl).searchParams.get("token"),
+      name: "Editor Two",
+      password: "EditorPass123!"
+    });
+
+    assert.equal(acceptRevoked.status, 400);
+
+    const editorLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-one@thai-lottery-checker.local",
+      password: "EditorPass123!"
+    });
+    const editorCookie = getCookieValue(editorLogin.setCookie);
+
+    const nonSuperList = await getJsonWithCookie("/api/v1/admin/admins", editorCookie ?? undefined);
+
+    assert.equal(nonSuperList.status, 403);
+    assert.deepEqual(nonSuperList.body, {
+      code: "ADMIN_FORBIDDEN",
+      message: "Admin does not have permission to perform this action"
+    });
+  });
+
+  it("supports password reset request and confirmation while invalidating old sessions", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-one@thai-lottery-checker.local",
+      password: "EditorPass123!"
+    });
+    const editorCookie = getCookieValue(login.setCookie);
+
+    const existingCountBefore = await prisma.adminPasswordReset.count();
+
+    const requestForExisting = await postJson("/api/v1/admin/password-resets/request", {
+      email: "editor-one@thai-lottery-checker.local"
+    });
+
+    assert.equal(requestForExisting.status, 200);
+    assert.deepEqual(
+      Object.keys(requestForExisting.body as Record<string, unknown>).sort(),
+      ["resetUrl", "success"]
+    );
+
+    const resetCountAfterExisting = await prisma.adminPasswordReset.count();
+    assert.equal(resetCountAfterExisting, existingCountBefore + 1);
+
+    const latestReset = await prisma.adminPasswordReset.findFirstOrThrow({
+      orderBy: { createdAt: "desc" }
+    });
+
+    assert.ok(latestReset.tokenHash);
+
+    const requestForUnknown = await postJson("/api/v1/admin/password-resets/request", {
+      email: "missing-admin@thai-lottery-checker.local"
+    });
+
+    assert.equal(requestForUnknown.status, 200);
+    assert.deepEqual(requestForUnknown.body, { success: true });
+    assert.equal(await prisma.adminPasswordReset.count(), resetCountAfterExisting);
+
+    const token = new URL((requestForExisting.body as { resetUrl: string }).resetUrl).searchParams.get("token");
+    const confirm = await postJson("/api/v1/admin/password-resets/confirm", {
+      token,
+      password: "EditorPass456!"
+    });
+
+    assert.equal(confirm.status, 200);
+    assert.deepEqual(confirm.body, { success: true });
+
+    const meAfterReset = await getJsonWithCookie("/api/v1/admin/auth/me", editorCookie ?? undefined);
+
+    assert.equal(meAfterReset.status, 401);
+
+    const loginWithNewPassword = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-one@thai-lottery-checker.local",
+      password: "EditorPass456!"
+    });
+
+    assert.equal(loginWithNewPassword.status, 200);
+
+    const reusedReset = await postJson("/api/v1/admin/password-resets/confirm", {
+      token,
+      password: "EditorPass789!"
+    });
+
+    assert.equal(reusedReset.status, 400);
+    assert.deepEqual(reusedReset.body, {
+      code: "INVALID_ADMIN_PASSWORD_RESET",
+      message: "Password reset token is invalid or can no longer be used"
+    });
+  });
+
+  it("lists admins, updates roles and permissions, and protects the last active super admin", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    const list = await getJsonWithCookie("/api/v1/admin/admins", sessionCookie ?? undefined);
+
+    assert.equal(list.status, 200);
+    assert.equal(Array.isArray((list.body as { items: unknown[] }).items), true);
+
+    const editor = await prisma.admin.findUniqueOrThrow({
+      where: { email: "editor-one@thai-lottery-checker.local" }
+    });
+
+    const promote = await patchJson(
+      `/api/v1/admin/admins/${editor.id}`,
+      {
+        role: "super_admin"
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(promote.status, 200);
+    assert.equal((promote.body as { admin: { role: string } }).admin.role, "super_admin");
+    assert.deepEqual((promote.body as { admin: { permissions: string[] } }).admin.permissions, ["manage_results", "manage_blogs"]);
+
+    const promotedEditor = await prisma.admin.findUniqueOrThrow({
+      where: { id: editor.id },
+      include: { permissions: true }
+    });
+
+    assert.equal(promotedEditor.permissions.length, 0);
+
+    const demote = await patchJson(
+      `/api/v1/admin/admins/${editor.id}`,
+      {
+        role: "editor",
+        permissions: ["manage_blogs"]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(demote.status, 200);
+    assert.equal((demote.body as { admin: { role: string } }).admin.role, "editor");
+    assert.deepEqual((demote.body as { admin: { permissions: string[] } }).admin.permissions, ["manage_blogs"]);
+
+    const demotedEditor = await prisma.admin.findUniqueOrThrow({
+      where: { id: editor.id },
+      include: { permissions: true }
+    });
+
+    assert.deepEqual(demotedEditor.permissions.map((permission) => permission.permission), ["manage_blogs"]);
+
+    const deactivateLastSuperAdmin = await patchJson(
+      `/api/v1/admin/admins/${(login.body as { admin: { id: string } }).admin.id}`,
+      {
+        isActive: false
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(deactivateLastSuperAdmin.status, 400);
+    assert.deepEqual(deactivateLastSuperAdmin.body, {
+      code: "LAST_SUPER_ADMIN_PROTECTED",
+      message: "The last active super admin cannot be deactivated or demoted"
+    });
+  });
+
+  it("supports admin result draft, publish, and correction workflows", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    const draftCreate = await postJson(
+      "/api/v1/admin/results",
+      {
+        drawDate: "2026-04-01",
+        drawCode: "special-april-draft",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["123456"] },
+          { type: "LAST_TWO", numbers: ["45"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(draftCreate.status, 201);
+    assert.equal((draftCreate.body as { result: { status: string } }).result.status, "draft");
+    assert.equal((draftCreate.body as { result: { publishedAt: string | null } }).result.publishedAt, null);
+
+    const createdDrawId = (draftCreate.body as { result: { id: string } }).result.id;
+
+    const publicDraft = await getJson("/api/v1/results/2026-04-01");
+    assert.equal(publicDraft.status, 404);
+
+    const duplicateDraw = await postJson(
+      "/api/v1/admin/results",
+      {
+        drawDate: "2026-04-01",
+        drawCode: "duplicate",
+        prizeGroups: []
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(duplicateDraw.status, 409);
+    assert.deepEqual(duplicateDraw.body, {
+      code: "ADMIN_RESULT_DUPLICATE_DRAW_DATE",
+      message: "A result draw already exists for this draw date"
+    });
+
+    const invalidDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "invalid-draft",
+        prizeGroups: [{ type: "LAST_TWO", numbers: ["4A"] }]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(invalidDraftUpdate.status, 400);
+    assert.deepEqual(invalidDraftUpdate.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Invalid prize number for LAST_TWO: 4A"
+    });
+
+    const incompleteDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "updated-incomplete-draft",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["654321"] },
+          { type: "FRONT_THREE", numbers: ["111", "222"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(incompleteDraftUpdate.status, 200);
+    assert.equal((incompleteDraftUpdate.body as { result: { status: string } }).result.status, "draft");
+
+    const publishIncomplete = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(publishIncomplete.status, 400);
+    assert.deepEqual(publishIncomplete.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Result prize groups are incomplete or invalid for publish/correction"
+    });
+
+    const completeDraftUpdate = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["820866"] },
+          { type: "NEAR_FIRST_PRIZE", numbers: ["820865", "820867"] },
+          { type: "SECOND_PRIZE", numbers: ["328032", "716735", "320227", "000001", "999999"] },
+          { type: "THIRD_PRIZE", numbers: ["123456", "234567", "345678", "456789", "567890", "678901", "789012", "890123", "901234", "012345"] },
+          { type: "FOURTH_PRIZE", numbers: Array.from({ length: 50 }, (_, index) => String(400001 + index).padStart(6, "0")) },
+          { type: "FIFTH_PRIZE", numbers: Array.from({ length: 100 }, (_, index) => String(500001 + index).padStart(6, "0")) },
+          { type: "FRONT_THREE", numbers: ["068", "837"] },
+          { type: "LAST_THREE", numbers: ["054", "479"] },
+          { type: "LAST_TWO", numbers: ["06"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(completeDraftUpdate.status, 200);
+
+    const publish = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(publish.status, 200);
+    assert.equal((publish.body as { result: { status: string } }).result.status, "published");
+    const originalPublishedAt = (publish.body as { result: { publishedAt: string } }).result.publishedAt;
+    assert.ok(originalPublishedAt);
+
+    const republish = await postJson(
+      `/api/v1/admin/results/${createdDrawId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(republish.status, 400);
+    assert.deepEqual(republish.body, {
+      code: "ADMIN_RESULT_INVALID_STATE",
+      message: "Only draft results can be published"
+    });
+
+    const publicPublished = await getJson("/api/v1/results/2026-04-01");
+    assert.equal(publicPublished.status, 200);
+
+    const invalidCorrection = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}/correct`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw",
+        prizeGroups: [{ type: "FIRST_PRIZE", numbers: ["999999"] }]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(invalidCorrection.status, 400);
+    assert.deepEqual(invalidCorrection.body, {
+      code: "ADMIN_RESULT_DATA_INVALID",
+      message: "Result prize groups are incomplete or invalid for publish/correction"
+    });
+
+    const correction = await patchJson(
+      `/api/v1/admin/results/${createdDrawId}/correct`,
+      {
+        drawDate: "2026-04-01",
+        drawCode: "published-april-draw-corrected",
+        prizeGroups: [
+          { type: "FIRST_PRIZE", numbers: ["999999"] },
+          { type: "NEAR_FIRST_PRIZE", numbers: ["820865", "820867"] },
+          { type: "SECOND_PRIZE", numbers: ["328032", "716735", "320227", "000001", "999999"] },
+          { type: "THIRD_PRIZE", numbers: ["123456", "234567", "345678", "456789", "567890", "678901", "789012", "890123", "901234", "012345"] },
+          { type: "FOURTH_PRIZE", numbers: Array.from({ length: 50 }, (_, index) => String(400001 + index).padStart(6, "0")) },
+          { type: "FIFTH_PRIZE", numbers: Array.from({ length: 100 }, (_, index) => String(500001 + index).padStart(6, "0")) },
+          { type: "FRONT_THREE", numbers: ["068", "837"] },
+          { type: "LAST_THREE", numbers: ["054", "479"] },
+          { type: "LAST_TWO", numbers: ["06"] }
+        ]
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(correction.status, 200);
+    assert.equal((correction.body as { result: { publishedAt: string } }).result.publishedAt, originalPublishedAt);
+    assert.equal((correction.body as { result: { drawCode: string } }).result.drawCode, "published-april-draw-corrected");
+
+    const adminResults = await getJsonWithCookie("/api/v1/admin/results", sessionCookie ?? undefined);
+    assert.equal(adminResults.status, 200);
+    assert.equal(
+      (adminResults.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdDrawId),
+      true
+    );
+
+    const correctionAuditLog = await prisma.adminAuditLog.findFirst({
+      where: {
+        entityId: createdDrawId,
+        action: "correct_result"
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
+    assert.ok(correctionAuditLog);
+    assert.equal(correctionAuditLog?.beforeData !== null, true);
+    assert.equal(correctionAuditLog?.afterData !== null, true);
+
+    await prisma.lotteryDraw.delete({
+      where: { id: createdDrawId }
+    });
+  });
+
+  it("enforces admin result permissions for editors", async () => {
+    await ensureEditorAdmin("editor-results@thai-lottery-checker.local", "EditorResults123!", ["manage_results"]);
+    await ensureEditorAdmin("editor-no-results@thai-lottery-checker.local", "EditorNoResults123!", ["manage_blogs"]);
+
+    const allowedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-results@thai-lottery-checker.local",
+      password: "EditorResults123!"
+    });
+    const allowedCookie = getCookieValue(allowedLogin.setCookie);
+
+    const blockedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-no-results@thai-lottery-checker.local",
+      password: "EditorNoResults123!"
+    });
+    const blockedCookie = getCookieValue(blockedLogin.setCookie);
+
+    const allowedList = await getJsonWithCookie("/api/v1/admin/results", allowedCookie ?? undefined);
+    assert.equal(allowedList.status, 200);
+
+    const blockedList = await getJsonWithCookie("/api/v1/admin/results", blockedCookie ?? undefined);
+    assert.equal(blockedList.status, 403);
+    assert.deepEqual(blockedList.body, {
+      code: "ADMIN_FORBIDDEN",
+      message: "Admin does not have permission to perform this action"
+    });
   });
 
   it("returns the latest published draw with grouped prize data in canonical order", async () => {

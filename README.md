@@ -1,19 +1,28 @@
 # Thai Lottery Checker
 
-Slice 1 is now implemented for the Thai Lottery Checker monorepo. The repo currently includes:
+Thai Lottery Checker is a monorepo for a multilingual lottery product with a public web experience and a protected admin area.
 
-- `apps/api`: Express API with public results browsing endpoints
-- `apps/web`: Next.js web app with locale-prefixed results pages
-- `packages/{types,schemas,domain,i18n,utils}`: shared contracts and helpers
-- Prisma 7 + PostgreSQL for canonical result storage
+The current shipped baseline includes:
 
-The current shipped Slice 1 feature is **public Thai lottery results browsing**:
+- public Thai lottery results browsing
+- admin auth/session with HTTP-only cookie handling
+- invitation-based admin onboarding
+- admin password reset
+- super-admin account management
+- admin result draft, publish, and correction flows
 
-- latest results
-- result history
-- result detail by draw date
-- published-only visibility
-- multilingual-ready web UI for `en`, `th`, and `my`
+Repo structure:
+
+- `apps/api`: Express API for public and admin endpoints
+- `apps/web`: Next.js web app for public routes and protected `/admin` routes
+- `packages/{types,schemas,domain,i18n,utils}`: shared contracts and domain helpers
+- Prisma 7 + PostgreSQL for canonical data storage
+
+For deeper product and architecture details, see:
+
+- [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
+- [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
+- [System architecture](docs/architecture/system-architecture.md)
 
 ## Requirements
 
@@ -35,7 +44,17 @@ pnpm install
 cp .env.example .env
 ```
 
-3. Update `DATABASE_URL` in `.env` so it points to your PostgreSQL instance.
+3. Update `.env` with your local values.
+
+At minimum, check:
+
+- `DATABASE_URL`
+- `ADMIN_SESSION_SECRET`
+- `ADMIN_BOOTSTRAP_EMAIL`
+- `ADMIN_BOOTSTRAP_PASSWORD`
+- `ADMIN_BOOTSTRAP_NAME`
+
+See [.env.example](.env.example) for the full local-development baseline.
 
 4. Generate the Prisma client:
 
@@ -49,7 +68,7 @@ pnpm db:generate
 pnpm db:migrate:deploy
 ```
 
-6. Seed Slice 1 development data:
+6. Seed development data:
 
 ```bash
 pnpm db:seed
@@ -57,9 +76,9 @@ pnpm db:seed
 
 The seed creates:
 
-- 1 bootstrap admin
-- 2 published draws
-- 1 draft draw
+- 1 bootstrap `super_admin` from env
+- 2 published draws for public browsing
+- 1 draft draw for admin workflows
 
 ## Run the apps
 
@@ -77,7 +96,38 @@ pnpm --filter @thai-lottery-checker/api dev
 pnpm --filter @thai-lottery-checker/web dev
 ```
 
-## Slice 1 API
+Default local URLs:
+
+- Web: `http://localhost:3000`
+- API: `http://localhost:4000`
+
+## Public Web Routes
+
+Assuming the web app runs at `http://localhost:3000`:
+
+- `/en/results`
+- `/en/results/history`
+- `/en/results/2026-03-01`
+- `/th/results`
+- `/my/results`
+
+The seeded draft draw `2026-03-16` should not appear publicly and should resolve to not-found on the public detail route.
+
+## Admin Web Routes
+
+Main admin routes:
+
+- `/admin/login`
+- `/admin`
+- `/admin/admins`
+- `/admin/results`
+- `/admin/invitations/accept`
+- `/admin/reset-password/request`
+- `/admin/reset-password/confirm`
+
+Use the seeded bootstrap admin credentials from `.env` to sign in at `/admin/login`.
+
+## Public API
 
 Base URL:
 
@@ -107,21 +157,21 @@ curl "http://localhost:4000/api/v1/results?page=0&limit=200"
 curl http://localhost:4000/api/v1/results/2026-03-16
 ```
 
-## Slice 1 Web Routes
+## Admin API
 
-Assuming the web app runs at `http://localhost:3000`:
+Main admin route groups:
 
-- `/en/results`
-- `/en/results/history`
-- `/en/results/2026-03-01`
-- `/th/results`
-- `/my/results`
+- `/api/v1/admin/auth/*`
+- `/api/v1/admin/invitations/*`
+- `/api/v1/admin/password-resets/*`
+- `/api/v1/admin/admins`
+- `/api/v1/admin/results*`
 
-The seeded draft draw `2026-03-16` should not appear publicly and should resolve to not-found on the detail route.
+These endpoints are protected by the admin auth and permission model. Public result endpoints continue to expose published draws only.
 
 ## Verification
 
-Run the full Slice 1 verification flow:
+Run the current baseline verification flow:
 
 ```bash
 pnpm db:generate
@@ -140,8 +190,10 @@ Manual checks:
 - Open `http://localhost:3000/en/results/history`
 - Open `http://localhost:3000/en/results/2026-03-01`
 - Open `http://localhost:3000/en/results/2026-03-16` and confirm not-found
-- Open `http://localhost:3000/th/results`
-- Open `http://localhost:3000/my/results`
+- Open `http://localhost:3000/admin/login`
+- Sign in with the bootstrap admin from `.env`
+- Open `http://localhost:3000/admin/admins`
+- Open `http://localhost:3000/admin/results`
 - Request `GET http://localhost:4000/health`
 
 ## Useful Commands
@@ -177,5 +229,6 @@ packages/
 ## Notes
 
 - PostgreSQL remains the source of truth.
-- Redis, checker logic, admin workflows, and caching are not part of Slice 1.
+- Slice 2 includes a cache-invalidation abstraction for result publish/correct flows; full Redis-backed performance hardening remains a later slice.
+- Number checker, blog management, mobile features, and analytics remain outside the currently shipped baseline.
 - The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.

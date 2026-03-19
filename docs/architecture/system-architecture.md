@@ -98,6 +98,25 @@ Example routes:
 - `/my`
 ---
 
+## 4.1.1 Web Application Scope
+
+The Next.js web application contains:
+
+- public user-facing pages
+- a protected admin area under admin routes such as `/admin`
+
+Admin routes are protected and use the same backend API as the public website and mobile application.
+
+The admin UI includes screens for:
+
+- admin login
+- invitation acceptance
+- password reset
+- admin management
+- result operations
+
+---
+
 ## 4.2 Mobile Application
 
 Technology:
@@ -131,14 +150,21 @@ Technology:
 Responsibilities:
 
 - Admin authentication
+- Invitation acceptance
+- Password reset request and confirmation
+- Admin management
 - Result data entry
-- Result publishing
+- Result publishing and correction
 - Blog management
 - View platform analytics
 
 Admin routes example:
 
 - `/admin/login`
+- `/admin/invitations/accept`
+- `/admin/reset-password/request`
+- `/admin/reset-password/confirm`
+- `/admin/admins`
 - `/admin/results`
 - `/admin/blogs`
 - `/admin/dashboard`
@@ -193,10 +219,64 @@ Contain business logic such as:
 - result matching
 - number checking
 - result publishing
+- admin authentication and authorization
+- invitation and password reset handling
 
 ### Repositories
 
 Handle database queries.
+
+---
+
+## 5.3 Admin Authentication and Authorization
+
+The backend is the single source of truth for admin authentication and authorization.
+
+Responsibilities include:
+
+- admin login endpoint handling
+- session or token establishment for authenticated admin access
+- current-admin session resolution for protected requests
+- invitation creation and acceptance
+- password reset request and token consumption
+- admin creation or invitation flows
+- admin activation and deactivation
+- admin permission assignment
+
+All admin-sensitive operations are validated and authorized in the backend before any data is changed.
+
+### Authorization model
+
+- `super_admin` has full access
+- `editor` access is limited by assigned permissions
+- Example permissions include `manage_results` and `manage_blogs`
+- Authorization is enforced per request through backend middleware or guards
+- The UI should hide unauthorized actions, but the backend must enforce security
+
+### Authentication flow
+
+- Admin submits email and password to the backend
+- Backend validates credentials and establishes the authenticated session
+- The web app sends authenticated admin requests with the session credentials
+- The backend resolves the current admin identity for protected requests
+- The same session is reused across admin routes
+- A current-session endpoint such as `/admin/auth/me` may be used to load the active admin session
+
+### Invitation flow
+
+- `super_admin` creates an admin invitation
+- Backend generates a secure invitation token and stores only its hash
+- Backend returns the invitation link for delivery
+- In MVP, the invitation link may be shared manually instead of being emailed
+- Invited admin accepts the invitation, sets a password, and activates the account
+- Email delivery can be added later without changing the core architecture
+
+### Password reset flow
+
+- Admin requests a password reset
+- Backend generates a secure reset token and stores only its hash
+- In MVP or development, the reset link may be returned directly instead of being emailed
+- Admin submits a new password through the reset flow using the token
 
 ---
 
@@ -210,7 +290,17 @@ Responsibilities:
 - Retrieve historical results
 - Retrieve result details
 - Publish results
+- Correct published results in place
 - Trigger cache invalidation
+- Ensure only published results are returned to public clients
+
+Result workflow:
+
+- Results are created and edited in `draft`
+- Publishing changes the draw to `published`
+- Public APIs serve only `published` results
+- Corrections modify the published data in place
+- Corrections trigger audit logging and cache invalidation
 
 ---
 
@@ -267,10 +357,24 @@ Notification types:
 Responsibilities:
 
 - Admin authentication
+- Invitation-based onboarding
+- Password reset and recovery flows
+- Role and permission enforcement support
+- Admin management
 - Result management
 - Blog management
 - Audit logging
 - Dashboard metrics
+
+Examples of audited actions include:
+
+- admin login
+- admin invitation creation
+- password reset actions
+- result creation
+- result update
+- result publish
+- result correction
 
 ---
 
@@ -295,6 +399,12 @@ Key entities:
 - Saved tickets
 - Notification preferences
 - Admin users
+- Admin permissions
+- Admin invitations
+- Admin password resets
+- Admin audit logs
+
+Critical admin actions are recorded in `admin_audit_logs` to support traceability and operational safety.
 
 ---
 

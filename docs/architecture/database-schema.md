@@ -10,8 +10,8 @@ The database is designed to support:
 - number checking
 - multilingual blog content
 - mobile saved tickets and notifications
-- admin result entry and publishing
-- analytics and audit logging
+- admin authentication and result entry
+- dashboard summaries and audit logging
 
 Primary database:
 
@@ -73,7 +73,16 @@ Admin roles:
 
 ---
 
-## 2.5 AuthProvider
+## 2.5 AdminPermission
+
+Admin permissions:
+
+- `manage_results`
+- `manage_blogs`
+
+---
+
+## 2.6 AuthProvider
 
 User authentication provider:
 
@@ -83,7 +92,7 @@ User authentication provider:
 
 ---
 
-## 2.6 DevicePlatform
+## 2.7 DevicePlatform
 
 Mobile device platform:
 
@@ -102,21 +111,108 @@ Stores admin accounts for dashboard access.
 
 - `id` UUID, primary key
 - `email` VARCHAR, unique, not null
+- `name` VARCHAR, null
 - `password_hash` TEXT, not null
 - `role` ENUM(AdminRole), not null, default `editor`
 - `is_active` BOOLEAN, not null, default `true`
+- `password_updated_at` TIMESTAMPTZ, null
+- `deactivated_at` TIMESTAMPTZ, null
 - `last_login_at` TIMESTAMPTZ, null
+- `invited_by_admin_id` UUID, foreign key → `admins.id`, null
 - `created_at` TIMESTAMPTZ, not null
 - `updated_at` TIMESTAMPTZ, not null
 
 ### Notes
 
 - Used only for internal dashboard access
+- Bootstrap `super_admin` access may be created through seed data or environment-driven setup
+- `super_admin` is used for full platform administration
+- `editor` permissions are scoped through `admin_permissions`
 - `is_active` allows disabling admin accounts without deleting them
+- `deactivated_at` complements `is_active` for lifecycle tracking
+- `invited_by_admin_id` records invitation provenance
+- Email should be normalized to lowercase at the application layer
 
 ---
 
-## 3.2 `admin_audit_logs`
+## 3.2 `admin_permissions`
+
+Stores explicit permissions for scoped admin accounts.
+
+### Fields
+
+- `id` UUID, primary key
+- `admin_id` UUID, foreign key → `admins.id`, not null
+- `permission` ENUM(AdminPermission), not null
+- `created_at` TIMESTAMPTZ, not null
+
+### Constraints
+
+Unique composite constraint:
+
+- `(admin_id, permission)`
+
+### Notes
+
+- `super_admin` does not require explicit permission rows
+- `editor` authorization is based on these rows
+- `manage_results` allows result drafting, publishing, and correction workflows
+- `manage_blogs` allows blog-management workflows for later slices
+
+---
+
+## 3.3 `admin_invitations`
+
+Stores invitation records for admin onboarding.
+
+### Fields
+
+- `id` UUID, primary key
+- `email` VARCHAR, not null
+- `role` ENUM(AdminRole), not null
+- `token_hash` TEXT, not null
+- `permissions_json` JSONB, null
+- `expires_at` TIMESTAMPTZ, not null
+- `accepted_at` TIMESTAMPTZ, null
+- `revoked_at` TIMESTAMPTZ, null
+- `invited_by_admin_id` UUID, foreign key → `admins.id`, not null
+- `created_at` TIMESTAMPTZ, not null
+- `updated_at` TIMESTAMPTZ, not null
+
+### Notes
+
+- Admin onboarding is invitation-based
+- Invitation token values must be stored hashed, not as plaintext
+- Invitation links are single-use and expiring
+- MVP and development flows may return or display the invitation link for manual sharing instead of sending email
+- `permissions_json` captures the intended editor permissions at invitation time
+- Accepting an invitation creates an admin account plus any required `admin_permissions` rows
+
+---
+
+## 3.4 `admin_password_resets`
+
+Stores password reset requests for admin accounts.
+
+### Fields
+
+- `id` UUID, primary key
+- `admin_id` UUID, foreign key → `admins.id`, not null
+- `token_hash` TEXT, not null
+- `expires_at` TIMESTAMPTZ, not null
+- `used_at` TIMESTAMPTZ, null
+- `created_at` TIMESTAMPTZ, not null
+
+### Notes
+
+- Password reset token values must be stored hashed, not as plaintext
+- Reset tokens are single-use and expiring
+- Development flows may expose reset-link output before email delivery is implemented
+- Production email delivery can be added later without changing the core schema
+
+---
+
+## 3.5 `admin_audit_logs`
 
 Tracks sensitive admin operations for traceability.
 
@@ -133,9 +229,18 @@ Tracks sensitive admin operations for traceability.
 
 ### Example actions
 
+- `login_admin`
+- `invite_admin`
+- `revoke_admin_invitation`
+- `accept_admin_invitation`
+- `deactivate_admin`
+- `reactivate_admin`
+- `request_admin_password_reset`
+- `reset_admin_password`
 - `create_result`
 - `update_result`
 - `publish_result`
+- `correct_result`
 - `create_blog`
 - `update_blog`
 - `publish_blog`
@@ -143,11 +248,13 @@ Tracks sensitive admin operations for traceability.
 ### Notes
 
 - Important because lottery results are manually entered
+- Audit logs are the only required correction-history mechanism in Slice 2
+- Before/after snapshots should be used for result corrections and admin governance changes where appropriate
 - Helps investigate mistakes and corrections
 
 ---
 
-## 3.3 `lottery_draws`
+## 3.6 `lottery_draws`
 
 Represents one lottery draw event.
 
@@ -168,12 +275,16 @@ Represents one lottery draw event.
 - One row represents one draw date
 - `draw_date` must be unique
 - Public users should only see rows where `status = published`
+- Published draws are visible publicly
 - `published_at` should be non-null when `status = published`
-- Slice 1 may rely on a seeded or bootstrap admin row for `created_by_admin_id` and `updated_by_admin_id` until later admin slices provide the full result-entry workflow
+- `published_at` is set on first publish and keeps the original publish timestamp
+- Later corrections update the published draw in place
+- Corrections use `updated_at` plus audit logs and do not overwrite the original meaning of `published_at`
+- Result corrections should remain auditable
 
 ---
 
-## 3.4 `lottery_results`
+## 3.7 `lottery_results`
 
 Stores prize numbers belonging to a draw.
 
@@ -251,7 +362,7 @@ Shared domain helpers, shared types, shared schemas, and public result payloads 
 - A draw is result-complete only when every canonical prize group exists with the expected row counts listed above
 - Draft draws may be incomplete
 - Published draws should be treated as complete
-- Slice 1 public browsing should expose published draws only
+- Public result visibility should continue to depend on `status = published`
 
 ### Public result shape assumption
 
@@ -261,7 +372,7 @@ Shared domain helpers, shared types, shared schemas, and public result payloads 
 
 ---
 
-## 3.5 `blog_posts`
+## 3.8 `blog_posts`
 
 Stores blog post metadata.
 
@@ -284,7 +395,7 @@ Stores blog post metadata.
 
 ---
 
-## 3.6 `blog_post_translations`
+## 3.9 `blog_post_translations`
 
 Stores multilingual blog content.
 
@@ -323,7 +434,7 @@ Unique composite constraint:
 
 ---
 
-## 3.7 `users`
+## 3.10 `users`
 
 Stores mobile user accounts.
 
@@ -346,7 +457,7 @@ Stores mobile user accounts.
 
 ---
 
-## 3.8 `user_devices`
+## 3.11 `user_devices`
 
 Stores device tokens for push notifications.
 
@@ -369,7 +480,7 @@ Stores device tokens for push notifications.
 
 ---
 
-## 3.9 `saved_tickets`
+## 3.12 `saved_tickets`
 
 Stores lottery ticket numbers saved by users.
 
@@ -397,7 +508,7 @@ Stores lottery ticket numbers saved by users.
 
 ---
 
-## 3.10 `notification_preferences`
+## 3.13 `notification_preferences`
 
 Stores reminder settings for each user.
 
@@ -421,7 +532,7 @@ Stores reminder settings for each user.
 
 ---
 
-## 3.11 `analytics_events`
+## 3.14 `analytics_events`
 
 Stores product analytics and usage events.
 
@@ -457,6 +568,9 @@ Stores product analytics and usage events.
 
 ## Main relationships
 
+- One `admin` has many `admin_permissions`
+- One `admin` has many `admin_invitations`
+- One `admin` has many `admin_password_resets`
 - One `admin` has many `admin_audit_logs`
 - One `lottery_draw` has many `lottery_results`
 - One `blog_post` has many `blog_post_translations`
@@ -470,6 +584,21 @@ Stores product analytics and usage events.
 
 ## `admins`
 - unique index on `email`
+
+## `admin_permissions`
+- index on `admin_id`
+- unique composite index on `(admin_id, permission)`
+
+## `admin_invitations`
+- index on `email`
+- index on `invited_by_admin_id`
+- unique index on `token_hash`
+- index on `expires_at`
+
+## `admin_password_resets`
+- index on `admin_id`
+- unique index on `token_hash`
+- index on `expires_at`
 
 ## `lottery_draws`
 - unique index on `draw_date`

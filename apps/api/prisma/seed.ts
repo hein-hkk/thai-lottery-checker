@@ -1,6 +1,8 @@
 import { assertValidPrizeNumber, groupPrizeRows, hasCompletePrizeGroups } from "@thai-lottery-checker/domain";
 import type { GroupableLotteryResult, PrizeType } from "@thai-lottery-checker/types";
+import { getApiEnv } from "../src/config/env.js";
 import { prisma } from "../src/db/client.js";
+import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
 
 type SeedPrizeGroup = {
   type: PrizeType;
@@ -70,22 +72,45 @@ const draftDrawGroups: SeedPrizeGroup[] = [
 ];
 
 export async function seed(): Promise<void> {
-  const bootstrapAdmin = await prisma.admin.upsert({
-    where: { email: "seed-admin@thai-lottery-checker.local" },
-    update: {
-      role: "editor",
-      isActive: true
-    },
-    create: {
-      email: "seed-admin@thai-lottery-checker.local",
-      passwordHash: "seed-only-bootstrap-admin",
-      role: "editor",
-      isActive: true
+  const env = getApiEnv();
+  const passwordHash = await hashPassword(env.ADMIN_BOOTSTRAP_PASSWORD);
+  const bootstrapEmail = env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase();
+
+  await prisma.adminAuditLog.deleteMany();
+  await prisma.adminPasswordReset.deleteMany();
+  await prisma.adminInvitation.deleteMany();
+  await prisma.adminPermissionGrant.deleteMany();
+  await prisma.lotteryResult.deleteMany();
+  await prisma.lotteryDraw.deleteMany();
+  await prisma.admin.deleteMany({
+    where: {
+      email: {
+        not: bootstrapEmail
+      }
     }
   });
 
-  await prisma.lotteryResult.deleteMany();
-  await prisma.lotteryDraw.deleteMany();
+  const bootstrapAdmin = await prisma.admin.upsert({
+    where: { email: bootstrapEmail },
+    update: {
+      name: env.ADMIN_BOOTSTRAP_NAME,
+      passwordHash,
+      role: "super_admin",
+      isActive: true,
+      deactivatedAt: null,
+      invitedByAdminId: null,
+      lastLoginAt: null,
+      passwordUpdatedAt: new Date()
+    },
+    create: {
+      email: bootstrapEmail,
+      name: env.ADMIN_BOOTSTRAP_NAME,
+      passwordHash,
+      role: "super_admin",
+      isActive: true,
+      passwordUpdatedAt: new Date()
+    }
+  });
 
   const publishedDraws = [
     {

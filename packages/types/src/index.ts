@@ -1,9 +1,118 @@
 export type SupportedLocale = "en" | "th" | "my";
 
+export const adminRoles = ["super_admin", "editor"] as const;
+export type AdminRole = (typeof adminRoles)[number];
+
+export const adminPermissions = ["manage_results", "manage_blogs"] as const;
+export type AdminPermission = (typeof adminPermissions)[number];
+
 export interface ServiceStatus {
   name: string;
   status: "up" | "down";
 }
+
+export interface AdminSessionPayload {
+  adminId: string;
+  email: string;
+  role: AdminRole;
+  passwordUpdatedAt: string | null;
+}
+
+export interface AuthenticatedAdmin {
+  id: string;
+  email: string;
+  name: string | null;
+  role: AdminRole;
+  effectivePermissions: AdminPermission[];
+}
+
+export interface AdminAuthResponse {
+  admin: AuthenticatedAdmin;
+}
+
+export interface AdminLoginRequest {
+  email: string;
+  password: string;
+}
+
+export interface AdminInvitationCreateRequest {
+  email: string;
+  role: AdminRole;
+  permissions: AdminPermission[];
+}
+
+export interface AdminInvitationCreateResponse {
+  invitationId: string;
+  email: string;
+  role: AdminRole;
+  permissions: AdminPermission[];
+  expiresAt: string;
+  inviteUrl?: string;
+}
+
+export interface AdminInvitationAcceptRequest {
+  token: string;
+  name: string;
+  password: string;
+}
+
+export interface AdminInvitationAcceptResponse {
+  success: true;
+}
+
+export interface AdminInvitationRevokeRequest {
+  invitationId: string;
+}
+
+export interface AdminInvitationRevokeResponse {
+  success: true;
+}
+
+export interface AdminPasswordResetRequest {
+  email: string;
+}
+
+export interface AdminPasswordResetRequestResponse {
+  success: true;
+  resetUrl?: string;
+}
+
+export interface AdminPasswordResetConfirmRequest {
+  token: string;
+  password: string;
+}
+
+export interface AdminPasswordResetConfirmResponse {
+  success: true;
+}
+
+export interface AdminListItem {
+  id: string;
+  email: string;
+  name: string | null;
+  role: AdminRole;
+  isActive: boolean;
+  deactivatedAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+  permissions: AdminPermission[];
+}
+
+export interface AdminListResponse {
+  items: AdminListItem[];
+}
+
+export interface AdminUpdateRequest {
+  role?: AdminRole;
+  permissions?: AdminPermission[];
+  isActive?: boolean;
+}
+
+export interface AdminUpdateResponse {
+  admin: AdminListItem;
+}
+
+export type PublishStatus = "draft" | "published";
 
 export const prizeTypes = [
   "FIRST_PRIZE",
@@ -57,4 +166,41 @@ export interface ResultHistoryResponse {
   page: number;
   limit: number;
   total: number;
+}
+
+export interface AdminResultListItem {
+  id: string;
+  drawDate: string;
+  drawCode: string | null;
+  status: PublishStatus;
+  publishedAt: string | null;
+  updatedAt: string;
+}
+
+export interface AdminResultListResponse {
+  items: AdminResultListItem[];
+}
+
+export interface AdminResultDetail {
+  id: string;
+  drawDate: string;
+  drawCode: string | null;
+  status: PublishStatus;
+  publishedAt: string | null;
+  updatedAt: string;
+  prizeGroups: PrizeGroup[];
+}
+
+export interface AdminResultDetailResponse {
+  result: AdminResultDetail;
+}
+
+export interface AdminResultWriteRequest {
+  drawDate: string;
+  drawCode?: string | null;
+  prizeGroups: PrizeGroup[];
+}
+
+export interface AdminResultPublishResponse {
+  result: AdminResultDetail;
 }
