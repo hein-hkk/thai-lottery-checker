@@ -100,6 +100,8 @@ Internal operators who manage:
 - Dashboard metrics as part of the final admin platform
 - Audit logging for sensitive changes
 
+The admin area is implemented inside the same Next.js web application under protected `/admin` routes and uses the shared backend API.
+
 ## 5. MVP Scope
 
 ### Website MVP
@@ -210,7 +212,7 @@ Responsible for:
 - draw history retrieval
 - draw detail retrieval
 - publish and correction workflows
-- Redis cache invalidation triggers
+- cache invalidation triggers for publish/correction, with Redis-backed execution added in the performance-hardening slice
 
 ### Number checker service
 
@@ -254,6 +256,7 @@ Responsible for:
 - password recovery support
 - permission-aware admin governance
 - manual result entry
+- result publishing and correction
 - blog management
 - dashboard summaries
 - audit logs

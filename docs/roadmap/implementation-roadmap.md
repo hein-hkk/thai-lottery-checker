@@ -70,25 +70,33 @@ as **strings** to preserve leading zeros
 
 ------------------------------------------------------------------------
 
-# Slice 2 --- Admin Result Management
+# Slice 2 --- Admin Platform Foundation and Result Management
 
 ## Goal
 
-Allow administrators to create and publish result data.
+Establish the secure admin platform foundation and allow administrators to manage result data.
 
 ## Included
 
-Admin features: - Admin login - Create result draft - Edit draft -
-Publish result - Correction workflow
+Admin features: - Admin login/logout/current session - Invitation-based
+onboarding - Password reset - Admin management for `super_admin` -
+Create result draft - Edit draft - Publish result - Correction workflow
 
-Database: - `admins` - `admin_audit_logs`
+Authorization: - Roles: `super_admin`, `editor` - Permissions:
+`manage_results`, `manage_blogs` - Backend-enforced guards for admin
+governance and result management
+
+Database: - `admins` - `admin_permissions` - `admin_invitations` -
+`admin_password_resets` - `admin_audit_logs`
 
 ## Acceptance Criteria
 
--   Admin can create and edit draft results
--   Admin can publish results
--   Publish action sets `published_at`
--   All actions are recorded in audit logs
+-   Seeded `super_admin` can authenticate and access protected admin routes
+-   Invitation onboarding, password reset, and admin management flows work
+-   Admin with `manage_results` can create and edit draft results
+-   Admin can publish and correct results
+-   First publish sets `published_at`
+-   Sensitive governance and result actions are recorded in audit logs
 
 ------------------------------------------------------------------------
 

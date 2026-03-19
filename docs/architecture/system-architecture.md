@@ -151,7 +151,7 @@ Responsibilities:
 
 - Admin authentication
 - Invitation acceptance
-- Password reset
+- Password reset request and confirmation
 - Admin management
 - Result data entry
 - Result publishing and correction
@@ -162,7 +162,9 @@ Admin routes example:
 
 - `/admin/login`
 - `/admin/invitations/accept`
-- `/admin/reset-password`
+- `/admin/reset-password/request`
+- `/admin/reset-password/confirm`
+- `/admin/admins`
 - `/admin/results`
 - `/admin/blogs`
 - `/admin/dashboard`

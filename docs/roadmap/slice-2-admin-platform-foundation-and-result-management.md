@@ -2,7 +2,7 @@
 
 ## Summary
 
-Implement Slice 2 as the production-ready admin platform foundation for the final product, limited to secure admin access, admin governance basics, and lottery result management. Keep the existing architecture and boundaries unchanged: Next.js web app with protected admin routes, Express API backend, PostgreSQL via Prisma as source of truth, and Redis only for cache invalidation on publish/correction.
+Implement Slice 2 as the production-ready admin platform foundation for the final product, limited to secure admin access, admin governance basics, and lottery result management. Keep the existing architecture and boundaries unchanged: Next.js web app with protected admin routes, Express API backend, PostgreSQL via Prisma as source of truth, and a cache-invalidation seam for publish/correction with full Redis wiring deferred to the performance-hardening slice.
 
 Recommended auth choice for this slice: use an HTTP-only secure cookie carrying the admin session token. The backend remains the source of truth by resolving the current admin on each protected request and re-checking `is_active`, role, permissions, and password/session validity against PostgreSQL. This avoids adding a separate auth service or session table in Slice 2.
 
@@ -89,6 +89,7 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
 
 - Add/admin-complete result endpoints:
   - `GET /api/v1/admin/results`
+  - `GET /api/v1/admin/results/:id`
   - `POST /api/v1/admin/results`
   - `PATCH /api/v1/admin/results/:id`
   - `POST /api/v1/admin/results/:id/publish`
@@ -107,14 +108,14 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
   - set `published_at` only if currently null
   - update `updated_at` / `updated_by_admin_id`
   - write `publish_result` audit log with meaningful after snapshot
-  - invalidate result cache keys
+  - call the result cache-invalidation abstraction after successful commit
 - Correction behavior:
   - operate only on already-published draw
   - update published draw in place
   - never reset or overwrite original `published_at`
   - update `updated_at` / `updated_by_admin_id`
   - write `correct_result` audit log with before/after snapshots
-  - invalidate result cache keys
+  - call the result cache-invalidation abstraction after successful commit
 - Public-read compatibility:
   - public APIs must continue to return only `status = published`
   - checker and later slices continue to consume published data only
@@ -170,7 +171,7 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
   - service applies authz guard + business rules
   - repository persists changes in PostgreSQL
   - audit log written in same logical operation as the state change
-  - publish/correct operations invalidate Redis keys after successful commit
+  - publish/correct operations call a cache-invalidation abstraction after successful commit
 - Recommended endpoint response shapes:
   - invitation create returns invitation metadata plus manual-share URL
   - password reset request returns a reset URL only in development/MVP mode
@@ -194,6 +195,7 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
   - `PATCH /api/v1/admin/admins/:id`
 - Result management:
   - `GET /api/v1/admin/results`
+  - `GET /api/v1/admin/results/:id`
   - `POST /api/v1/admin/results`
   - `PATCH /api/v1/admin/results/:id`
   - `POST /api/v1/admin/results/:id/publish`
@@ -227,7 +229,7 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
   - publish requires canonical prize completeness and valid digit lengths
   - first publish sets `published_at`
   - correction updates published data in place without changing `published_at`
-  - publish and correction invalidate Redis result caches
+  - publish and correction call the cache-invalidation abstraction without breaking if Redis is not yet wired
   - public APIs continue to hide drafts
 - Audit logging
   - login, invite, revoke invitation, accept invitation, deactivate/reactivate admin, request/reset password, create/update/publish/correct result all create expected audit entries
