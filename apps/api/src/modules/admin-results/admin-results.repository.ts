@@ -18,6 +18,13 @@ export interface AdminResultRepositoryRow {
   number: string;
 }
 
+export interface AdminResultRepositoryGroupRelease {
+  prizeType: PrizeType;
+  isReleased: boolean;
+  releasedAt: Date | null;
+  releasedByAdminId: string | null;
+}
+
 export interface CreateAdminResultInput {
   drawDate: Date;
   drawCode: string | null;
@@ -46,10 +53,12 @@ export interface AdminResultsRepository {
   findDrawById(drawId: string): Promise<AdminResultRepositoryDraw | null>;
   findDrawByDate(drawDate: Date): Promise<AdminResultRepositoryDraw | null>;
   findRowsByDrawId(drawId: string): Promise<AdminResultRepositoryRow[]>;
+  findGroupReleasesByDrawId(drawId: string): Promise<AdminResultRepositoryGroupRelease[]>;
   createDraftResult(input: CreateAdminResultInput): Promise<AdminResultRepositoryDraw>;
   updateDraftResult(input: UpdateAdminResultInput): Promise<AdminResultRepositoryDraw>;
   publishDraftResult(drawId: string, adminId: string, publishedAt: Date): Promise<AdminResultRepositoryDraw>;
   correctPublishedResult(input: CorrectAdminResultInput): Promise<AdminResultRepositoryDraw>;
+  setGroupRelease(drawId: string, prizeType: PrizeType, isReleased: boolean, adminId: string, releasedAt: Date | null): Promise<void>;
 }
 
 function drawSelect() {
@@ -95,6 +104,18 @@ export const prismaAdminResultsRepository: AdminResultsRepository = {
         prizeType: true,
         prizeIndex: true,
         number: true
+      }
+    });
+  },
+
+  async findGroupReleasesByDrawId(drawId) {
+    return prisma.lotteryResultGroupRelease.findMany({
+      where: { drawId },
+      select: {
+        prizeType: true,
+        isReleased: true,
+        releasedAt: true,
+        releasedByAdminId: true
       }
     });
   },
@@ -155,14 +176,52 @@ export const prismaAdminResultsRepository: AdminResultsRepository = {
   },
 
   async publishDraftResult(drawId, adminId, publishedAt) {
-    return prisma.lotteryDraw.update({
-      where: { id: drawId },
-      data: {
-        status: "published",
-        publishedAt,
-        updatedByAdminId: adminId
-      },
-      select: drawSelect()
+    return prisma.$transaction(async (tx) => {
+      const rows = await tx.lotteryResult.findMany({
+        where: { drawId },
+        select: {
+          prizeType: true
+        }
+      });
+
+      const uniquePrizeTypes = [...new Set(rows.map((row) => row.prizeType))];
+
+      await tx.lotteryDraw.update({
+        where: { id: drawId },
+        data: {
+          status: "published",
+          publishedAt,
+          updatedByAdminId: adminId
+        }
+      });
+
+      for (const prizeType of uniquePrizeTypes) {
+        await tx.lotteryResultGroupRelease.upsert({
+          where: {
+            drawId_prizeType: {
+              drawId,
+              prizeType
+            }
+          },
+          update: {
+            isReleased: true,
+            releasedAt: publishedAt,
+            releasedByAdminId: adminId
+          },
+          create: {
+            drawId,
+            prizeType,
+            isReleased: true,
+            releasedAt: publishedAt,
+            releasedByAdminId: adminId
+          }
+        });
+      }
+
+      return tx.lotteryDraw.findUniqueOrThrow({
+        where: { id: drawId },
+        select: drawSelect()
+      });
     });
   },
 
@@ -195,6 +254,38 @@ export const prismaAdminResultsRepository: AdminResultsRepository = {
       return tx.lotteryDraw.findUniqueOrThrow({
         where: { id: input.drawId },
         select: drawSelect()
+      });
+    });
+  },
+
+  async setGroupRelease(drawId, prizeType, isReleased, adminId, releasedAt) {
+    await prisma.$transaction(async (tx) => {
+      await tx.lotteryResultGroupRelease.upsert({
+        where: {
+          drawId_prizeType: {
+            drawId,
+            prizeType
+          }
+        },
+        update: {
+          isReleased,
+          releasedAt: isReleased ? releasedAt : null,
+          releasedByAdminId: isReleased ? adminId : null
+        },
+        create: {
+          drawId,
+          prizeType,
+          isReleased,
+          releasedAt: isReleased ? releasedAt : null,
+          releasedByAdminId: isReleased ? adminId : null
+        }
+      });
+
+      await tx.lotteryDraw.update({
+        where: { id: drawId },
+        data: {
+          updatedByAdminId: adminId
+        }
       });
     });
   }

@@ -8,6 +8,7 @@ export interface LocaleDescriptor {
 export type {
   GroupableLotteryResult,
   PrizeGroup,
+  PrizeGroupInput,
   PrizeTypeMetadata
 } from "@thai-lottery-checker/types";
 export {

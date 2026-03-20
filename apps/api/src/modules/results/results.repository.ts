@@ -1,10 +1,11 @@
-import type { PrizeType } from "@thai-lottery-checker/types";
+import type { PrizeType, PublishStatus } from "@thai-lottery-checker/types";
 import { prisma } from "../../db/client.js";
 
 export interface ResultRepositoryDraw {
   id: string;
   drawDate: Date;
   drawCode: string | null;
+  status: PublishStatus;
   publishedAt: Date | null;
 }
 
@@ -15,6 +16,11 @@ export interface ResultRepositoryRow {
   number: string;
 }
 
+export interface ResultRepositoryGroupRelease {
+  prizeType: PrizeType;
+  isReleased: boolean;
+}
+
 export interface ResultHistoryRepositoryPayload {
   draws: ResultRepositoryDraw[];
   total: number;
@@ -22,10 +28,12 @@ export interface ResultHistoryRepositoryPayload {
 }
 
 export interface ResultsRepository {
+  findLatestPublicDraw(drawDate: string): Promise<ResultRepositoryDraw | null>;
   findLatestPublishedDraw(): Promise<ResultRepositoryDraw | null>;
-  findPublishedDrawByDate(drawDate: string): Promise<ResultRepositoryDraw | null>;
+  findPublicDrawByDate(drawDate: string, bangkokToday: string): Promise<ResultRepositoryDraw | null>;
   findPublishedDrawHistory(page: number, limit: number): Promise<ResultHistoryRepositoryPayload>;
   findResultsByDrawId(drawId: string): Promise<ResultRepositoryRow[]>;
+  findGroupReleasesByDrawId(drawId: string): Promise<ResultRepositoryGroupRelease[]>;
 }
 
 function toDrawDate(date: string): Date {
@@ -33,6 +41,23 @@ function toDrawDate(date: string): Date {
 }
 
 export const prismaResultsRepository: ResultsRepository = {
+  async findLatestPublicDraw(drawDate) {
+    return prisma.lotteryDraw.findFirst({
+      where: {
+        status: "draft",
+        drawDate: toDrawDate(drawDate)
+      },
+      orderBy: [{ drawDate: "desc" }],
+      select: {
+        id: true,
+        drawDate: true,
+        drawCode: true,
+        status: true,
+        publishedAt: true
+      }
+    });
+  },
+
   async findLatestPublishedDraw() {
     return prisma.lotteryDraw.findFirst({
       where: { status: "published" },
@@ -41,21 +66,29 @@ export const prismaResultsRepository: ResultsRepository = {
         id: true,
         drawDate: true,
         drawCode: true,
+        status: true,
         publishedAt: true
       }
     });
   },
 
-  async findPublishedDrawByDate(drawDate: string) {
+  async findPublicDrawByDate(drawDate: string, bangkokToday: string) {
     return prisma.lotteryDraw.findFirst({
       where: {
         drawDate: toDrawDate(drawDate),
-        status: "published"
+        OR: [
+          { status: "published" },
+          {
+            status: "draft",
+            drawDate: toDrawDate(bangkokToday)
+          }
+        ]
       },
       select: {
         id: true,
         drawDate: true,
         drawCode: true,
+        status: true,
         publishedAt: true
       }
     });
@@ -73,6 +106,7 @@ export const prismaResultsRepository: ResultsRepository = {
           id: true,
           drawDate: true,
           drawCode: true,
+          status: true,
           publishedAt: true
         }
       }),
@@ -115,6 +149,16 @@ export const prismaResultsRepository: ResultsRepository = {
         prizeType: true,
         prizeIndex: true,
         number: true
+      }
+    });
+  },
+
+  async findGroupReleasesByDrawId(drawId: string) {
+    return prisma.lotteryResultGroupRelease.findMany({
+      where: { drawId },
+      select: {
+        prizeType: true,
+        isReleased: true
       }
     });
   }

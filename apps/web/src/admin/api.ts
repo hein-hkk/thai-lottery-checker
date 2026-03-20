@@ -301,6 +301,40 @@ export async function publishAdminResult(drawId: string): Promise<AdminResultPub
   return adminResultPublishResponseSchema.parse(await response.json());
 }
 
+export async function releaseAdminResultGroup(drawId: string, prizeType: string): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}/prize-groups/${prizeType}/release`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to release result group");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
+}
+
+export async function unreleaseAdminResultGroup(drawId: string, prizeType: string): Promise<AdminResultDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}/prize-groups/${prizeType}/unrelease`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to unrelease result group");
+  }
+
+  return adminResultDetailResponseSchema.parse(await response.json());
+}
+
 export async function correctAdminResult(drawId: string, input: AdminResultWriteRequest): Promise<AdminResultDetailResponse> {
   const response = await fetch(getAdminApiUrl(`/api/v1/admin/results/${drawId}/correct`), {
     method: "PATCH",

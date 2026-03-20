@@ -36,9 +36,19 @@ describe("result domain metadata", () => {
       { prizeType: "FRONT_THREE", prizeIndex: 0, number: "068" }
     ]);
 
-    assert.deepEqual(grouped[0], { type: "FIRST_PRIZE", numbers: ["012345"] });
-    assert.deepEqual(grouped[6], { type: "FRONT_THREE", numbers: ["068", "045"] });
-    assert.deepEqual(grouped[8], { type: "LAST_TWO", numbers: ["06"] });
+    assert.deepEqual(grouped[0], { type: "FIRST_PRIZE", numbers: ["012345"], isReleased: true });
+    assert.deepEqual(grouped[6], { type: "FRONT_THREE", numbers: ["068", "045"], isReleased: true });
+    assert.deepEqual(grouped[8], { type: "LAST_TWO", numbers: ["06"], isReleased: true });
+  });
+
+  it("can override release state while keeping canonical groups", () => {
+    const grouped = groupPrizeRows(
+      [{ prizeType: "FIRST_PRIZE", prizeIndex: 0, number: "012345" }],
+      { FIRST_PRIZE: false, LAST_TWO: false }
+    );
+
+    assert.deepEqual(grouped[0], { type: "FIRST_PRIZE", numbers: ["012345"], isReleased: false });
+    assert.deepEqual(grouped[8], { type: "LAST_TWO", numbers: [], isReleased: false });
   });
 
   it("distinguishes complete prize groups from incomplete drafts", () => {

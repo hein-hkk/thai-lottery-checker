@@ -77,6 +77,38 @@ export async function publishAdminResultDraft(request: Request, response: Respon
   }
 }
 
+export async function releaseAdminResultGroup(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const drawId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const prizeType = Array.isArray(request.params.prizeType) ? request.params.prizeType[0] : request.params.prizeType;
+    const payload = await adminResultsService.releaseGroup(request.currentAdmin, drawId ?? "", prizeType ?? "");
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminResultsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
+export async function unreleaseAdminResultGroup(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const drawId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const prizeType = Array.isArray(request.params.prizeType) ? request.params.prizeType[0] : request.params.prizeType;
+    const payload = await adminResultsService.unreleaseGroup(request.currentAdmin, drawId ?? "", prizeType ?? "");
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminResultsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
 export async function correctAdminPublishedResult(request: Request, response: Response): Promise<void> {
   try {
     if (!request.currentAdmin) {

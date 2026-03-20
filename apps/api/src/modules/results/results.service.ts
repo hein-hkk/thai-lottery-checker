@@ -1,7 +1,12 @@
 import { ZodError } from "zod";
 import type { ResultDetailResponse, ResultHistoryResponse } from "@thai-lottery-checker/types";
 import { drawDateParamSchema, historyQuerySchema } from "@thai-lottery-checker/schemas";
-import { groupPrizeRows, hasCompletePrizeGroups } from "@thai-lottery-checker/domain";
+import {
+  getExpectedPrizeCount,
+  getPrizeDigitLength,
+  groupPrizeRows,
+  hasCompletePrizeGroups
+} from "@thai-lottery-checker/domain";
 import {
   invalidDrawDateError,
   invalidQueryError,
@@ -12,8 +17,33 @@ import {
   mapResultDetailResponse,
   mapResultHistoryItem
 } from "./results.mapper.js";
-import type { ResultRepositoryDraw, ResultRepositoryRow, ResultsRepository } from "./results.repository.js";
+import type {
+  ResultRepositoryDraw,
+  ResultRepositoryGroupRelease,
+  ResultRepositoryRow,
+  ResultsRepository
+} from "./results.repository.js";
 import { prismaResultsRepository } from "./results.repository.js";
+
+const bangkokDateFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Bangkok",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit"
+});
+
+function getBangkokToday(): string {
+  const parts = bangkokDateFormatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Failed to resolve Bangkok date");
+  }
+
+  return `${year}-${month}-${day}`;
+}
 
 function ensureCompletePublishedDraw(rows: readonly ResultRepositoryRow[]): void {
   const prizeGroups = groupPrizeRows(rows);
@@ -37,6 +67,28 @@ function extractHistorySummary(rows: readonly ResultRepositoryRow[]): { firstPri
   };
 }
 
+function ensureReleasedPrizeGroupsAreValid(rows: readonly ResultRepositoryRow[], releases: readonly ResultRepositoryGroupRelease[]): void {
+  const releaseStateMap = new Map(releases.map((release) => [release.prizeType, release.isReleased]));
+  const grouped = groupPrizeRows(
+    rows,
+    Object.fromEntries(releaseStateMap.entries())
+  );
+
+  for (const prizeGroup of grouped) {
+    if (!prizeGroup.isReleased) {
+      continue;
+    }
+
+    if (prizeGroup.numbers.length !== getExpectedPrizeCount(prizeGroup.type)) {
+      throw resultDataInvalidError();
+    }
+
+    if (prizeGroup.numbers.some((number) => number.length !== getPrizeDigitLength(prizeGroup.type))) {
+      throw resultDataInvalidError();
+    }
+  }
+}
+
 export interface ResultsService {
   getLatestResults(): Promise<ResultDetailResponse>;
   getResultsByDrawDate(drawDate: string): Promise<ResultDetailResponse>;
@@ -46,7 +98,10 @@ export interface ResultsService {
 export function createResultsService(repository: ResultsRepository = prismaResultsRepository): ResultsService {
   return {
     async getLatestResults() {
-      const draw = await repository.findLatestPublishedDraw();
+      const bangkokToday = getBangkokToday();
+      const draw =
+        (await repository.findLatestPublicDraw(bangkokToday)) ??
+        (await repository.findLatestPublishedDraw());
 
       if (!draw) {
         throw resultNotFoundError();
@@ -57,7 +112,7 @@ export function createResultsService(repository: ResultsRepository = prismaResul
 
     async getResultsByDrawDate(drawDate: string) {
       const parsed = parseDrawDate(drawDate);
-      const draw = await repository.findPublishedDrawByDate(parsed);
+      const draw = await repository.findPublicDrawByDate(parsed, getBangkokToday());
 
       if (!draw) {
         throw resultNotFoundError();
@@ -93,9 +148,25 @@ export function createResultsService(repository: ResultsRepository = prismaResul
 }
 
 async function getDetailResponse(draw: ResultRepositoryDraw, repository: ResultsRepository): Promise<ResultDetailResponse> {
-  const rows = await repository.findResultsByDrawId(draw.id);
-  ensureCompletePublishedDraw(rows);
-  return mapResultDetailResponse(draw, rows);
+  const [rows, releases] = await Promise.all([
+    repository.findResultsByDrawId(draw.id),
+    repository.findGroupReleasesByDrawId(draw.id)
+  ]);
+
+  if (draw.status === "published") {
+    ensureCompletePublishedDraw(rows);
+    return mapResultDetailResponse(draw, groupPrizeRows(rows));
+  }
+
+  ensureReleasedPrizeGroupsAreValid(rows, releases);
+
+  return mapResultDetailResponse(
+    draw,
+    groupPrizeRows(
+      rows,
+      Object.fromEntries(releases.map((release) => [release.prizeType, release.isReleased]))
+    )
+  );
 }
 
 function parseDrawDate(drawDate: string): string {

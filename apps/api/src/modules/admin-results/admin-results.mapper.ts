@@ -2,10 +2,15 @@ import { groupPrizeRows } from "@thai-lottery-checker/domain";
 import type {
   AdminResultDetailResponse,
   AdminResultListItem,
-  AdminResultListResponse
+  AdminResultListResponse,
+  PrizeType
 } from "@thai-lottery-checker/types";
 import { formatIsoTimestamp } from "@thai-lottery-checker/utils";
-import type { AdminResultRepositoryDraw, AdminResultRepositoryRow } from "./admin-results.repository.js";
+import type {
+  AdminResultRepositoryDraw,
+  AdminResultRepositoryGroupRelease,
+  AdminResultRepositoryRow
+} from "./admin-results.repository.js";
 
 function formatDrawDate(drawDate: Date): string {
   return [
@@ -34,8 +39,14 @@ export function mapAdminResultListResponse(draws: readonly AdminResultRepository
 
 export function mapAdminResultDetailResponse(
   draw: AdminResultRepositoryDraw,
-  rows: readonly AdminResultRepositoryRow[]
+  rows: readonly AdminResultRepositoryRow[],
+  releases: readonly AdminResultRepositoryGroupRelease[]
 ): AdminResultDetailResponse {
+  const releaseStates =
+    draw.status === "published"
+      ? undefined
+      : Object.fromEntries(releases.map((release) => [release.prizeType, release.isReleased])) as Partial<Record<PrizeType, boolean>>;
+
   return {
     result: {
       id: draw.id,
@@ -44,7 +55,7 @@ export function mapAdminResultDetailResponse(
       status: draw.status,
       publishedAt: draw.publishedAt ? formatIsoTimestamp(draw.publishedAt) : null,
       updatedAt: formatIsoTimestamp(draw.updatedAt),
-      prizeGroups: groupPrizeRows(rows)
+      prizeGroups: groupPrizeRows(rows, releaseStates)
     }
   };
 }

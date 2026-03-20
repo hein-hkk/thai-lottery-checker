@@ -23,6 +23,7 @@ const defaultInvitationState: InvitationFormState = {
 
 export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProps) {
   const [admins, setAdmins] = useState(initialAdmins);
+  const [filter, setFilter] = useState<"active" | "inactive" | "all">("active");
   const [inviteForm, setInviteForm] = useState<InvitationFormState>(defaultInvitationState);
   const [inviteMessage, setInviteMessage] = useState<string | null>(null);
   const [inviteUrl, setInviteUrl] = useState<string | null>(null);
@@ -98,6 +99,18 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
           : [...current.permissions, permission]
     }));
   }
+
+  const filteredAdmins = admins.filter((admin) => {
+    if (filter === "active") {
+      return admin.isActive;
+    }
+
+    if (filter === "inactive") {
+      return !admin.isActive;
+    }
+
+    return true;
+  });
 
   return (
     <div className="space-y-8">
@@ -182,10 +195,31 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
           <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Manage access</h2>
         </div>
 
+        <div className="mb-6 flex flex-wrap gap-3">
+          {[
+            { key: "active" as const, label: "Activated Admin" },
+            { key: "inactive" as const, label: "Deactivated Admin" },
+            { key: "all" as const, label: "All" }
+          ].map((option) => (
+            <button
+              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                filter === option.key
+                  ? "border-slate-900 bg-slate-900 text-white"
+                  : "border-slate-300 text-slate-700 hover:border-slate-500 hover:text-slate-900"
+              }`}
+              key={option.key}
+              onClick={() => setFilter(option.key)}
+              type="button"
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
+
         {updateError ? <p className="mb-4 text-sm text-rose-600">{updateError}</p> : null}
 
         <div className="space-y-4">
-          {admins.map((admin) => {
+          {filteredAdmins.map((admin) => {
             const isUpdating = updatingAdminId === admin.id;
 
             return (
