@@ -95,11 +95,13 @@ FR-2: The system must allow users to view **historical lottery results**.
 
 FR-3: The system must display **detailed results for a specific draw date**.
 
-FR-4: Lottery results must remain **hidden until published by an admin**.
+FR-4: Lottery results must support a **staged public release model** where draft draws may expose released prize groups while unreleased prize groups remain placeholder-only until final publish.
 
 FR-5: Admin users must be able to **correct previously published results**.
 
 FR-6: Result pages must support **multilingual labels and UI elements**.
+
+FR-6A: The landing page at `/{locale}/` must provide a latest-result preview and published-history entry point for public users.
 
 ---
 
@@ -171,11 +173,15 @@ FR-30: Admin users must be able to **update lottery results**.
 
 FR-31: Admin users must be able to **publish lottery results**.
 
+FR-31A: Admin users must be able to **release and unrelease prize groups before final publish**.
+
 FR-32: Admin users must be able to **manage blog posts**.
 
 FR-33: Admin users must be able to **view dashboard metrics**.
 
 FR-34: Admin actions must be **recorded in audit logs**.
+
+FR-34A: Staged-release actions and published-result corrections must remain auditable.
 
 ---
 
@@ -251,6 +257,7 @@ NFR-18: User events must be **tracked for analytics**.
 - Web and mobile platforms will share a common backend API.
 - Initial monetization will rely on advertisement revenue.
 - Multilingual support will be implemented from the first release.
+- Draw-day business rules are evaluated in the Thailand business timezone (`Asia/Bangkok`).
 
 ---
 

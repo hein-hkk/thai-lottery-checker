@@ -79,6 +79,7 @@ Technology:
 
 Responsibilities:
 
+- Render the locale landing page at `/{locale}/`
 - Display latest lottery results
 - Display historical results
 - Provide number checking interface
@@ -88,11 +89,12 @@ Responsibilities:
 - Use Tailwind CSS 4 as the baseline styling system for public web pages
 
 Example routes:
-- `/results`
-- `/results/{drawDate}`
-- `/check`
-- `/blog`
-- `/blog/{slug}`
+- `/{locale}`
+- `/{locale}/results`
+- `/{locale}/results/{drawDate}`
+- `/{locale}/check`
+- `/{locale}/blog`
+- `/{locale}/blog/{slug}`
 - `/en`
 - `/th`
 - `/my`
@@ -289,18 +291,23 @@ Responsibilities:
 - Retrieve latest results
 - Retrieve historical results
 - Retrieve result details
+- Resolve staged prize-group visibility for public latest/detail reads
+- Apply `Asia/Bangkok` draw-day latest-selection rules
 - Publish results
+- Release and unrelease prize groups before final publish
 - Correct published results in place
 - Trigger cache invalidation
-- Ensure only published results are returned to public clients
+- Ensure history remains published-only while latest/detail may expose partially released draft draws
 
 Result workflow:
 
 - Results are created and edited in `draft`
+- Prize groups can be released or unreleased before final publish
 - Publishing changes the draw to `published`
-- Public APIs serve only `published` results
+- Public history APIs serve only `published` draws
+- Public latest/detail APIs may serve a partially released current draw
 - Corrections modify the published data in place
-- Corrections trigger audit logging and cache invalidation
+- Release, unrelease, publish, and correction trigger audit logging and cache invalidation
 
 ---
 
@@ -373,6 +380,8 @@ Examples of audited actions include:
 - password reset actions
 - result creation
 - result update
+- result group release
+- result group unrelease
 - result publish
 - result correction
 
@@ -393,6 +402,7 @@ Key entities:
 
 - Lottery draws
 - Lottery results
+- Lottery result group releases
 - Blog posts
 - Blog translations
 - Users
@@ -432,6 +442,8 @@ Cache invalidation occurs when:
 
 - results are created
 - results are updated
+- result groups are released
+- result groups are unreleased
 - results are corrected
 - results are published
 

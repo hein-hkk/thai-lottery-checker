@@ -239,6 +239,9 @@ Tracks sensitive admin operations for traceability.
 - `reset_admin_password`
 - `create_result`
 - `update_result`
+- `release_result_group`
+- `unrelease_result_group`
+- `update_released_result_group`
 - `publish_result`
 - `correct_result`
 - `create_blog`
@@ -274,8 +277,9 @@ Represents one lottery draw event.
 
 - One row represents one draw date
 - `draw_date` must be unique
-- Public users should only see rows where `status = published`
-- Published draws are visible publicly
+- `status` remains limited to `draft` and `published`
+- Published draws are fully visible publicly
+- Staged public visibility before final publish is handled at the prize-group level, not through a third draw status
 - `published_at` should be non-null when `status = published`
 - `published_at` is set on first publish and keeps the original publish timestamp
 - Later corrections update the published draw in place
@@ -362,7 +366,8 @@ Shared domain helpers, shared types, shared schemas, and public result payloads 
 - A draw is result-complete only when every canonical prize group exists with the expected row counts listed above
 - Draft draws may be incomplete
 - Published draws should be treated as complete
-- Public result visibility should continue to depend on `status = published`
+- Public history visibility should depend on `status = published`
+- Public latest/detail visibility can also depend on prize-group release state while a draw remains in `draft`
 
 ### Public result shape assumption
 
@@ -372,7 +377,40 @@ Shared domain helpers, shared types, shared schemas, and public result payloads 
 
 ---
 
-## 3.8 `blog_posts`
+## 3.8 `lottery_result_group_releases`
+
+Stores public release state for each prize group within a draw.
+
+### Fields
+
+- `id` UUID, primary key
+- `draw_id` UUID, foreign key → `lottery_draws.id`, not null
+- `prize_type` ENUM(PrizeType), not null
+- `is_released` BOOLEAN, not null, default `false`
+- `released_at` TIMESTAMPTZ, null
+- `released_by_admin_id` UUID, foreign key → `admins.id`, null
+- `created_at` TIMESTAMPTZ, not null
+- `updated_at` TIMESTAMPTZ, not null
+
+### Constraints
+
+Unique composite constraint:
+
+- `(draw_id, prize_type)`
+
+### Notes
+
+- This table controls staged public visibility for result latest/detail experiences
+- It does not change the draw lifecycle; draws still use only `draft` and `published`
+- A draft draw may have released prize groups visible publicly
+- Unreleased prize groups should render as placeholders in public latest/detail payloads
+- `GET /api/v1/results` history remains published-only and should not list partially released draft draws
+- `released_at` and `released_by_admin_id` support operational traceability
+- Optional unrelease metadata can be added later if needed without changing the core staged-release model
+
+---
+
+## 3.9 `blog_posts`
 
 Stores blog post metadata.
 
@@ -395,7 +433,7 @@ Stores blog post metadata.
 
 ---
 
-## 3.9 `blog_post_translations`
+## 3.10 `blog_post_translations`
 
 Stores multilingual blog content.
 
@@ -434,7 +472,7 @@ Unique composite constraint:
 
 ---
 
-## 3.10 `users`
+## 3.11 `users`
 
 Stores mobile user accounts.
 
@@ -457,7 +495,7 @@ Stores mobile user accounts.
 
 ---
 
-## 3.11 `user_devices`
+## 3.12 `user_devices`
 
 Stores device tokens for push notifications.
 
@@ -480,7 +518,7 @@ Stores device tokens for push notifications.
 
 ---
 
-## 3.12 `saved_tickets`
+## 3.13 `saved_tickets`
 
 Stores lottery ticket numbers saved by users.
 
@@ -508,7 +546,7 @@ Stores lottery ticket numbers saved by users.
 
 ---
 
-## 3.13 `notification_preferences`
+## 3.14 `notification_preferences`
 
 Stores reminder settings for each user.
 
@@ -532,7 +570,7 @@ Stores reminder settings for each user.
 
 ---
 
-## 3.14 `analytics_events`
+## 3.15 `analytics_events`
 
 Stores product analytics and usage events.
 
@@ -573,6 +611,7 @@ Stores product analytics and usage events.
 - One `admin` has many `admin_password_resets`
 - One `admin` has many `admin_audit_logs`
 - One `lottery_draw` has many `lottery_results`
+- One `lottery_draw` has many `lottery_result_group_releases`
 - One `blog_post` has many `blog_post_translations`
 - One `user` has many `user_devices`
 - One `user` has many `saved_tickets`
@@ -609,6 +648,11 @@ Stores product analytics and usage events.
 - index on `draw_id`
 - composite index on `(draw_id, prize_type)`
 - unique composite index on `(draw_id, prize_type, prize_index)`
+
+## `lottery_result_group_releases`
+- index on `draw_id`
+- composite index on `(draw_id, is_released)`
+- unique composite index on `(draw_id, prize_type)`
 
 ## `blog_posts`
 - unique index on `slug`
@@ -650,7 +694,8 @@ Stores product analytics and usage events.
 - `prize_index` must be zero-based
 - result numbers must contain digits only
 - result numbers must preserve leading zeros
-- only published draws should be visible publicly
+- public history should expose only published draws
+- public latest/detail may expose draft draws only when prize-group release state allows it
 
 ## Prize digit rules
 - `FIRST_PRIZE` → 6 digits
@@ -709,10 +754,18 @@ Before publish:
 - `LAST_TWO` must have exactly 1 number
 - every result row must satisfy the prize-type digit length rule
 
+Before final publish, staged release may occur:
+- draw may remain `draft`
+- individual prize groups may be released or unreleased
+- released groups can be shown publicly in latest/detail experiences
+- unreleased groups remain placeholder-only publicly
+
 After publish:
 - draw status becomes published
 - `published_at` is set
 - related Redis cache keys must be invalidated
+- draw must not revert to `draft`
+- corrections update the published draw in place
 
 ## Blog Posts
 Before publish:
