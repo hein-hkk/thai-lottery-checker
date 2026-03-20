@@ -117,8 +117,9 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
   - write `correct_result` audit log with before/after snapshots
   - call the result cache-invalidation abstraction after successful commit
 - Public-read compatibility:
-  - public APIs must continue to return only `status = published`
-  - checker and later slices continue to consume published data only
+  - public APIs must continue to return only `status = published` during Slice 2
+  - staged public visibility is deferred to Slice 3
+  - checker and later slices continue to consume published data only until Slice 3 refines the result-browsing contract
 
 ### 5. Admin web UI
 
@@ -237,9 +238,9 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
 
 ## Recommendations
 
-- Keep Slice 2 focused on admin platform + result workflows only. Do not add blog CRUD UI now; just keep `manage_blogs` wired into enums, types, and permission plumbing so Slice 5 can reuse the foundation directly.
+- Keep Slice 2 focused on admin platform + result workflows only. Do not add blog CRUD UI now; just keep `manage_blogs` wired into enums, types, and permission plumbing so Slice 6 can reuse the foundation directly.
 - Treat admin-management actions as `super_admin`-only in Slice 2 even though the general model is role + permissions. This keeps governance simpler and safer for the first production-ready admin slice.
-- Use a compact, reusable permission-checking utility early. Slice 5 and Slice 9 will reuse the same authz surface instead of inventing new guards later.
+- Use a compact, reusable permission-checking utility early. Slice 6 and Slice 10 will reuse the same authz surface instead of inventing new guards later.
 - Return generated invitation/reset links only behind environment-gated MVP/dev behavior so production can later switch to email delivery without changing domain contracts.
 
 ## Assumptions
@@ -247,6 +248,6 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
 - Admin session implementation uses an HTTP-only secure cookie and backend-side current-admin resolution; no dedicated admin session table is introduced in Slice 2.
 - Logout clears the session cookie; no cross-device session management is included in Slice 2.
 - Invitation acceptance creates the admin record directly rather than creating a pre-user account first.
-- Result list API for admin can include both draft and published draws; public APIs remain published-only.
-- Blog permissions and navigation can exist in the auth model now, but full blog-management workflows remain Slice 5.
-- Dashboard analytics UI remains Slice 9; Slice 2 may expose only a minimal admin landing page, not a real metrics dashboard.
+- Result list API for admin can include both draft and published draws; public APIs remain published-only until Slice 3 introduces staged prize-group visibility.
+- Blog permissions and navigation can exist in the auth model now, but full blog-management workflows remain Slice 6.
+- Dashboard analytics UI remains Slice 10; Slice 2 may expose only a minimal admin landing page, not a real metrics dashboard.

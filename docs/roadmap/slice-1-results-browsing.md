@@ -7,10 +7,11 @@ Slice 1 delivers the first end-to-end public feature in the Thai Lottery Checker
 - latest result browsing
 - result history browsing
 - result detail by draw date
-- published-only visibility
+- initial published-only visibility
 - multilingual-ready web UI
 
 This slice is intentionally **read-only**. It does not include admin entry, corrections, checker logic, auth, or caching.
+Later staged prize-group visibility and landing-page refinement are intentionally deferred to Slice 3.
 
 ## Implemented Result Model
 
@@ -43,7 +44,7 @@ Rules:
 - numbers are stored as strings
 - leading zeros are preserved
 - `prize_index` defines stable order within a prize group
-- public browsing exposes only `status = published` draws
+- public browsing exposes only `status = published` draws in Slice 1 behavior
 
 ## Database Scope
 
@@ -147,6 +148,8 @@ Behavior:
 - missing or unpublished draw detail uses Next `notFound()`
 - static labels are localized for `en`, `th`, and `my`
 - result numbers are displayed exactly as returned by the API
+
+These route behaviors describe Slice 1 only and are later refined by Slice 3 for staged public release.
 
 ## Verification
 

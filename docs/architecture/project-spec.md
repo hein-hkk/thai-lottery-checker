@@ -66,6 +66,7 @@ Internal operators who manage:
 
 ### Public website
 
+- Locale landing page with latest-result hero and history entry point
 - Latest Thai lottery results
 - Historical draw results
 - Number checking flow
@@ -106,6 +107,7 @@ The admin area is implemented inside the same Next.js web application under prot
 
 ### Website MVP
 
+- Locale landing page
 - Latest result page
 - Result history page
 - Result detail page by draw date
@@ -211,8 +213,9 @@ Responsible for:
 - latest result retrieval
 - draw history retrieval
 - draw detail retrieval
+- staged prize-group visibility for draft draws
 - publish and correction workflows
-- cache invalidation triggers for publish/correction, with Redis-backed execution added in the performance-hardening slice
+- cache invalidation triggers for release/unrelease/publish/correction, with Redis-backed execution added in the performance-hardening slice
 
 ### Number checker service
 
@@ -256,6 +259,7 @@ Responsible for:
 - password recovery support
 - permission-aware admin governance
 - manual result entry
+- prize-group staged release controls
 - result publishing and correction
 - blog management
 - dashboard summaries
@@ -297,6 +301,9 @@ Represents a draw event by date and publish status.
 #### `lottery_results`
 Stores one winning number per row for a draw, using `PrizeType` and `prize_index` to group and order canonical Thai Government Lottery prize results.
 
+#### `lottery_result_group_releases`
+Stores prize-group public release state for a draw without changing the draw lifecycle status.
+
 #### `blog_posts`
 Stores blog post metadata such as slug, banner, and publish state.
 
@@ -321,6 +328,7 @@ Stores product analytics events for business reporting.
 ### Core relationships
 
 - One `lottery_draw` has many `lottery_results`
+- One `lottery_draw` has many `lottery_result_group_releases`
 - One `blog_post` has many `blog_post_translations`
 - One `user` has many `saved_tickets`
 - One `user` has many `user_devices`
@@ -349,11 +357,13 @@ Stores product analytics events for business reporting.
 - `super_admin` has full access
 - `editor` access is scoped through `manage_results` and `manage_blogs`
 - Editors with `manage_results` may create, edit, publish, and correct results
+- Slice 3 refines result operations with prize-group release and unrelease before final publish
 - Correction history is handled through audit logs rather than a dedicated version-history UI in MVP
 
 ### Lottery result model summary
 
-- `lottery_draws` and `lottery_results` remain the only result-domain tables
+- `lottery_draws` and `lottery_results` remain the core result-domain tables
+- `lottery_result_group_releases` stores staged public release state per draw and prize group
 - Each `lottery_result` row stores one winning number as a string so leading zeros are preserved
 - Canonical expected prize-group counts per draw are:
   - `FIRST_PRIZE`: 1
@@ -370,6 +380,8 @@ Stores product analytics events for business reporting.
   - three digits for `FRONT_THREE` and `LAST_THREE`
   - two digits for `LAST_TWO`
 - Public result payloads should expose grouped prize data in canonical order while preserving number strings exactly as stored
+- Public latest/detail payloads may include unreleased prize groups as placeholders before final publish
+- Draw lifecycle remains `draft` and `published`; staged release is not a third draw status
 
 ## 10. API Design Summary
 
@@ -395,10 +407,10 @@ These endpoints support Slice 1 public browsing for:
 - latest result browsing
 - result history
 - result detail by draw date
-- published-only visibility
+- published-only visibility in the initial Slice 1 behavior
 - multilingual-ready UI labels
 
-Slice 1 result browsing is read-only. Admin entry, corrections, and checker logic remain later-slice concerns even though they are part of the broader product roadmap.
+Slice 1 result browsing is read-only. Slice 3 later refines latest/detail behavior with staged prize-group visibility while keeping history published-only.
 
 ### Latest / detail response shape
 
@@ -414,7 +426,7 @@ Detailed result responses should support grouped prize data using canonical priz
 8. `LAST_THREE`
 9. `LAST_TWO`
 
-Example latest or detail response:
+Example published latest or detail response:
 
 ```json
 {
@@ -448,6 +460,15 @@ Example history item:
   "lastTwo": "06"
 }
 ```
+
+### Staged latest/detail behavior
+
+- `GET /api/v1/results/latest` prefers a current Bangkok-time draw-day draft when it has at least one released preview group; otherwise it falls back to the latest published draw
+- `GET /api/v1/results` remains published-only history
+- `GET /api/v1/results/:drawDate` may return either a fully published draw or a partially released draft draw
+- Unreleased prize groups in latest/detail responses must be represented as placeholders while preserving canonical prize-group order
+- `/{locale}/results` remains bookmarkable and can render the partially released latest draw
+- `/{locale}/` becomes the public landing page with latest hero preview plus published-history entry points
 
 ### Authenticated user endpoints
 
@@ -492,7 +513,7 @@ Redis is used to protect the system during lottery draw-day traffic spikes, espe
 
 - Redis is **not** the source of truth
 - PostgreSQL remains canonical
-- Result publish and correction workflows must invalidate dependent cache keys
+- Result release, unrelease, publish, and correction workflows must invalidate dependent cache keys
 - Cache misses must safely fall back to PostgreSQL
 - Redis outages must degrade gracefully without breaking correctness
 
@@ -533,8 +554,10 @@ This supports both SEO and audience-specific user journeys.
 ### Result workflow
 
 - Admin creates result data in `draft`
-- Result data is validated before publish
-- Publish sets public visibility
+- Admin may release or unrelease prize groups before final publish
+- Latest/detail public reads may expose released groups from a draft draw while unreleased groups stay placeholder-only
+- Result data is validated before final publish
+- Final publish marks the draw as complete official public state
 - Corrections trigger cache invalidation and fresh reads
 
 ### Blog workflow
@@ -548,7 +571,8 @@ This supports both SEO and audience-specific user journeys.
 - Ticket numbers and prize numbers are stored as strings
 - Numeric strings must preserve leading zeros
 - Prize lengths must match prize type requirements
-- Public result browsing must read only published draws
+- Public history must read only published draws
+- Public latest/detail may expose partially released draft draws using staged prize-group visibility
 - Blog locale values must match supported locales
 
 ## 14. Non-Functional Requirements
@@ -569,18 +593,30 @@ Product foundation, market setup, localization policy, ad strategy, content guid
 Monorepo setup, shared packages, core data models, admin auth, audit logging, event tracking.
 
 ### Phase 2
-Website MVP: results, history, checker, blogs, SEO, ad placement zones.
+Foundation public results plus admin result operations.
 
 ### Phase 3
-Mobile MVP: results, checker, blogs, saved tickets, notes, notifications.
+Product refinement for staged result release, landing-page flow, and admin UX improvements.
 
 ### Phase 4
-Redis-backed draw-day hardening: cache hottest read paths, invalidation, fallback behavior, load testing.
+Number checker.
 
 ### Phase 5
-Admin analytics and monetization optimization.
+Blog public reading.
 
 ### Phase 6
+Admin blog management.
+
+### Phase 7
+Mobile MVP: results, checker, blogs, saved tickets, notes, notifications.
+
+### Phase 8
+Redis-backed draw-day hardening: cache hottest read paths, invalidation, fallback behavior, load testing.
+
+### Phase 9
+Admin analytics and monetization optimization.
+
+### Phase 10
 Operational maturity, editorial workflow growth, observability, and future monetization review.
 
 ## 16. Success Criteria
