@@ -135,14 +135,14 @@ Results domain:
 - Bangkok-time draw-day latest-selection rule
 
 Public API behavior updates:
-- `GET /api/v1/results/latest` may prefer a current draw-day draft with released preview groups
+- `GET /api/v1/results/latest` may prefer a Bangkok-today draft immediately, even before the first group release
 - `GET /api/v1/results` remains published-only history
-- `GET /api/v1/results/:drawDate` may return a partially released draw detail
+- `GET /api/v1/results/:drawDate` may return the Bangkok-today draft, including placeholder-only state before the first group release
 
 Public web:
 - Replace `/{locale}/` placeholder with a real landing page
 - Landing page includes latest hero preview and published-only history list
-- `/{locale}/results` remains bookmarkable and can render a partially released latest draw
+- `/{locale}/results` remains bookmarkable and can render the current draw-day draft, including placeholder-only state before the first group release
 - `/{locale}/results/{drawDate}` supports placeholder rendering for unreleased prize groups
 - Blog teasers remain deferred to the later blog slice
 
@@ -159,10 +159,10 @@ UI polish:
 ## Acceptance Criteria
 
 - Draw lifecycle still uses only `draft` and `published`
-- A draft draw can expose released prize groups publicly while unreleased groups render as placeholders
+- A Bangkok-today draft becomes public immediately, and placeholder-only state is valid before the first group release
 - Final publish is blocked until all canonical prize groups are complete and valid
 - `/{locale}/` works as the public landing page with latest hero plus published-only history
-- `/{locale}/results` can show the partially released current draw chosen by Bangkok-time draw-day rules
+- `/{locale}/results` can show the current Bangkok-time draw-day draft even before the first group release
 - Admins with `manage_results` can release, unrelease, and edit released groups before final publish
 - Release, unrelease, publish, and correction actions remain auditable and invalidate dependent result caches
 

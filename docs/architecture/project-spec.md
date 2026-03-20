@@ -463,11 +463,11 @@ Example history item:
 
 ### Staged latest/detail behavior
 
-- `GET /api/v1/results/latest` prefers a current Bangkok-time draw-day draft when it has at least one released preview group; otherwise it falls back to the latest published draw
+- `GET /api/v1/results/latest` prefers a current Bangkok-time draw-day draft immediately; if no Bangkok-today draft exists, it falls back to the latest published draw
 - `GET /api/v1/results` remains published-only history
-- `GET /api/v1/results/:drawDate` may return either a fully published draw or a partially released draft draw
+- `GET /api/v1/results/:drawDate` may return either a fully published draw or the Bangkok-today draft, including placeholder-only state before the first group release
 - Unreleased prize groups in latest/detail responses must be represented as placeholders while preserving canonical prize-group order
-- `/{locale}/results` remains bookmarkable and can render the partially released latest draw
+- `/{locale}/results` remains bookmarkable and can render the current draw-day draft, including placeholder-only state before the first group release
 - `/{locale}/` becomes the public landing page with latest hero preview plus published-history entry points
 
 ### Authenticated user endpoints
