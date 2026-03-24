@@ -232,3 +232,21 @@ packages/
 - Slice 2 includes a cache-invalidation abstraction for result publish/correct flows; full Redis-backed performance hardening remains a later slice.
 - Number checker, blog management, mobile features, and analytics remain outside the currently shipped baseline.
 - The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
+
+## License
+
+This project is licensed under the MIT License.
+
+You are free to use, modify, and distribute the source code.
+
+---
+
+## Brand & Trademark
+
+"LottoKai" and all related branding (logo, design, identity) are NOT open source.
+
+They are protected and may NOT be used without permission.
+
+See:
+- TRADEMARK.md
+- BRAND_LICENSE.md
