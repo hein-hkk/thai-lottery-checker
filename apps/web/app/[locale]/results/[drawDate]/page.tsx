@@ -32,7 +32,7 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
     }
 
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.drawDetail}>
+      <ResultsShell currentPath="detail" locale={supportedLocale} messages={messages} title={messages.drawDetail}>
         <div className="space-y-6">
           <DrawMetaCard
             messages={messages}
@@ -42,10 +42,7 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
           />
           <PrizeGroupsSection messages={messages} prizeGroups={detail.prizeGroups} />
           <div className="flex justify-end">
-            <Link
-              className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-              href={`/${supportedLocale}/results/history`}
-            >
+            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
               {messages.backToHistory}
             </Link>
           </div>
@@ -54,7 +51,7 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
     );
   } catch {
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.drawDetail}>
+      <ResultsShell currentPath="detail" locale={supportedLocale} messages={messages} title={messages.drawDetail}>
         <StatusCard message={messages.detailUnavailable} />
       </ResultsShell>
     );

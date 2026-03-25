@@ -22,15 +22,12 @@ function PrizeGroupCard({ messages, prizeGroup }: { messages: ResultsMessages; p
   const placeholderDigits = "•".repeat(metadata.digitLength);
 
   return (
-    <section className="rounded-3xl border border-shell-border bg-white p-5 shadow-[0_12px_40px_rgba(18,49,79,0.06)]">
+    <section className="ui-panel p-5">
       <div className="flex items-start justify-between gap-3">
-        <h2 className="text-sm font-semibold uppercase tracking-[0.2em] text-slate-500">
-          {messages.prizeLabels[prizeGroup.type]}
-        </h2>
+        <h2 className="text-sm font-semibold leading-6 text-[var(--text-secondary)]">{messages.prizeLabels[prizeGroup.type]}</h2>
         <span
-          className={`rounded-full px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] ${
-            prizeGroup.isReleased ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-700"
-          }`}
+          className={`${prizeGroup.isReleased ? "ui-badge-success" : "ui-badge-warning"} shrink-0`}
+          aria-label={prizeGroup.isReleased ? "Released prize group" : "Pending prize group"}
         >
           {prizeGroup.isReleased ? "Released" : "Pending"}
         </span>
@@ -41,16 +38,21 @@ function PrizeGroupCard({ messages, prizeGroup }: { messages: ResultsMessages; p
           {prizeGroup.numbers.map((number) => (
             <span
               key={`${prizeGroup.type}-${number}`}
-              className="inline-flex rounded-2xl bg-shell-pill px-3 py-2 font-mono text-sm font-semibold tracking-[0.2em] text-slate-900"
+              className="inline-flex rounded-xl border border-[var(--border-default)] bg-[var(--surface-secondary)] px-3 py-2"
             >
-              {number}
+              <span className="ui-number-compact text-[var(--text-primary)]">{number}</span>
             </span>
           ))}
         </div>
       ) : (
         <div className="mt-4">
-          <span className="inline-flex rounded-2xl border border-dashed border-slate-300 px-3 py-2 font-mono text-sm font-semibold tracking-[0.2em] text-slate-500">
-            {placeholderDigits} x {metadata.expectedCount}
+          <span
+            className="inline-flex rounded-xl border border-dashed border-[var(--border-strong)] bg-[var(--surface-secondary)] px-3 py-2"
+            aria-label={`Pending release placeholder with ${metadata.expectedCount} values`}
+          >
+            <span className="ui-number-compact text-[var(--text-muted)]">
+              {placeholderDigits} x {metadata.expectedCount}
+            </span>
           </span>
         </div>
       )}

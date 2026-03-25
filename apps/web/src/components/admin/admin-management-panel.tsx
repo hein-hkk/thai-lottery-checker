@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import type { AdminListItem, AdminPermission, AdminRole } from "@thai-lottery-checker/types";
 import { adminPermissions } from "@thai-lottery-checker/types";
+import type { AdminListItem, AdminPermission, AdminRole } from "@thai-lottery-checker/types";
 import { AdminApiError, createAdminInvitation, updateAdminAccount } from "../../admin/api";
 
 interface AdminManagementPanelProps {
@@ -51,6 +51,25 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
     }
   }
 
+  async function applyAdminUpdate(
+    adminId: string,
+    payload: { role?: AdminRole; permissions?: AdminPermission[]; isActive?: boolean }
+  ) {
+    setUpdateError(null);
+    setUpdatingAdminId(adminId);
+
+    try {
+      const response = await updateAdminAccount(adminId, payload);
+      setAdmins((currentAdmins) =>
+        currentAdmins.map((admin) => (admin.id === adminId ? response.admin : admin))
+      );
+    } catch (error) {
+      setUpdateError(error instanceof AdminApiError ? error.message : "Failed to update admin");
+    } finally {
+      setUpdatingAdminId(null);
+    }
+  }
+
   async function handleRoleChange(admin: AdminListItem, role: AdminRole) {
     await applyAdminUpdate(admin.id, {
       role,
@@ -72,22 +91,6 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
     await applyAdminUpdate(admin.id, {
       isActive: !admin.isActive
     });
-  }
-
-  async function applyAdminUpdate(adminId: string, payload: { role?: AdminRole; permissions?: AdminPermission[]; isActive?: boolean }) {
-    setUpdateError(null);
-    setUpdatingAdminId(adminId);
-
-    try {
-      const response = await updateAdminAccount(adminId, payload);
-      setAdmins((currentAdmins) =>
-        currentAdmins.map((admin) => (admin.id === adminId ? response.admin : admin))
-      );
-    } catch (error) {
-      setUpdateError(error instanceof AdminApiError ? error.message : "Failed to update admin");
-    } finally {
-      setUpdatingAdminId(null);
-    }
   }
 
   function toggleInvitePermission(permission: AdminPermission) {
@@ -114,18 +117,18 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
 
   return (
     <div className="space-y-8">
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+      <section className="ui-panel p-6">
         <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Invite admin</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Create invitation</h2>
+          <p className="ui-kicker">Invite admin</p>
+          <h2 className="ui-section-title mt-2">Create invitation</h2>
         </div>
 
         <form className="space-y-4" onSubmit={handleInviteSubmit}>
           <div className="grid gap-4 md:grid-cols-2">
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Email</span>
+            <label className="ui-field">
+              <span className="ui-field-label">Email</span>
               <input
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+                className="ui-input"
                 onChange={(event) => setInviteForm((current) => ({ ...current, email: event.target.value }))}
                 required
                 type="email"
@@ -133,10 +136,10 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
               />
             </label>
 
-            <label className="space-y-2">
-              <span className="text-sm font-medium text-slate-700">Role</span>
+            <label className="ui-field">
+              <span className="ui-field-label">Role</span>
               <select
-                className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+                className="ui-select"
                 onChange={(event) =>
                   setInviteForm((current) => ({
                     ...current,
@@ -154,10 +157,13 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
 
           {inviteForm.role === "editor" ? (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-slate-700">Permissions</p>
+              <p className="ui-field-label">Permissions</p>
               <div className="flex flex-wrap gap-3">
                 {adminPermissions.map((permission) => (
-                  <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2 text-sm" key={permission}>
+                  <label
+                    className="ui-panel-muted inline-flex items-center gap-2 px-3 py-2 text-sm text-[var(--text-primary)]"
+                    key={permission}
+                  >
                     <input
                       checked={inviteForm.permissions.includes(permission)}
                       onChange={() => toggleInvitePermission(permission)}
@@ -170,29 +176,25 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
             </div>
           ) : null}
 
-          {inviteError ? <p className="text-sm text-rose-600">{inviteError}</p> : null}
-          {inviteMessage ? <p className="text-sm text-emerald-700">{inviteMessage}</p> : null}
+          {inviteError ? <p className="ui-inline-error">{inviteError}</p> : null}
+          {inviteMessage ? <p className="ui-inline-success">{inviteMessage}</p> : null}
           {inviteUrl ? (
-            <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+            <div className="ui-message-box-success">
               <p className="font-medium">Manual-share invitation link</p>
               <p className="mt-1 break-all">{inviteUrl}</p>
             </div>
           ) : null}
 
-          <button
-            className="rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-            disabled={isInviting}
-            type="submit"
-          >
+          <button className="ui-button-primary" disabled={isInviting} type="submit">
             {isInviting ? "Creating..." : "Create invitation"}
           </button>
         </form>
       </section>
 
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+      <section className="ui-panel p-6">
         <div className="mb-6">
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Admin accounts</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-950">Manage access</h2>
+          <p className="ui-kicker">Admin accounts</p>
+          <h2 className="ui-section-title mt-2">Manage access</h2>
         </div>
 
         <div className="mb-6 flex flex-wrap gap-3">
@@ -202,11 +204,7 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
             { key: "all" as const, label: "All" }
           ].map((option) => (
             <button
-              className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
-                filter === option.key
-                  ? "border-slate-900 bg-slate-900 text-white"
-                  : "border-slate-300 text-slate-700 hover:border-slate-500 hover:text-slate-900"
-              }`}
+              className={filter === option.key ? "ui-button-primary" : "ui-button-secondary"}
               key={option.key}
               onClick={() => setFilter(option.key)}
               type="button"
@@ -216,28 +214,28 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
           ))}
         </div>
 
-        {updateError ? <p className="mb-4 text-sm text-rose-600">{updateError}</p> : null}
+        {updateError ? <p className="mb-4 ui-inline-error">{updateError}</p> : null}
 
         <div className="space-y-4">
           {filteredAdmins.map((admin) => {
             const isUpdating = updatingAdminId === admin.id;
 
             return (
-              <article className="rounded-2xl border border-slate-200 p-5" key={admin.id}>
+              <article className="ui-panel-muted p-5" key={admin.id}>
                 <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                   <div className="space-y-1">
-                    <h3 className="text-lg font-semibold text-slate-950">{admin.name ?? admin.email}</h3>
-                    <p className="text-sm text-slate-600">{admin.email}</p>
-                    <p className="text-xs uppercase tracking-[0.16em] text-slate-500">
-                      {admin.isActive ? "active" : "inactive"} • last login {admin.lastLoginAt ?? "never"}
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">{admin.name ?? admin.email}</h3>
+                    <p className="text-sm text-[var(--text-secondary)]">{admin.email}</p>
+                    <p className="text-xs text-[var(--text-muted)]">
+                      {admin.isActive ? "Active" : "Inactive"} • last login {admin.lastLoginAt ?? "never"}
                     </p>
                   </div>
 
                   <div className="grid gap-3 md:grid-cols-3">
-                    <label className="space-y-2 text-sm">
-                      <span className="font-medium text-slate-700">Role</span>
+                    <label className="ui-field text-sm">
+                      <span className="ui-field-label">Role</span>
                       <select
-                        className="w-full rounded-xl border border-slate-300 px-3 py-2 outline-none transition focus:border-slate-600"
+                        className="ui-select"
                         disabled={isUpdating}
                         onChange={(event) => void handleRoleChange(admin, event.target.value as AdminRole)}
                         value={admin.role}
@@ -248,11 +246,11 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
                     </label>
 
                     <div className="space-y-2 text-sm md:col-span-2">
-                      <span className="font-medium text-slate-700">Permissions</span>
+                      <span className="ui-field-label">Permissions</span>
                       <div className="flex flex-wrap gap-3">
                         {adminPermissions.map((permission) => (
                           <label
-                            className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-2"
+                            className="ui-panel inline-flex items-center gap-2 px-3 py-2 text-[var(--text-primary)]"
                             key={permission}
                           >
                             <input
@@ -269,10 +267,10 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
                   </div>
                 </div>
 
-                <div className="mt-4 flex items-center justify-between gap-4 border-t border-slate-100 pt-4">
-                  <p className="text-xs text-slate-500">Created {new Date(admin.createdAt).toLocaleString()}</p>
+                <div className="mt-4 flex flex-col gap-4 border-t border-[var(--border-default)] pt-4 md:flex-row md:items-center md:justify-between">
+                  <p className="text-xs text-[var(--text-muted)]">Created {new Date(admin.createdAt).toLocaleString()}</p>
                   <button
-                    className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-500 hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    className="ui-button-secondary"
                     disabled={isUpdating}
                     onClick={() => void handleActiveToggle(admin)}
                     type="button"

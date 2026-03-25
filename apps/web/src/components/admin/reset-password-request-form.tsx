@@ -28,26 +28,26 @@ export function ResetPasswordRequestForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-slate-700">Email</span>
+      <label className="ui-field">
+        <span className="ui-field-label">Email</span>
         <input
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+          className="ui-input"
           onChange={(event) => setEmail(event.target.value)}
           required
           type="email"
           value={email}
         />
       </label>
-      {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
-      {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
+      {errorMessage ? <p className="ui-inline-error">{errorMessage}</p> : null}
+      {successMessage ? <p className="ui-inline-success">{successMessage}</p> : null}
       {resetUrl ? (
-        <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900">
+        <div className="ui-message-box-success">
           <p className="font-medium">Manual-share reset link</p>
           <p className="mt-1 break-all">{resetUrl}</p>
         </div>
       ) : null}
       <button
-        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="ui-button-primary flex w-full"
         disabled={isSubmitting}
         type="submit"
       >

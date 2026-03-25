@@ -9,18 +9,18 @@ interface DrawMetaCardProps {
 
 export function DrawMetaCard({ messages, drawDate, drawCode, publishedAt }: DrawMetaCardProps) {
   return (
-    <div className="grid gap-4 rounded-3xl border border-shell-border bg-slate-50/80 p-5 md:grid-cols-3">
+    <div className="ui-panel-muted grid gap-4 p-5 md:grid-cols-3">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{messages.drawDate}</p>
-        <p className="mt-2 text-lg font-semibold text-slate-900">{drawDate}</p>
+        <p className="ui-kicker">{messages.drawDate}</p>
+        <p className="mt-2 text-lg font-semibold text-[var(--text-primary)]">{drawDate}</p>
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{messages.drawCode}</p>
-        <p className="mt-2 text-lg font-semibold text-slate-900">{drawCode ?? "-"}</p>
+        <p className="ui-kicker">{messages.drawCode}</p>
+        <p className="mt-2 text-lg font-semibold text-[var(--text-primary)]">{drawCode ?? "-"}</p>
       </div>
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">{messages.publishedAt}</p>
-        <p className="mt-2 text-lg font-semibold text-slate-900">{publishedAt ?? "-"}</p>
+        <p className="ui-kicker">{messages.publishedAt}</p>
+        <p className="mt-2 text-lg font-semibold text-[var(--text-primary)]">{publishedAt ?? "-"}</p>
       </div>
     </div>
   );

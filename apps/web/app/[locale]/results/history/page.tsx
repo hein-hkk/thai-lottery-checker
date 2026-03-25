@@ -30,7 +30,7 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
     const history = await getResultHistory(currentPage);
 
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.resultHistory}>
+      <ResultsShell currentPath="history" locale={supportedLocale} messages={messages} title={messages.resultHistory}>
         {history.items.length === 0 ? (
           <StatusCard message={messages.noHistory} />
         ) : (
@@ -40,7 +40,7 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
     );
   } catch {
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.resultHistory}>
+      <ResultsShell currentPath="history" locale={supportedLocale} messages={messages} title={messages.resultHistory}>
         <StatusCard message={messages.historyUnavailable} />
       </ResultsShell>
     );

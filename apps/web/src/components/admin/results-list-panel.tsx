@@ -12,17 +12,14 @@ function formatTimestamp(value: string | null): string {
 export function ResultsListPanel({ items }: { items: AdminResultListItem[] }) {
   if (items.length === 0) {
     return (
-      <section className="rounded-[1.75rem] border border-dashed border-slate-300 bg-white p-10 text-center shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Result management</p>
-        <h2 className="mt-3 text-2xl font-semibold tracking-tight text-slate-950">No managed results yet</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-600">
+      <section className="ui-panel-dashed p-10 text-center">
+        <p className="ui-kicker">Result management</p>
+        <h2 className="ui-section-title mt-3">No managed results yet</h2>
+        <p className="ui-copy mt-3">
           Create the first draft draw to start the publish and correction workflow.
         </p>
         <div className="mt-6">
-          <Link
-            className="inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-            href="/admin/results/new"
-          >
+          <Link className="ui-button-primary" href="/admin/results/new">
             Create result
           </Link>
         </div>
@@ -32,48 +29,42 @@ export function ResultsListPanel({ items }: { items: AdminResultListItem[] }) {
 
   return (
     <section className="space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Result management</p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">Lottery results</h2>
+          <p className="ui-kicker">Result management</p>
+          <h2 className="ui-title mt-2 text-[clamp(1.75rem,4vw,2.5rem)]">Lottery results</h2>
         </div>
-        <Link
-          className="inline-flex rounded-full bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800"
-          href="/admin/results/new"
-        >
+        <Link className="ui-button-primary" href="/admin/results/new">
           Create result
         </Link>
       </div>
 
-      <div className="overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-        <table className="min-w-full divide-y divide-slate-200 text-sm">
-          <thead className="bg-slate-50 text-left text-slate-600">
+      <div className="ui-table-wrap">
+        <table className="ui-table">
+          <thead>
             <tr>
-              <th className="px-5 py-4 font-medium">Draw date</th>
-              <th className="px-5 py-4 font-medium">Draw code</th>
-              <th className="px-5 py-4 font-medium">Status</th>
-              <th className="px-5 py-4 font-medium">Published</th>
-              <th className="px-5 py-4 font-medium">Updated</th>
-              <th className="px-5 py-4 font-medium">Action</th>
+              <th>Draw date</th>
+              <th>Draw code</th>
+              <th>Status</th>
+              <th>Published</th>
+              <th>Updated</th>
+              <th>Action</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody>
             {items.map((item) => (
               <tr key={item.id}>
-                <td className="px-5 py-4 font-medium text-slate-900">{item.drawDate}</td>
-                <td className="px-5 py-4 text-slate-600">{item.drawCode ?? "None"}</td>
-                <td className="px-5 py-4">
-                  <span className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate-700">
+                <td className="font-medium text-[var(--text-primary)]">{item.drawDate}</td>
+                <td className="text-[var(--text-secondary)]">{item.drawCode ?? "None"}</td>
+                <td>
+                  <span className={item.status === "published" ? "ui-badge-success" : "ui-badge-warning"}>
                     {item.status}
                   </span>
                 </td>
-                <td className="px-5 py-4 text-slate-600">{formatTimestamp(item.publishedAt)}</td>
-                <td className="px-5 py-4 text-slate-600">{formatTimestamp(item.updatedAt)}</td>
-                <td className="px-5 py-4">
-                  <Link
-                    className="inline-flex rounded-full border border-slate-300 px-4 py-2 font-medium text-slate-700 transition hover:border-slate-500 hover:text-slate-950"
-                    href={`/admin/results/${item.id}`}
-                  >
+                <td className="text-[var(--text-secondary)]">{formatTimestamp(item.publishedAt)}</td>
+                <td className="text-[var(--text-secondary)]">{formatTimestamp(item.updatedAt)}</td>
+                <td>
+                  <Link className="ui-button-secondary" href={`/admin/results/${item.id}`}>
                     {item.status === "draft" ? "Edit draft" : "Correct result"}
                   </Link>
                 </td>

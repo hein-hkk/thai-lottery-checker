@@ -28,7 +28,7 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
     const latest = await getLatestResults();
 
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.latestResults}>
+      <ResultsShell currentPath="latest" locale={supportedLocale} messages={messages} title={messages.latestResults}>
         <div className="space-y-6">
           <DrawMetaCard
             messages={messages}
@@ -38,10 +38,7 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
           />
           <PrizeGroupsSection messages={messages} prizeGroups={latest.prizeGroups} />
           <div className="flex justify-end">
-            <Link
-              className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-              href={`/${supportedLocale}/results/history`}
-            >
+            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
               {messages.viewHistory}
             </Link>
           </div>
@@ -53,7 +50,7 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
       error instanceof ResultsApiError && error.status === 404 ? messages.noResults : messages.latestUnavailable;
 
     return (
-      <ResultsShell locale={supportedLocale} messages={messages} title={messages.latestResults}>
+      <ResultsShell currentPath="latest" locale={supportedLocale} messages={messages} title={messages.latestResults}>
         <StatusCard message={message} />
       </ResultsShell>
     );

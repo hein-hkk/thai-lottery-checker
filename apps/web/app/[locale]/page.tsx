@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { DrawMetaCard } from "../../src/components/results/draw-meta-card";
 import { PrizeGroupsSection } from "../../src/components/results/prize-groups-section";
 import { StatusCard } from "../../src/components/results/status-card";
+import { PublicPageShell } from "../../src/components/ui/public-page-shell";
 import { getResultHistory, getLatestResults, ResultsApiError } from "../../src/results/api";
 
 export const dynamic = "force-dynamic";
@@ -30,31 +31,24 @@ export default async function LocalePage({ params }: LocalePageProps) {
   const history = historyResult.status === "fulfilled" ? historyResult.value : null;
 
   return (
-    <main className="min-h-screen px-5 py-10 md:px-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <section className="rounded-[2rem] border border-shell-border bg-white/90 p-6 shadow-[0_18px_60px_rgba(18,49,79,0.08)] backdrop-blur-sm md:p-10">
-          <div className="flex flex-col gap-4 border-b border-shell-border pb-6 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-medium tracking-wide text-slate-500">{supportedLocale.toUpperCase()}</p>
-              <h1 className="mt-2 text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">{messages.latestResults}</h1>
-            </div>
-            <div className="flex flex-wrap gap-3">
-              <Link
-                className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-                href={`/${supportedLocale}/results`}
-              >
-                {messages.browseLatest}
-              </Link>
-              <Link
-                className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-                href={`/${supportedLocale}/results/history`}
-              >
-                {messages.viewHistory}
-              </Link>
-            </div>
+    <PublicPageShell
+      currentPath="home"
+      description="Track the latest Thai lottery result releases and browse draw history from one consistent public surface."
+      locale={supportedLocale}
+      messages={messages}
+      title={messages.latestResults}
+    >
+      <div className="space-y-8">
+        <section className="space-y-6">
+          <div className="flex flex-wrap gap-3">
+            <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
+              {messages.browseLatest}
+            </Link>
+            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
+              {messages.viewHistory}
+            </Link>
           </div>
-
-          <div className="mt-8">
+          <div>
             {latest ? (
               <div className="space-y-6">
                 <DrawMetaCard
@@ -80,36 +74,33 @@ export default async function LocalePage({ params }: LocalePageProps) {
           </div>
         </section>
 
-        <section className="rounded-[2rem] border border-shell-border bg-white/90 p-6 shadow-[0_18px_60px_rgba(18,49,79,0.08)] backdrop-blur-sm md:p-10">
-          <div className="flex items-end justify-between gap-4 border-b border-shell-border pb-6">
+        <section className="ui-panel p-6 md:p-8">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="text-sm font-medium tracking-wide text-slate-500">{messages.resultHistory}</p>
-              <h2 className="mt-2 text-2xl font-semibold tracking-tight text-slate-900">{messages.resultHistory}</h2>
+              <p className="ui-kicker">{messages.resultHistory}</p>
+              <h2 className="ui-section-title mt-2">{messages.resultHistory}</h2>
             </div>
-            <Link
-              className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-              href={`/${supportedLocale}/results/history`}
-            >
+            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
               {messages.viewHistory}
             </Link>
           </div>
 
-          <div className="mt-6">
+          <div className="ui-divider mt-6 pt-6">
             {history && history.items.length > 0 ? (
               <div className="grid gap-3">
                 {history.items.slice(0, 5).map((item) => (
                   <Link
-                    className="flex items-center justify-between gap-4 rounded-2xl border border-shell-border px-4 py-4 transition hover:border-slate-300 hover:bg-slate-50"
+                    className="ui-panel-muted flex flex-col justify-between gap-4 px-4 py-4 transition hover:border-[var(--border-strong)] md:flex-row md:items-center"
                     href={`/${supportedLocale}/results/${item.drawDate}`}
                     key={item.drawDate}
                   >
                     <div>
-                      <p className="text-sm font-semibold text-slate-900">{item.drawDate}</p>
-                      <p className="mt-1 text-sm text-slate-600">{item.drawCode ?? "-"}</p>
+                      <p className="text-sm font-semibold text-[var(--text-primary)]">{item.drawDate}</p>
+                      <p className="mt-1 text-sm text-[var(--text-secondary)]">{item.drawCode ?? "-"}</p>
                     </div>
                     <div className="text-right text-sm">
-                      <p className="font-mono font-semibold tracking-[0.16em] text-slate-900">{item.firstPrize}</p>
-                      <p className="mt-1 font-mono tracking-[0.16em] text-slate-500">{item.lastTwo}</p>
+                      <p className="ui-number-compact text-[var(--text-primary)]">{item.firstPrize}</p>
+                      <p className="ui-number-compact mt-1 text-[var(--text-muted)]">{item.lastTwo}</p>
                     </div>
                   </Link>
                 ))}
@@ -120,6 +111,6 @@ export default async function LocalePage({ params }: LocalePageProps) {
           </div>
         </section>
       </div>
-    </main>
+    </PublicPageShell>
   );
 }

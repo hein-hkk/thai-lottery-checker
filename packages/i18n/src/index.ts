@@ -21,6 +21,7 @@ export function getLocaleLabel(locale: SupportedLocale): string {
 }
 
 export interface ResultsMessages {
+  home: string;
   latestResults: string;
   resultHistory: string;
   drawDetail: string;
@@ -41,11 +42,16 @@ export interface ResultsMessages {
   previousPage: string;
   nextPage: string;
   page: string;
+  language: string;
+  theme: string;
+  lightMode: string;
+  darkMode: string;
   prizeLabels: Record<PrizeType, string>;
 }
 
 const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   en: {
+    home: "Home",
     latestResults: "Latest results",
     resultHistory: "Result history",
     drawDetail: "Draw detail",
@@ -66,6 +72,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "Previous",
     nextPage: "Next",
     page: "Page",
+    language: "Language",
+    theme: "Theme",
+    lightMode: "Light",
+    darkMode: "Dark",
     prizeLabels: {
       FIRST_PRIZE: "First prize",
       NEAR_FIRST_PRIZE: "Near first prize",
@@ -79,6 +89,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     }
   },
   th: {
+    home: "หน้าหลัก",
     latestResults: "ผลรางวัลล่าสุด",
     resultHistory: "ประวัติผลรางวัล",
     drawDetail: "รายละเอียดงวด",
@@ -99,6 +110,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "ก่อนหน้า",
     nextPage: "ถัดไป",
     page: "หน้า",
+    language: "ภาษา",
+    theme: "ธีม",
+    lightMode: "สว่าง",
+    darkMode: "มืด",
     prizeLabels: {
       FIRST_PRIZE: "รางวัลที่ 1",
       NEAR_FIRST_PRIZE: "รางวัลข้างเคียงรางวัลที่ 1",
@@ -112,6 +127,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     }
   },
   my: {
+    home: "ပင်မစာမျက်နှာ",
     latestResults: "နောက်ဆုံးထွက်အောင်ဘာသာရလဒ်",
     resultHistory: "ရလဒ်မှတ်တမ်း",
     drawDetail: "အကြိမ်အသေးစိတ်",
@@ -132,6 +148,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "ရှေ့",
     nextPage: "နောက်",
     page: "စာမျက်နှာ",
+    language: "ဘာသာစကား",
+    theme: "အပြင်အဆင်",
+    lightMode: "အလင်း",
+    darkMode: "အမှောင်",
     prizeLabels: {
       FIRST_PRIZE: "ပထမဆု",
       NEAR_FIRST_PRIZE: "ပထမဆုဘေးချင်းကပ်ဆု",

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getAdminMe } from "../../../src/admin/api";
 import { LogoutButton } from "../../../src/components/admin/logout-button";
+import { BrandLogo } from "../../../src/components/ui/brand-logo";
 
 export const dynamic = "force-dynamic";
 
@@ -16,29 +17,24 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
   }
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] text-slate-900">
-      <header className="border-b border-slate-200 bg-white/80 backdrop-blur">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-6 py-4">
+    <div className="ui-page">
+      <header className="ui-shell-header">
+        <div className="ui-container flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
           <div className="space-y-3">
-            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-slate-500">Thai Lottery Checker</p>
-            <h1 className="text-xl font-semibold text-slate-950">Admin platform</h1>
-            <nav className="flex items-center gap-3 text-sm text-slate-600">
-              <Link className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900" href="/admin">
+            <Link aria-label="LottoKai admin home" className="ui-brand-link" href="/admin">
+              <BrandLogo alt="LottoKai" className="ui-brand-logo" priority variant="full" />
+            </Link>
+            <nav className="ui-shell-nav" aria-label="Admin navigation">
+              <Link className="ui-nav-link" href="/admin">
                 Home
               </Link>
               {session.admin.effectivePermissions.includes("manage_results") ? (
-                <Link
-                  className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900"
-                  href="/admin/results"
-                >
+                <Link className="ui-nav-link" href="/admin/results">
                   Results
                 </Link>
               ) : null}
               {session.admin.role === "super_admin" ? (
-                <Link
-                  className="rounded-full border border-slate-200 px-3 py-1.5 transition hover:border-slate-400 hover:text-slate-900"
-                  href="/admin/admins"
-                >
+                <Link className="ui-nav-link" href="/admin/admins">
                   Admins
                 </Link>
               ) : null}
@@ -46,14 +42,14 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
           </div>
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <p className="text-sm font-medium text-slate-800">{session.admin.name ?? session.admin.email}</p>
-              <p className="text-xs uppercase tracking-[0.16em] text-slate-500">{session.admin.role}</p>
+              <p className="text-sm font-medium text-[var(--text-primary)]">{session.admin.name ?? session.admin.email}</p>
+              <p className="text-xs text-[var(--text-muted)]">{session.admin.role}</p>
             </div>
             <LogoutButton />
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-5xl px-6 py-10">{children}</main>
+      <main className="ui-container py-8 md:py-10">{children}</main>
     </div>
   );
 }
