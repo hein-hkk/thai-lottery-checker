@@ -25,9 +25,11 @@ export interface ResultsMessages {
   latestResults: string;
   resultHistory: string;
   drawDetail: string;
+  officialResultTitle: string;
   drawDate: string;
   drawCode: string;
   publishedAt: string;
+  pendingPublication: string;
   currentLocale: string;
   defaultLocale: string;
   viewHistory: string;
@@ -55,9 +57,11 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     latestResults: "Latest results",
     resultHistory: "Result history",
     drawDetail: "Draw detail",
+    officialResultTitle: "Official Thai Lottery Result",
     drawDate: "Draw date",
     drawCode: "Draw code",
     publishedAt: "Published at",
+    pendingPublication: "Not yet published",
     currentLocale: "Current locale",
     defaultLocale: "Default locale",
     viewHistory: "View history",
@@ -93,9 +97,11 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     latestResults: "ผลรางวัลล่าสุด",
     resultHistory: "ประวัติผลรางวัล",
     drawDetail: "รายละเอียดงวด",
+    officialResultTitle: "ผลสลากกินแบ่งรัฐบาลอย่างเป็นทางการ",
     drawDate: "วันที่ออกรางวัล",
     drawCode: "รหัสงวด",
     publishedAt: "เผยแพร่เมื่อ",
+    pendingPublication: "ยังไม่เผยแพร่",
     currentLocale: "ภาษาปัจจุบัน",
     defaultLocale: "ภาษาเริ่มต้น",
     viewHistory: "ดูประวัติผลรางวัล",
@@ -131,9 +137,11 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     latestResults: "နောက်ဆုံးထွက်အောင်ဘာသာရလဒ်",
     resultHistory: "ရလဒ်မှတ်တမ်း",
     drawDetail: "အကြိမ်အသေးစိတ်",
+    officialResultTitle: "တရားဝင် ထိုင်းထီရလဒ်",
     drawDate: "ထွက်သည့်နေ့",
     drawCode: "အကြိမ်ကုဒ်",
     publishedAt: "ထုတ်ပြန်ချိန်",
+    pendingPublication: "မထုတ်ပြန်ရသေးပါ",
     currentLocale: "လက်ရှိဘာသာ",
     defaultLocale: "မူလဘာသာ",
     viewHistory: "ရလဒ်မှတ်တမ်းကြည့်ရန်",

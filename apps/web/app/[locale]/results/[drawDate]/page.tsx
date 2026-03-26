@@ -2,8 +2,7 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DrawMetaCard } from "../../../../src/components/results/draw-meta-card";
-import { PrizeGroupsSection } from "../../../../src/components/results/prize-groups-section";
+import { ResultDetailSections } from "../../../../src/components/results/result-detail-sections";
 import { ResultsShell } from "../../../../src/components/results/results-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
 import { getResultDetail } from "../../../../src/results/api";
@@ -32,15 +31,22 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
     }
 
     return (
-      <ResultsShell currentPath="detail" locale={supportedLocale} messages={messages} title={messages.drawDetail}>
+      <ResultsShell
+        currentPath="detail"
+        locale={supportedLocale}
+        messages={messages}
+        showIntro={false}
+        showTopActions={false}
+        title={messages.drawDetail}
+      >
         <div className="space-y-6">
-          <DrawMetaCard
-            messages={messages}
+          <ResultDetailSections
             drawDate={detail.drawDate}
-            drawCode={detail.drawCode}
+            locale={supportedLocale}
+            messages={messages}
+            prizeGroups={detail.prizeGroups}
             publishedAt={detail.publishedAt}
           />
-          <PrizeGroupsSection messages={messages} prizeGroups={detail.prizeGroups} />
           <div className="flex justify-end">
             <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
               {messages.backToHistory}
