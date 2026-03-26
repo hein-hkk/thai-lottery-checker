@@ -411,6 +411,7 @@ Rules:
 Approved use cases:
 
 - dropdown chevrons
+- locale flag icons
 - theme toggle icons
 - compact status indicators
 - future feedback or status affordances when they improve clarity
@@ -420,6 +421,7 @@ Avoid:
 - decorative icons used only to fill space
 - mixing multiple unrelated icon styles
 - oversized icons that compete with typography or lottery numbers
+- emoji glyphs as stand-ins for product icons when SVG or other real assets are available
 
 ## 10. Accessibility
 
@@ -447,6 +449,7 @@ Rules:
 - line-height for multilingual UI text should be slightly more generous than tight Latin-only layouts
 - buttons, tabs, and nav items must tolerate longer translated labels without truncation by default
 - do not rely on text length for layout alignment
+- when locale is represented visually, use consistent SVG flag assets rather than emoji glyphs
 
 ## 12. Content and Data Presentation
 
@@ -502,7 +505,7 @@ Compact icon-only status indicators are acceptable only when:
 
 Contains:
 
-- logo icon and wordmark
+- full logo wordmark
 - language switcher
 - theme toggle
 - navigation
@@ -512,8 +515,17 @@ Rules:
 - sticky at top of page
 - bottom border required
 - consistent container width with page content
-- must remain usable on mobile without forcing cramped inline navigation
+- full logo remains visible on all screen sizes
+- desktop keeps inline navigation visible
+- mobile must not force cramped inline navigation
+- mobile uses a left drawer for navigation
+- mobile keeps locale switcher visible in the top bar
+- mobile moves theme toggle into the drawer
+- mobile top bar must reserve matched left and right control widths so the logo stays visually centered
 - dropdown chevrons and theme icons are acceptable because they improve control affordance
+- locale switcher uses flag plus text on desktop and compact flag-only presentation on mobile
+- locale flags should use real SVG assets for visual consistency
+- detailed header and drawer behavior is owned by [docs/menu-component.md](/Users/hkk/Documents/Playground/thai-lottery-checker/docs/menu-component.md), not by this foundation doc
 
 ### 12.2 Result Card
 

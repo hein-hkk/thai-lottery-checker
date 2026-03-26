@@ -14,10 +14,12 @@ function applyTheme(theme: ThemePreference) {
 }
 
 export function ThemeToggle({
+  className,
   darkModeLabel,
   lightModeLabel,
   themeLabel
 }: {
+  className?: string;
   darkModeLabel: string;
   lightModeLabel: string;
   themeLabel: string;
@@ -53,12 +55,12 @@ export function ThemeToggle({
       aria-label={
         mounted ? `${themeLabel}: ${theme === "dark" ? lightModeLabel : darkModeLabel}` : themeLabel
       }
-      className="ui-button-secondary ui-header-control ui-header-toggle"
+      className={`ui-button-secondary ui-header-control ui-header-toggle ${className ?? ""}`.trim()}
       onClick={handleToggle}
       type="button"
     >
       <span aria-hidden="true" className="ui-header-toggle-icon">
-        {theme === "dark" ? <Moon />: <Sun /> }
+        {theme === "dark" ? <Moon /> : <Sun />}
       </span>
       <span>{label}</span>
     </button>

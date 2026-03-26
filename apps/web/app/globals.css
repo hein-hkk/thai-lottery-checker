@@ -542,48 +542,208 @@
     gap: 0.625rem;
   }
 
+  .ui-mobile-topbar {
+    --ui-mobile-side-width: 3rem;
+    display: grid;
+    grid-template-columns: var(--ui-mobile-side-width) 1fr var(--ui-mobile-side-width);
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 3rem;
+  }
+
+  .ui-mobile-topbar-side {
+    display: flex;
+    align-items: center;
+    width: var(--ui-mobile-side-width);
+    min-width: 0;
+  }
+
+  .ui-mobile-topbar-side-end {
+    justify-content: flex-end;
+  }
+
+  .ui-mobile-brand {
+    justify-self: center;
+    width: 100%;
+    max-width: 9rem;
+  }
+
+  .ui-mobile-brand .ui-brand-logo img {
+    max-height: 1.75rem;
+  }
+
+  .ui-mobile-topbar .ui-header-icon-button {
+    width: var(--ui-mobile-side-width);
+    min-width: var(--ui-mobile-side-width);
+    border-radius: 0.875rem;
+  }
+
+  .ui-drawer-root {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+  }
+
+  .ui-drawer-overlay {
+    position: absolute;
+    inset: 0;
+    background: color-mix(in srgb, var(--overlay) 72%, transparent);
+  }
+
+  .ui-drawer-panel {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    height: 100%;
+    width: min(20rem, calc(100vw - 2.5rem));
+    flex-direction: column;
+    border-right: 1px solid var(--border-default);
+    background: var(--bg-primary);
+    padding: 1rem;
+  }
+
+  .ui-drawer-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-default);
+  }
+
+  .ui-drawer-title {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+  }
+
+  .ui-drawer-body {
+    overflow-y: auto;
+    padding-top: 1rem;
+  }
+
+  .ui-mobile-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .ui-mobile-nav-link {
+    display: flex;
+    align-items: center;
+    min-height: 2.75rem;
+    border: 1px solid transparent;
+    border-radius: 0.875rem;
+    padding-inline: 0.875rem;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    font-weight: 500;
+    line-height: 1.2;
+    transition:
+      border-color 150ms ease-out,
+      background-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+
+  .ui-mobile-nav-link:hover,
+  .ui-mobile-nav-link-active {
+    border-color: var(--border-default);
+    background: var(--surface-primary);
+    color: var(--text-primary);
+  }
+
+  .ui-drawer-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .ui-drawer-controls .ui-header-toggle {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .ui-mobile-user {
+    color: var(--text-secondary);
+  }
+
   .ui-header-control {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
     min-height: 2.5rem;
     border-radius: 9999px;
     padding-inline: 0.9375rem;
     font-size: 0.9375rem;
+    font-weight: 500;
     line-height: 1;
   }
 
-  .ui-header-select-wrap {
+  .ui-locale-menu {
     display: inline-flex;
-    align-items: center;
     position: relative;
   }
 
-  .ui-header-select {
-    appearance: none;
-    width: auto;
+  .ui-locale-trigger {
     min-width: 8.5rem;
-    min-height: 2.5rem;
-    border-radius: 1rem;
-    padding-block: 0;
-    padding-inline: 0.9375rem 2.5rem;
-    font-size: 0.9375rem;
-    line-height: 1;
+    justify-content: flex-start;
   }
 
-  .ui-header-select-icon {
-    pointer-events: none;
-    position: absolute;
-    right: 0.9375rem;
-    top: 50%;
+  .ui-locale-trigger-compact {
+    min-width: var(--ui-mobile-side-width);
+    width: var(--ui-mobile-side-width);
+    padding-inline: 0;
+    justify-content: center;
+    border-radius: 0.875rem;
+  }
+
+  .ui-locale-flag {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 1rem;
+    width: 1.25rem;
     height: 1rem;
+    flex-shrink: 0;
+    line-height: 1;
+  }
+
+  .ui-locale-flag img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 0.125rem;
+  }
+
+  .ui-locale-popover {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    right: 0;
+    z-index: 30;
+    display: flex;
+    min-width: 11rem;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid var(--border-default);
+    border-radius: 1rem;
+    background: var(--bg-primary);
+    padding: 0.375rem;
+  }
+
+  .ui-header-select-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 0.875rem;
+    height: 0.875rem;
     color: var(--text-secondary);
-    transform: translateY(-50%);
   }
 
   .ui-header-select-icon svg,
-  .ui-header-toggle-icon svg {
+  .ui-header-toggle-icon svg,
+  .ui-locale-option-icon svg {
     width: 1rem;
     height: 1rem;
     stroke: currentColor;
@@ -591,10 +751,46 @@
     vector-effect: non-scaling-stroke;
   }
 
+  .ui-locale-option {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0.625rem;
+    min-height: 2.5rem;
+    border-radius: 0.75rem;
+    padding-inline: 0.75rem;
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    transition:
+      background-color 150ms ease-out,
+      color 150ms ease-out;
+  }
+
+  .ui-locale-option:hover,
+  .ui-locale-option-active {
+    background: var(--surface-primary);
+    color: var(--text-primary);
+  }
+
+  .ui-locale-option-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--color-primary);
+  }
+
   .ui-header-toggle {
     min-width: auto;
     padding-inline: 0.9375rem;
     font-weight: 600;
+  }
+
+  .ui-header-icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 2.5rem;
+    padding-inline: 0;
   }
 
   .ui-header-toggle-icon {
@@ -619,6 +815,18 @@
     }
 
     .ui-brand-logo img {
+      max-height: 2.25rem;
+    }
+
+    .ui-mobile-topbar {
+      --ui-mobile-side-width: 3.5rem;
+    }
+
+    .ui-mobile-brand {
+      max-width: 11rem;
+    }
+
+    .ui-mobile-brand .ui-brand-logo img {
       max-height: 2.25rem;
     }
   }
