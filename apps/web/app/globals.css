@@ -551,6 +551,10 @@
     position: relative;
   }
 
+  .ui-detail-dense-section {
+    padding-top: 1.5rem;
+  }
+
   .ui-detail-chip-grid {
     --ui-detail-columns-mobile: 2;
     --ui-detail-columns-desktop: 2;

@@ -1,9 +1,8 @@
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ResultDetailSections } from "../../../../src/components/results/result-detail-sections";
-import { ResultsShell } from "../../../../src/components/results/results-shell";
+import { ResultDetailShell } from "../../../../src/components/results/result-detail-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
 import { getResultDetail } from "../../../../src/results/api";
 
@@ -31,35 +30,21 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
     }
 
     return (
-      <ResultsShell
-        currentPath="detail"
-        locale={supportedLocale}
-        messages={messages}
-        showIntro={false}
-        showTopActions={false}
-        title={messages.drawDetail}
-      >
-        <div className="space-y-6">
-          <ResultDetailSections
-            drawDate={detail.drawDate}
-            locale={supportedLocale}
-            messages={messages}
-            prizeGroups={detail.prizeGroups}
-            publishedAt={detail.publishedAt}
-          />
-          <div className="flex justify-end">
-            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
-              {messages.backToHistory}
-            </Link>
-          </div>
-        </div>
-      </ResultsShell>
+      <ResultDetailShell locale={supportedLocale} messages={messages}>
+        <ResultDetailSections
+          drawDate={detail.drawDate}
+          locale={supportedLocale}
+          messages={messages}
+          prizeGroups={detail.prizeGroups}
+          publishedAt={detail.publishedAt}
+        />
+      </ResultDetailShell>
     );
   } catch {
     return (
-      <ResultsShell currentPath="detail" locale={supportedLocale} messages={messages} title={messages.drawDetail}>
+      <ResultDetailShell locale={supportedLocale} messages={messages}>
         <StatusCard message={messages.detailUnavailable} />
-      </ResultsShell>
+      </ResultDetailShell>
     );
   }
 }
