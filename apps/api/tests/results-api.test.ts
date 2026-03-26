@@ -821,7 +821,14 @@ describe("results api", () => {
   it("returns paginated published history in reverse chronological order", async () => {
     const { status, body } = await getJson("/api/v1/results?page=1&limit=1");
     const payload = body as {
-      items: Array<{ drawDate: string; firstPrize: string; lastTwo: string }>;
+      items: Array<{
+        drawDate: string;
+        drawCode: string | null;
+        firstPrize: string;
+        frontThree: string[];
+        lastThree: string[];
+        lastTwo: string;
+      }>;
       page: number;
       limit: number;
       total: number;
@@ -836,6 +843,8 @@ describe("results api", () => {
       drawDate: "2026-03-01",
       drawCode: "2026-03-01",
       firstPrize: "820866",
+      frontThree: ["510", "983"],
+      lastThree: ["439", "954"],
       lastTwo: "06"
     });
   });

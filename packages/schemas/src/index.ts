@@ -158,6 +158,8 @@ export const resultHistoryItemSchema = z.object({
   drawDate: z.string().regex(drawDatePattern),
   drawCode: z.string().nullable(),
   firstPrize: z.string(),
+  frontThree: z.array(z.string()).optional().default([]),
+  lastThree: z.array(z.string()).optional().default([]),
   lastTwo: z.string()
 });
 

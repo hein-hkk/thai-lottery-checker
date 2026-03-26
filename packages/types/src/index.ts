@@ -164,6 +164,8 @@ export interface ResultHistoryItem {
   drawDate: string;
   drawCode: string | null;
   firstPrize: string;
+  frontThree: string[];
+  lastThree: string[];
   lastTwo: string;
 }
 

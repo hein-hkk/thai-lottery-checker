@@ -1,9 +1,8 @@
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
-import type { PrizeGroup, SupportedLocale } from "@thai-lottery-checker/types";
+import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DrawMetaCard } from "../../src/components/results/draw-meta-card";
-import { PrizeGroupsSection } from "../../src/components/results/prize-groups-section";
+import { LatestSummarySection } from "../../src/components/results/latest-summary-section";
 import { StatusCard } from "../../src/components/results/status-card";
 import { PublicPageShell } from "../../src/components/ui/public-page-shell";
 import { getResultHistory, getLatestResults, ResultsApiError } from "../../src/results/api";
@@ -13,8 +12,6 @@ export const dynamic = "force-dynamic";
 interface LocalePageProps {
   params: Promise<{ locale: string }>;
 }
-
-const heroPrizeTypes = new Set<PrizeGroup["type"]>(["FIRST_PRIZE", "FRONT_THREE", "LAST_THREE", "LAST_TWO"]);
 
 export default async function LocalePage({ params }: LocalePageProps) {
   const { locale } = await params;
@@ -40,38 +37,30 @@ export default async function LocalePage({ params }: LocalePageProps) {
     >
       <div className="space-y-8">
         <section className="space-y-6">
-          <div className="flex flex-wrap gap-3">
-            <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
-              {messages.browseLatest}
-            </Link>
-            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
-              {messages.viewHistory}
-            </Link>
-          </div>
-          <div>
-            {latest ? (
-              <div className="space-y-6">
-                <DrawMetaCard
-                  messages={messages}
-                  drawCode={latest.drawCode}
-                  drawDate={latest.drawDate}
-                  publishedAt={latest.publishedAt}
-                />
-                <PrizeGroupsSection
-                  messages={messages}
-                  prizeGroups={latest.prizeGroups.filter((group) => heroPrizeTypes.has(group.type))}
-                />
-              </div>
-            ) : (
-              <StatusCard
-                message={
-                  latestResult.status === "rejected" && latestResult.reason instanceof ResultsApiError && latestResult.reason.status === 404
-                    ? messages.noResults
-                    : messages.latestUnavailable
-                }
+          {latest ? (
+            <div className="space-y-6">
+              <LatestSummarySection
+                drawDate={latest.drawDate}
+                locale={supportedLocale}
+                messages={messages}
+                prizeGroups={latest.prizeGroups}
+                publishedAt={latest.publishedAt}
               />
-            )}
-          </div>
+              <div className="flex justify-start">
+                <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
+                  {messages.browseLatest}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <StatusCard
+              message={
+                latestResult.status === "rejected" && latestResult.reason instanceof ResultsApiError && latestResult.reason.status === 404
+                  ? messages.noResults
+                  : messages.latestUnavailable
+              }
+            />
+          )}
         </section>
 
         <section className="ui-panel p-6 md:p-8">

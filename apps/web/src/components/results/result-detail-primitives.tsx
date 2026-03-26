@@ -31,7 +31,15 @@ export function ResultDetailHeader({
   );
 }
 
-export function SummaryPrizeCard({ messages, prizeGroup }: { messages: ResultsMessages; prizeGroup: PrizeGroup }) {
+export function SummaryPrizeCard({
+  messages,
+  prizeGroup,
+  variant = "default"
+}: {
+  messages: ResultsMessages;
+  prizeGroup: PrizeGroup;
+  variant?: "compact" | "default";
+}) {
   const metadata = prizeTypeMetadataByType[prizeGroup.type];
   const isFirstPrize = prizeGroup.type === "FIRST_PRIZE";
   const summaryValuesClassName = `ui-detail-summary-values ${
@@ -39,9 +47,13 @@ export function SummaryPrizeCard({ messages, prizeGroup }: { messages: ResultsMe
   }`;
   const summaryCardClassName = `ui-panel ui-detail-card ui-detail-summary-card ${
     isFirstPrize ? "ui-detail-summary-card-featured" : ""
+  } ${variant === "compact" ? "ui-detail-summary-card-compact" : ""}`;
+  const summaryPillClassName = `ui-detail-summary-pill ${isFirstPrize ? "ui-detail-summary-pill-featured" : ""} ${
+    variant === "compact" ? "ui-detail-summary-pill-compact" : ""
   }`;
-  const summaryPillClassName = `ui-detail-summary-pill ${isFirstPrize ? "ui-detail-summary-pill-featured" : ""}`;
-  const summaryNumberClassName = `ui-detail-summary-number ${isFirstPrize ? "ui-detail-summary-number-featured" : ""}`;
+  const summaryNumberClassName = `ui-detail-summary-number ${isFirstPrize ? "ui-detail-summary-number-featured" : ""} ${
+    variant === "compact" ? "ui-detail-summary-number-compact-card" : ""
+  }`;
 
   return (
     <section className={summaryCardClassName}>

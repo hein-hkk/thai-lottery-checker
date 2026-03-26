@@ -53,16 +53,25 @@ function ensureCompletePublishedDraw(rows: readonly ResultRepositoryRow[]): void
   }
 }
 
-function extractHistorySummary(rows: readonly ResultRepositoryRow[]): { firstPrize: string; lastTwo: string } {
+function extractHistorySummary(rows: readonly ResultRepositoryRow[]): {
+  firstPrize: string;
+  frontThree: string[];
+  lastThree: string[];
+  lastTwo: string;
+} {
   const firstPrize = rows.find((row) => row.prizeType === "FIRST_PRIZE")?.number;
+  const frontThree = rows.filter((row) => row.prizeType === "FRONT_THREE").map((row) => row.number);
+  const lastThree = rows.filter((row) => row.prizeType === "LAST_THREE").map((row) => row.number);
   const lastTwo = rows.find((row) => row.prizeType === "LAST_TWO")?.number;
 
-  if (!firstPrize || !lastTwo) {
+  if (!firstPrize || !lastTwo || frontThree.length !== 2 || lastThree.length !== 2) {
     throw resultDataInvalidError();
   }
 
   return {
     firstPrize,
+    frontThree,
+    lastThree,
     lastTwo
   };
 }

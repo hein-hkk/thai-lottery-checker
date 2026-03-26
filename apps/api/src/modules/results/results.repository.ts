@@ -122,7 +122,7 @@ export const prismaResultsRepository: ResultsRepository = {
         : await prisma.lotteryResult.findMany({
             where: {
               drawId: { in: drawIds },
-              prizeType: { in: ["FIRST_PRIZE", "LAST_TWO"] }
+              prizeType: { in: ["FIRST_PRIZE", "FRONT_THREE", "LAST_THREE", "LAST_TWO"] }
             },
             orderBy: [{ prizeIndex: "asc" }],
             select: {

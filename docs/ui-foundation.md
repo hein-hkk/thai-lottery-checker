@@ -544,7 +544,9 @@ Rules:
 - use `border-default`
 - maintain clear title-to-data hierarchy
 - placeholders must appear structurally intentional, not visually broken
-- the result detail page established the current reference public-results layout, and the latest results page now follows the same pattern
+- the result detail page established the current reference public-results layout
+- the latest results page and the home latest-results preview now reuse that same approved pattern
+- the history list uses a separate compact preview pattern because it is a browse/index surface rather than the primary checking surface
 - future public result surfaces should reuse this approved pattern unless there is a strong page-specific reason not to
 
 ### 12.3 Prize Group Block
@@ -566,7 +568,10 @@ Rules:
   - summary prize cards for first prize, front three, last three, and last two
   - grouped prize cards for near first prize and second prize
   - dense chip-grid sections for third, fourth, and fifth prize
+  - latest-summary preview blocks on the home page that reuse the same summary header, metadata row, and top prize-card treatment as the latest results page
+  - compact history-list rows that use a date badge, a flatter preview layout, full-row click behavior, and a subtle arrow affordance
   - bottom-only secondary page action for related navigation, such as `View history`, when a page needs one supporting action without competing with the result content
+  - single primary preview action for home latest-results surfaces, such as `Browse latest results`, when the section is acting as an entry point rather than a full page
 
 ### 12.4 Number Display
 
@@ -578,6 +583,7 @@ Rules:
 - no decorative glow, gradients, or oversized ornamental chips
 - summary number chips should remain bold and prominent across breakpoints, with narrow-screen adjustments used only to prevent overflow
 - front three and last three should preserve paired side-by-side presentation on desktop
+- history-list previews may intentionally reduce visible prize groups on small mobile to preserve scanability, while tablet and desktop can expose the fuller summary
 
 ### 12.5 Input Checker
 

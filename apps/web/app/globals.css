@@ -485,6 +485,11 @@
     min-height: 10.5rem;
   }
 
+  .ui-detail-summary-card-compact {
+    min-height: 0;
+    padding: 1rem;
+  }
+
   .ui-detail-summary-card-featured {
     border-color: color-mix(in srgb, var(--color-primary) 56%, var(--border-default));
     background: color-mix(in srgb, var(--surface-primary) 92%, var(--color-primary-soft));
@@ -531,9 +536,20 @@
     letter-spacing: 0.1em;
   }
 
+  .ui-detail-summary-number-compact-card {
+    font-size: clamp(0.95rem, 1vw + 0.8rem, 1.375rem);
+    letter-spacing: 0.06em;
+  }
+
   .ui-detail-summary-pill-featured {
     border-color: color-mix(in srgb, var(--color-primary) 48%, var(--border-default));
     background: color-mix(in srgb, var(--color-primary-soft) 72%, var(--surface-secondary));
+  }
+
+  .ui-detail-summary-pill-compact {
+    min-height: 2.75rem;
+    padding-inline: 0.75rem;
+    padding-block: 0.625rem;
   }
 
   .ui-detail-summary-pill-muted,
@@ -566,6 +582,153 @@
   .ui-detail-chip-dense {
     min-height: 3rem;
     padding-inline: 0.625rem;
+  }
+
+  .ui-history-link-card {
+    position: relative;
+    display: block;
+    padding: 1.25rem;
+    transition:
+      border-color 150ms ease-out,
+      background-color 150ms ease-out,
+      transform 150ms ease-out;
+  }
+
+  .ui-history-link-card:hover {
+    border-color: var(--border-strong);
+  }
+
+  .ui-history-link-card:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+  }
+
+  .ui-history-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 1rem;
+  }
+
+  .ui-history-content {
+    display: grid;
+    gap: 1rem;
+  }
+
+  .ui-history-date-badge {
+    display: inline-grid;
+    align-content: center;
+    justify-items: center;
+    width: 5rem;
+    min-width: 5rem;
+    min-height: 5rem;
+    border: 1px solid var(--border-default);
+    border-radius: 1rem;
+    background: var(--surface-secondary);
+    padding: 0.625rem;
+    text-align: center;
+  }
+
+  .ui-history-date-day {
+    color: var(--text-primary);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .ui-history-date-month {
+    margin-top: 0.25rem;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    line-height: 1.1;
+  }
+
+  .ui-history-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+  }
+
+  .ui-history-value-block {
+    display: grid;
+    gap: 0.625rem;
+    min-width: 0;
+  }
+
+  .ui-history-value-block-desktop-only {
+    display: none;
+  }
+
+  .ui-history-value-label {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    line-height: 1.4;
+  }
+
+  .ui-history-value-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .ui-history-value-row-paired {
+    gap: 0.625rem;
+  }
+
+  .ui-history-value {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2.5rem;
+    min-width: 0;
+    border: 1px solid var(--border-default);
+    border-radius: 0.875rem;
+    background: var(--surface-secondary);
+    padding-inline: 0.75rem;
+    padding-block: 0.5rem;
+    color: var(--text-primary);
+    font-family: var(--font-number);
+    font-size: 1.125rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.06em;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .ui-history-value-block-featured .ui-history-value-label {
+    color: var(--text-secondary);
+  }
+
+  .ui-history-value-featured {
+    border-color: color-mix(in srgb, var(--color-primary) 40%, var(--border-default));
+    background: color-mix(in srgb, var(--color-primary-soft) 55%, var(--surface-secondary));
+    font-size: 1.375rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ui-history-arrow {
+    position: absolute;
+    right: 1.25rem;
+    bottom: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: color-mix(in srgb, var(--color-primary) 82%, var(--text-secondary));
+    transition:
+      color 150ms ease-out,
+      transform 150ms ease-out;
+  }
+
+  .ui-history-link-card:hover .ui-history-arrow,
+  .ui-history-link-card:focus-visible .ui-history-arrow {
+    color: var(--color-primary);
+    transform: translateX(2px);
   }
 
   .ui-shell-header {
@@ -952,6 +1115,14 @@
       max-height: 2.25rem;
     }
 
+    .ui-history-summary-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ui-history-value-block-desktop-only {
+      display: grid;
+    }
+
     .ui-detail-two-up {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
@@ -968,6 +1139,11 @@
       min-height: 9.75rem;
     }
 
+    .ui-detail-summary-card-compact {
+      min-height: 0;
+      padding: 0.875rem;
+    }
+
     .ui-detail-summary-card .ui-kicker {
       max-width: calc(100% - 3rem);
     }
@@ -979,6 +1155,12 @@
     .ui-detail-summary-pill {
       padding-inline: 0.75rem;
       padding-block: 0.625rem;
+    }
+
+    .ui-detail-summary-pill-compact {
+      min-height: 2.5rem;
+      padding-inline: 0.625rem;
+      padding-block: 0.5rem;
     }
 
     .ui-detail-summary-values-paired {
@@ -993,6 +1175,46 @@
     .ui-detail-summary-number-featured {
       font-size: clamp(1.125rem, 2vw + 0.9rem, 1.6rem);
       letter-spacing: 0.08em;
+    }
+
+    .ui-detail-summary-number-compact-card {
+      font-size: clamp(0.92rem, 1vw + 0.82rem, 1.1rem);
+    }
+
+    .ui-history-link-card {
+      padding: 1rem;
+    }
+
+    .ui-history-date-badge {
+      width: 4.25rem;
+      min-width: 4.25rem;
+      min-height: 4.25rem;
+      padding: 0.5rem;
+    }
+
+    .ui-history-date-day {
+      font-size: 1.75rem;
+    }
+
+    .ui-history-date-month {
+      font-size: 0.875rem;
+    }
+
+    .ui-history-value {
+      min-height: 2.25rem;
+      padding-inline: 0.625rem;
+      font-size: 1rem;
+      letter-spacing: 0.05em;
+    }
+
+    .ui-history-value-featured {
+      font-size: 1.2rem;
+      letter-spacing: 0.07em;
+    }
+
+    .ui-history-arrow {
+      right: 1rem;
+      bottom: 1rem;
     }
   }
 }
@@ -1014,6 +1236,10 @@
     }
 
     .ui-detail-summary-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .ui-history-summary-grid {
       grid-template-columns: repeat(4, minmax(0, 1fr));
     }
 

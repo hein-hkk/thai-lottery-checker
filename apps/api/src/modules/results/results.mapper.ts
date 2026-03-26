@@ -21,12 +21,14 @@ export function mapResultDetailResponse(draw: ResultRepositoryDraw, prizeGroups:
 
 export function mapResultHistoryItem(
   draw: ResultRepositoryDraw,
-  summary: { firstPrize: string; lastTwo: string }
+  summary: { firstPrize: string; frontThree: string[]; lastThree: string[]; lastTwo: string }
 ): ResultHistoryItem {
   return {
     drawDate: formatDrawDate(draw.drawDate),
     drawCode: draw.drawCode,
     firstPrize: summary.firstPrize,
+    frontThree: summary.frontThree,
+    lastThree: summary.lastThree,
     lastTwo: summary.lastTwo
   };
 }
