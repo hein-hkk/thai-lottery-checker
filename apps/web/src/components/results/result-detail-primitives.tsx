@@ -8,16 +8,18 @@ export function ResultDetailHeader({
   drawDate,
   locale,
   messages,
+  title,
   publishedAt
 }: {
   drawDate: string;
   locale: SupportedLocale;
   messages: ResultsMessages;
+  title?: string;
   publishedAt: string | null;
 }) {
   return (
     <div className="space-y-3">
-      <h1 className="ui-title">{messages.officialResultTitle}</h1>
+      <h1 className="ui-title">{title ?? messages.officialResultTitle}</h1>
       <p className="ui-detail-date">{formatLongDate(locale, drawDate)}</p>
       <p className="ui-detail-published">
         <Clock3 size={15} strokeWidth={2} />

@@ -465,6 +465,8 @@ Rules:
 - use tabular-aligned presentation where possible
 - preserve exact digit count
 - keep number grouping visually consistent across prize groups
+- public result pages may use bordered chip layouts instead of tables when they improve scanability without weakening hierarchy
+- first prize may receive one stronger emphasis tier than supporting prize groups, using primary-border and primary-soft surfaces rather than loud full-fill treatments
 
 ### 11.3 Placeholders
 
@@ -542,6 +544,8 @@ Rules:
 - use `border-default`
 - maintain clear title-to-data hierarchy
 - placeholders must appear structurally intentional, not visually broken
+- the result detail page established the current reference public-results layout, and the latest results page now follows the same pattern
+- future public result surfaces should reuse this approved pattern unless there is a strong page-specific reason not to
 
 ### 12.3 Prize Group Block
 
@@ -558,6 +562,11 @@ Rules:
 - number layout may use grid or wrap, but alignment must remain clean
 - released and pending states must not rely on color alone
 - text badges are preferred by default, but compact icon-only badges are acceptable when status is visually secondary and accessible naming is preserved
+- approved public result-display patterns now include:
+  - summary prize cards for first prize, front three, last three, and last two
+  - grouped prize cards for near first prize and second prize
+  - dense chip-grid sections for third, fourth, and fifth prize
+  - bottom-only secondary page action for related navigation, such as `View history`, when a page needs one supporting action without competing with the result content
 
 ### 12.4 Number Display
 
@@ -567,6 +576,8 @@ Rules:
 - center-aligned or grid-aligned depending on context
 - tabular alignment preferred
 - no decorative glow, gradients, or oversized ornamental chips
+- summary number chips should remain bold and prominent across breakpoints, with narrow-screen adjustments used only to prevent overflow
+- front three and last three should preserve paired side-by-side presentation on desktop
 
 ### 12.5 Input Checker
 

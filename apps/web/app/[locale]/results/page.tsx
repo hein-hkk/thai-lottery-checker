@@ -1,10 +1,8 @@
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { DrawMetaCard } from "../../../src/components/results/draw-meta-card";
-import { PrizeGroupsSection } from "../../../src/components/results/prize-groups-section";
-import { ResultsShell } from "../../../src/components/results/results-shell";
+import { LatestResultSections } from "../../../src/components/results/latest-result-sections";
+import { LatestResultsShell } from "../../../src/components/results/latest-results-shell";
 import { StatusCard } from "../../../src/components/results/status-card";
 import { getLatestResults, ResultsApiError } from "../../../src/results/api";
 
@@ -28,31 +26,24 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
     const latest = await getLatestResults();
 
     return (
-      <ResultsShell currentPath="latest" locale={supportedLocale} messages={messages} title={messages.latestResults}>
-        <div className="space-y-6">
-          <DrawMetaCard
-            messages={messages}
-            drawDate={latest.drawDate}
-            drawCode={latest.drawCode}
-            publishedAt={latest.publishedAt}
-          />
-          <PrizeGroupsSection messages={messages} prizeGroups={latest.prizeGroups} />
-          <div className="flex justify-end">
-            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
-              {messages.viewHistory}
-            </Link>
-          </div>
-        </div>
-      </ResultsShell>
+      <LatestResultsShell locale={supportedLocale} messages={messages}>
+        <LatestResultSections
+          drawDate={latest.drawDate}
+          locale={supportedLocale}
+          messages={messages}
+          prizeGroups={latest.prizeGroups}
+          publishedAt={latest.publishedAt}
+        />
+      </LatestResultsShell>
     );
   } catch (error) {
     const message =
       error instanceof ResultsApiError && error.status === 404 ? messages.noResults : messages.latestUnavailable;
 
     return (
-      <ResultsShell currentPath="latest" locale={supportedLocale} messages={messages} title={messages.latestResults}>
+      <LatestResultsShell locale={supportedLocale} messages={messages}>
         <StatusCard message={message} />
-      </ResultsShell>
+      </LatestResultsShell>
     );
   }
 }
