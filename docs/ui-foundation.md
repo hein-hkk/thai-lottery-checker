@@ -203,7 +203,7 @@ This foundation supersedes that visual direction. Future Slice 3 UI refinement s
 - `border-*` tokens define structural separation and emphasis.
 - `color-primary` is the main action color.
 - `color-accent` is reserved for specific emphasis and should remain minimal.
-- status colors must always be paired with text, iconography, or labels
+- status colors must always be paired with text, iconography, labels, or accessible metadata
 
 ### 4.5 Tailwind Mapping Guidance
 
@@ -395,7 +395,33 @@ Rules:
 - loading state should preserve layout and label meaning where possible
 - active state should communicate confirmation, not just darker color
 
-## 9. Accessibility
+## 9. Iconography
+
+Icons are functional, not decorative.
+
+Rules:
+
+- use icons only when they improve affordance, scanning, or comprehension
+- keep icon styling simple and consistent with the calm utility UI direction
+- prefer a single icon system across the product
+- prefer outline icons over decorative or mixed icon styles
+- icons should inherit surrounding text color unless a semantic state requires otherwise
+- do not add icons by default to every button, nav item, or data row
+
+Approved use cases:
+
+- dropdown chevrons
+- theme toggle icons
+- compact status indicators
+- future feedback or status affordances when they improve clarity
+
+Avoid:
+
+- decorative icons used only to fill space
+- mixing multiple unrelated icon styles
+- oversized icons that compete with typography or lottery numbers
+
+## 10. Accessibility
 
 This system targets WCAG AA as the baseline.
 
@@ -408,7 +434,7 @@ Minimum requirements:
 - touch targets should remain practical on mobile
 - headings and labels must preserve semantic meaning in markup
 
-## 10. Localization and Multilingual Rules
+## 11. Localization and Multilingual Rules
 
 This product must support English, Thai, and Burmese/Myanmar content.
 
@@ -422,7 +448,7 @@ Rules:
 - buttons, tabs, and nav items must tolerate longer translated labels without truncation by default
 - do not rely on text length for layout alignment
 
-## 11. Content and Data Presentation
+## 12. Content and Data Presentation
 
 ### 11.1 Dates and Time
 
@@ -464,7 +490,13 @@ Avoid vague labels such as:
 
 unless the backend workflow formally defines them.
 
-## 12. Core Components
+Compact icon-only status indicators are acceptable only when:
+
+- the meaning remains available through accessible naming, tooltip, or title text
+- the icon shape is distinct enough to separate states without relying only on color
+- the status is secondary to the primary content, such as prize numbers in result cards
+
+## 13. Core Components
 
 ### 12.1 Global Header
 
@@ -481,6 +513,7 @@ Rules:
 - bottom border required
 - consistent container width with page content
 - must remain usable on mobile without forcing cramped inline navigation
+- dropdown chevrons and theme icons are acceptable because they improve control affordance
 
 ### 12.2 Result Card
 
@@ -511,7 +544,8 @@ Rules:
 - preserve canonical prize ordering
 - preserve predictable spacing between title, status, and values
 - number layout may use grid or wrap, but alignment must remain clean
-- released and pending states must use both wording and styling, not color alone
+- released and pending states must not rely on color alone
+- text badges are preferred by default, but compact icon-only badges are acceptable when status is visually secondary and accessible naming is preserved
 
 ### 12.4 Number Display
 
@@ -567,7 +601,7 @@ Use:
 
 Do not use toast notifications for critical blocking failures that need immediate local action context.
 
-## 13. Public vs Admin UI
+## 14. Public vs Admin UI
 
 | Aspect | Public | Admin |
 | --- | --- | --- |
@@ -578,7 +612,7 @@ Do not use toast notifications for critical blocking failures that need immediat
 
 Both surfaces must reuse the same token and component system. Density is the primary variation, not visual language.
 
-## 14. Dark Mode Strategy
+## 15. Dark Mode Strategy
 
 - dark mode is implemented via the `.dark` class
 - do not invert colors automatically
@@ -586,7 +620,7 @@ Both surfaces must reuse the same token and component system. Density is the pri
 - test contrast for numbers, key labels, and states
 - dark mode should preserve the same border-first hierarchy as light mode
 
-## 15. Implementation Guidance
+## 16. Implementation Guidance
 
 ### 15.1 Tailwind Usage
 
@@ -595,13 +629,20 @@ Both surfaces must reuse the same token and component system. Density is the pri
 - avoid raw hex usage in JSX and component-local styling
 - avoid arbitrary gradients, blur, and shadow values unless temporarily preserving old UI during migration
 
-### 15.2 Component Authoring
+### 16.2 Icon Usage
+
+- prefer a single icon system across the app
+- import only the icons actually used
+- treat icons as small reusable UI primitives, not illustration assets
+- keep icon adoption narrow unless the design system is intentionally expanded
+
+### 16.3 Component Authoring
 
 - build shared primitives before duplicating per-screen styles
 - use the same structural classes for public and admin when behavior is shared
 - prefer semantic class naming through utility composition rather than visually descriptive one-off patterns
 
-### 15.3 Migration Priorities
+### 16.4 Migration Priorities
 
 When refining the current UI, address these first:
 
@@ -610,7 +651,7 @@ When refining the current UI, address these first:
 3. normalize number display and status badge patterns
 4. align admin and public spacing, typography, and interaction states to this foundation
 
-## 16. Do / Don't
+## 17. Do / Don't
 
 ### Do
 
@@ -621,6 +662,7 @@ When refining the current UI, address these first:
 - use semantic tokens
 - keep status wording explicit
 - design mobile-first
+- use icons only when they improve affordance or scanning
 
 ### Don't
 
@@ -630,3 +672,4 @@ When refining the current UI, address these first:
 - add unnecessary animation
 - mix inconsistent radius, spacing, or type systems
 - hardcode raw hex values directly in components
+- add icons just to make the UI busier

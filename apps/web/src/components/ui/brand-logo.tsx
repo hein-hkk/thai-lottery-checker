@@ -29,13 +29,13 @@ export function BrandLogo({ alt, className, priority = false, variant = "full" }
     <span className={className}>
       <Image
         alt={alt}
-        className="logo-light block h-auto w-auto dark:hidden"
+        className="ui-theme-light-logo h-auto w-auto"
         priority={priority}
         src={selectedLogo.light}
       />
       <Image
         alt={alt}
-        className="logo-dark hidden h-auto w-auto dark:block"
+        className="ui-theme-dark-logo h-auto w-auto"
         priority={priority}
         src={selectedLogo.dark}
       />

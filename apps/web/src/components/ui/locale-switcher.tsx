@@ -2,6 +2,7 @@
 
 import { getLocaleLabel, supportedLocales } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
+import { ChevronDown } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 export function LocaleSwitcher({ label, locale }: { label: string; locale: SupportedLocale }) {
@@ -32,7 +33,7 @@ export function LocaleSwitcher({ label, locale }: { label: string; locale: Suppo
         ))}
       </select>
       <span aria-hidden="true" className="ui-header-select-icon">
-        ˅
+        <ChevronDown />
       </span>
     </label>
   );

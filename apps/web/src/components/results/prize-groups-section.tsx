@@ -1,6 +1,7 @@
 import { prizeTypeMetadataByType } from "@thai-lottery-checker/domain";
 import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { PrizeGroup } from "@thai-lottery-checker/types";
+import { CircleCheck, Clock3 } from "lucide-react";
 
 interface PrizeGroupsSectionProps {
   messages: ResultsMessages;
@@ -28,8 +29,9 @@ function PrizeGroupCard({ messages, prizeGroup }: { messages: ResultsMessages; p
         <span
           className={`${prizeGroup.isReleased ? "ui-badge-success" : "ui-badge-warning"} shrink-0`}
           aria-label={prizeGroup.isReleased ? "Released prize group" : "Pending prize group"}
+          title={prizeGroup.isReleased ? "Released" : "Pending"}
         >
-          {prizeGroup.isReleased ? "Released" : "Pending"}
+          {prizeGroup.isReleased ? <CircleCheck size={14} strokeWidth={2} /> : <Clock3 size={14} strokeWidth={2} />}
         </span>
       </div>
 
