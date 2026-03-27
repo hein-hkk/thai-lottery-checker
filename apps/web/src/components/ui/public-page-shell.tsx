@@ -24,7 +24,7 @@ export function PublicPageShell({
     <div className="ui-page">
       <PublicHeader currentPath={currentPath} locale={locale} messages={messages} />
       <main className="ui-container py-8 md:py-10">
-        <section className="ui-panel p-6 md:p-8">
+        <section className="ui-panel p-6 max-[420px]:p-4 md:p-8">
           {title || description ? (
             <>
               <div className="flex flex-col gap-2 pb-6">

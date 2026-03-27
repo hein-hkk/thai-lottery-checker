@@ -318,6 +318,11 @@
     color: var(--color-warning);
   }
 
+  .ui-prize-group-status {
+    min-width: 2.25rem;
+    padding-inline: 0.625rem;
+  }
+
   .ui-inline-error,
   .ui-inline-success,
   .ui-inline-info {
@@ -1096,6 +1101,14 @@
 
 @media (max-width: 420px) {
   @layer components {
+    .ui-prize-group-status {
+      min-width: auto;
+      padding-inline: 0;
+      padding-block: 0;
+      border-radius: 9999px;
+      background: transparent;
+    }
+
     .ui-detail-summary-card {
       min-height: 9.75rem;
     }
@@ -1106,7 +1119,7 @@
     }
 
     .ui-detail-summary-card .ui-kicker {
-      max-width: calc(100% - 3rem);
+      max-width: calc(100% - 1.75rem);
     }
 
     .ui-detail-summary-values {
@@ -1114,68 +1127,205 @@
     }
 
     .ui-detail-summary-pill {
-      padding-inline: 0.75rem;
-      padding-block: 0.625rem;
+      min-height: 2.75rem;
+      padding-inline: 0.625rem;
+      padding-block: 0.5625rem;
     }
 
     .ui-detail-summary-pill-compact {
       min-height: 2.5rem;
-      padding-inline: 0.625rem;
+      padding-inline: 0.5625rem;
       padding-block: 0.5rem;
     }
 
     .ui-detail-summary-values-paired {
-      gap: 0.625rem;
+      gap: 0.5rem;
     }
 
     .ui-detail-summary-number {
-      font-size: clamp(0.95rem, 1.8vw + 0.85rem, 1.25rem);
-      letter-spacing: 0.06em;
+      font-size: clamp(0.92rem, 1.4vw + 0.84rem, 1.16rem);
+      letter-spacing: 0.045em;
     }
 
     .ui-detail-summary-number-featured {
-      font-size: clamp(1.125rem, 2vw + 0.9rem, 1.6rem);
-      letter-spacing: 0.08em;
+      font-size: clamp(1rem, 1.8vw + 0.88rem, 1.42rem);
+      letter-spacing: 0.06em;
     }
 
     .ui-detail-summary-number-compact-card {
-      font-size: clamp(0.92rem, 1vw + 0.82rem, 1.1rem);
+      font-size: clamp(0.88rem, 0.8vw + 0.8rem, 1rem);
+      letter-spacing: 0.045em;
     }
 
     .ui-history-link-card {
-      padding: 1rem;
+      padding: 0.875rem;
+    }
+
+    .ui-history-row {
+      gap: 0.75rem;
+    }
+
+    .ui-history-content {
+      gap: 0.875rem;
     }
 
     .ui-history-date-badge {
-      width: 4.25rem;
-      min-width: 4.25rem;
-      min-height: 4.25rem;
-      padding: 0.5rem;
+      width: 4rem;
+      min-width: 4rem;
+      min-height: 4rem;
+      padding: 0.4375rem;
     }
 
     .ui-history-date-day {
-      font-size: 1.75rem;
+      font-size: 1.625rem;
     }
 
     .ui-history-date-month {
-      font-size: 0.875rem;
+      font-size: 0.8125rem;
+    }
+
+    .ui-history-summary-grid {
+      gap: 0.625rem;
+    }
+
+    .ui-history-value-block {
+      gap: 0.5rem;
+    }
+
+    .ui-history-value-label {
+      font-size: 0.75rem;
     }
 
     .ui-history-value {
       min-height: 2.25rem;
-      padding-inline: 0.625rem;
-      font-size: 1rem;
-      letter-spacing: 0.05em;
+      padding-inline: 0.5625rem;
+      font-size: 0.95rem;
+      letter-spacing: 0.045em;
     }
 
     .ui-history-value-featured {
-      font-size: 1.2rem;
-      letter-spacing: 0.07em;
+      font-size: 1.1rem;
+      letter-spacing: 0.055em;
     }
 
     .ui-history-arrow {
-      right: 1rem;
-      bottom: 1rem;
+      right: 0.875rem;
+      bottom: 0.875rem;
+    }
+  }
+}
+
+@media (max-width: 360px) {
+  @layer components {
+    .ui-detail-card {
+      padding: 1rem;
+    }
+
+    .ui-detail-summary-card {
+      min-height: 9.25rem;
+    }
+
+    .ui-detail-summary-card-compact {
+      padding: 0.8125rem;
+    }
+
+    .ui-detail-summary-values {
+      gap: 0.5rem;
+    }
+
+    .ui-detail-summary-values-paired {
+      gap: 0.375rem;
+    }
+
+    .ui-detail-summary-pill {
+      min-height: 2.5rem;
+      padding-inline: 0.5rem;
+      padding-block: 0.5rem;
+    }
+
+    .ui-detail-summary-pill-compact {
+      min-height: 2.375rem;
+      padding-inline: 0.5rem;
+      padding-block: 0.4375rem;
+    }
+
+    .ui-detail-summary-number {
+      font-size: clamp(0.88rem, 1vw + 0.82rem, 1.05rem);
+      letter-spacing: 0.035em;
+    }
+
+    .ui-detail-summary-number-featured {
+      font-size: clamp(0.98rem, 1.2vw + 0.88rem, 1.26rem);
+      letter-spacing: 0.045em;
+    }
+
+    .ui-detail-summary-number-compact-card {
+      font-size: clamp(0.84rem, 0.6vw + 0.78rem, 0.94rem);
+      letter-spacing: 0.035em;
+    }
+
+    .ui-history-link-card {
+      padding: 0.75rem;
+    }
+
+    .ui-history-row {
+      gap: 0.625rem;
+    }
+
+    .ui-history-content {
+      gap: 0.75rem;
+    }
+
+    .ui-history-date-badge {
+      width: 3.75rem;
+      min-width: 3.75rem;
+      min-height: 3.75rem;
+      padding: 0.375rem;
+    }
+
+    .ui-history-date-day {
+      font-size: 1.5rem;
+    }
+
+    .ui-history-date-month {
+      font-size: 0.75rem;
+    }
+
+    .ui-history-summary-grid {
+      gap: 0.5rem;
+    }
+
+    .ui-history-value-block {
+      gap: 0.4375rem;
+    }
+
+    .ui-history-value-label {
+      font-size: 0.72rem;
+    }
+
+    .ui-history-value-row {
+      gap: 0.375rem;
+    }
+
+    .ui-history-value-row-paired {
+      gap: 0.4375rem;
+    }
+
+    .ui-history-value {
+      min-height: 2.125rem;
+      padding-inline: 0.5rem;
+      font-size: 0.9rem;
+      letter-spacing: 0.035em;
+    }
+
+    .ui-history-value-featured {
+      font-size: 1rem;
+      letter-spacing: 0.045em;
+    }
+
+    .ui-history-arrow {
+      right: 0.75rem;
+      bottom: 0.75rem;
     }
   }
 }

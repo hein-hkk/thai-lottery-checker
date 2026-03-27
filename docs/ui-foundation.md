@@ -563,6 +563,7 @@ Rules:
 - number layout may use grid or wrap, but alignment must remain clean
 - released and pending states must not rely on color alone
 - text badges are preferred by default, but compact icon-only badges are acceptable when status is visually secondary and accessible naming is preserved
+- below `420px`, result-card prize-group status may collapse from badge treatment to icon-only treatment when that preserves space for labels and values without losing accessible naming
 - approved public result-display patterns now include:
   - summary prize cards for first prize, front three, last three, and last two
   - grouped prize cards for near first prize and second prize
@@ -583,6 +584,7 @@ Rules:
 - tabular alignment preferred
 - no decorative glow, gradients, or oversized ornamental chips
 - summary number chips should remain bold and prominent across breakpoints, with narrow-screen adjustments used only to prevent overflow
+- narrow mobile spacing may tighten for summary cards and history cards when needed to preserve readable number sizing and stable two-column layouts
 - front three and last three should preserve paired side-by-side presentation on desktop
 - history-list previews may intentionally reduce visible prize groups on small mobile to preserve scanability, while tablet and desktop can expose the fuller summary
 

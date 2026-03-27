@@ -73,7 +73,7 @@ export function SummaryPrizeCard({
             ))}
           </div>
         ) : (
-          <PrizeGroupPlaceholder digitLength={metadata.digitLength} expectedCount={metadata.expectedCount} variant="summary" />
+          <PrizeGroupPlaceholder digitLength={metadata.digitLength} expectedCount={metadata.expectedCount} variant="summary" summaryValuesClassName={summaryValuesClassName} />
         )}
       </div>
     </section>
@@ -150,7 +150,7 @@ export function DensePrizeChipSection({
 export function PrizeGroupStatus({ prizeGroup }: { prizeGroup: PrizeGroup }) {
   return (
     <span
-      className={`${prizeGroup.isReleased ? "ui-badge-success" : "ui-badge-warning"} shrink-0`}
+      className={`ui-prize-group-status ${prizeGroup.isReleased ? "ui-badge-success" : "ui-badge-warning"} shrink-0`}
       aria-label={prizeGroup.isReleased ? "Released prize group" : "Pending prize group"}
       title={prizeGroup.isReleased ? "Released" : "Pending"}
     >
@@ -172,16 +172,18 @@ function PrizeGroupPlaceholder({
   columnsMobile,
   digitLength,
   expectedCount,
-  variant
+  variant,
+  summaryValuesClassName
 }: {
   columnsDesktop?: number;
   columnsMobile?: number;
   digitLength: number;
   expectedCount: number;
   variant: "dense" | "grouped" | "summary";
+  summaryValuesClassName?: string;
 }) {
   const placeholder = "•".repeat(digitLength);
-  const className = variant === "summary" ? "ui-detail-summary-values" : "ui-detail-chip-grid";
+  const className = variant === "summary" ? summaryValuesClassName : "ui-detail-chip-grid";
   const style = variant === "summary" ? undefined : chipGridStyle(columnsMobile ?? 2, columnsDesktop ?? 2);
 
   return (

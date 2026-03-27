@@ -65,11 +65,10 @@ export default async function LocalePage({ params }: LocalePageProps) {
           )}
         </section>
 
-        <section className="ui-panel p-6 md:p-8">
+        <section className="space-y-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
-              <p className="ui-kicker">{messages.resultHistory}</p>
-              <h2 className="ui-section-title mt-2">{messages.resultHistory}</h2>
+              <h2 className="ui-section-title">{messages.resultHistory}</h2>
             </div>
             <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
               {messages.viewHistory}
