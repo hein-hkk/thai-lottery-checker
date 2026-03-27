@@ -8,6 +8,7 @@ import {
 
 interface LatestSummarySectionProps {
   drawDate: string;
+  hideTitle?: boolean;
   locale: SupportedLocale;
   messages: ResultsMessages;
   prizeGroups: PrizeGroup[];
@@ -21,6 +22,7 @@ const topSummaryPrizeTypes: PrizeType[] = ["FIRST_PRIZE", "FRONT_THREE", "LAST_T
 
 export function LatestSummarySection({
   drawDate,
+  hideTitle = false,
   locale,
   messages,
   prizeGroups,
@@ -36,6 +38,7 @@ export function LatestSummarySection({
     <section className="space-y-6">
       <ResultDetailHeader
         drawDate={drawDate}
+        hideTitle={hideTitle}
         locale={locale}
         messages={messages}
         publishedAt={publishedAt}

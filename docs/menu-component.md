@@ -139,7 +139,6 @@ Public drawer content:
 
 - Home
 - Latest results
-- Result history
 - theme control below navigation
 
 Admin drawer content:
@@ -200,13 +199,17 @@ Desktop nav items:
 
 - Home
 - Latest results
-- Result history
 
 Mobile drawer nav items:
 
 - Home
 - Latest results
-- Result history
+
+Rules:
+
+- result history remains a supported public route but is intentionally secondary
+- history should be reached through page-level CTAs and direct URL access rather than primary navigation
+- the history page should not force an incorrect primary-nav active state
 
 ### 7.2 Admin Navigation
 

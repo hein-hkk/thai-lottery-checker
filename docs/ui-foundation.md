@@ -91,7 +91,6 @@ The product should not use:
 The current implementation still includes gradients, blur, and shadow-heavy surfaces in:
 
 - [apps/web/app/globals.css](/Users/hkk/Documents/Playground/thai-lottery-checker/apps/web/app/globals.css)
-- [apps/web/src/components/results/results-shell.tsx](/Users/hkk/Documents/Playground/thai-lottery-checker/apps/web/src/components/results/results-shell.tsx)
 - [apps/web/app/admin/(protected)/layout.tsx](/Users/hkk/Documents/Playground/thai-lottery-checker/apps/web/app/admin/(protected)/layout.tsx)
 
 This foundation supersedes that visual direction. Future Slice 3 UI refinement should move those surfaces to border-first, low-effect styling that follows the tokens and component rules below.
@@ -546,7 +545,7 @@ Rules:
 - placeholders must appear structurally intentional, not visually broken
 - the result detail page established the current reference public-results layout
 - the latest results page and the home latest-results preview now reuse that same approved pattern
-- the history list uses a separate compact preview pattern because it is a browse/index surface rather than the primary checking surface
+- home history preview and archive history list must reuse the same approved history-card primitive
 - future public result surfaces should reuse this approved pattern unless there is a strong page-specific reason not to
 
 ### 12.3 Prize Group Block
@@ -569,9 +568,11 @@ Rules:
   - grouped prize cards for near first prize and second prize
   - dense chip-grid sections for third, fourth, and fifth prize
   - latest-summary preview blocks on the home page that reuse the same summary header, metadata row, and top prize-card treatment as the latest results page
-  - compact history-list rows that use a date badge, a flatter preview layout, full-row click behavior, and a subtle arrow affordance
+  - compact history-result cards that use a date badge, a flatter preview layout, full-row click behavior, and a subtle arrow affordance
   - bottom-only secondary page action for related navigation, such as `View history`, when a page needs one supporting action without competing with the result content
   - single primary preview action for home latest-results surfaces, such as `Browse latest results`, when the section is acting as an entry point rather than a full page
+  - trust-focused localized page titles and descriptions for home and latest-result pages, while primary navigation labels remain short and utility-oriented
+  - metadata-only latest preview header treatment when a page-level title already establishes the section context
 
 ### 12.4 Number Display
 

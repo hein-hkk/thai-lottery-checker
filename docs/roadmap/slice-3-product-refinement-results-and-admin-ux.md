@@ -31,8 +31,11 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
   - published-only history list
 - Blog teasers are intentionally deferred to the later blog slice even though the longer-term landing vision includes them
 - Keep `/{locale}/results` as a stable bookmarkable latest-results page
+- Treat `/{locale}/results/history` as a secondary archive route rather than a primary navigation destination
 - Allow `/{locale}/results` to render the current draw-day draft, including placeholder-only state before the first group release
 - Keep `/{locale}/results/{drawDate}` as the draw detail route for both published draws and the Bangkok-today draft, including placeholder-only state before the first group release
+- Use trust-focused localized title/description copy on the landing page and latest page while keeping primary navigation labels short
+- Keep latest-result metadata visible on both home and latest page without repeating redundant section titles
 
 ### 4. Public API refinement
 
@@ -96,6 +99,7 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
   - post-publish correction updates in place and remains auditable
 - Public web tests
   - landing page renders latest hero plus published-only history
+  - primary public navigation emphasizes Home and Latest results, with history reachable through page-level CTA and direct URL
   - latest page can show the draw-day draft before the first release
   - detail page supports both published draws and placeholder-only draw-day drafts
 - Admin web tests
@@ -107,3 +111,4 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
 - This slice documents and implements the agreed staged-release refinement without yet delivering blog teasers on the landing page.
 - The longer-term landing-page vision can add blog teasers later in the blog-reading slice without changing the staged-release model defined here.
 - Number checker work remains the next slice after this refinement is complete.
+- Home history preview and archive history listing may share the same history-card primitive as part of UI cleanup within this slice.

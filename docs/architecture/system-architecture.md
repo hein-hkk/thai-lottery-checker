@@ -91,6 +91,7 @@ Responsibilities:
 Example routes:
 - `/{locale}`
 - `/{locale}/results`
+- `/{locale}/results/history`
 - `/{locale}/results/{drawDate}`
 - `/{locale}/check`
 - `/{locale}/blog`

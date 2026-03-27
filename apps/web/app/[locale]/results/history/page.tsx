@@ -1,8 +1,9 @@
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { HistoryList } from "../../../../src/components/results/history-list";
-import { ResultsShell } from "../../../../src/components/results/results-shell";
+import { ResultsPageShell } from "../../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
 import { getResultHistory } from "../../../../src/results/api";
 import { parseHistoryPage } from "../../../../src/results/queries";
@@ -30,19 +31,39 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
     const history = await getResultHistory(currentPage);
 
     return (
-      <ResultsShell currentPath="history" locale={supportedLocale} messages={messages} title={messages.resultHistory}>
+      <ResultsPageShell
+        currentPath="history"
+        locale={supportedLocale}
+        messages={messages}
+        title={messages.resultHistory}
+        topActions={
+          <Link className="ui-button-secondary" href={`/${supportedLocale}/results`}>
+            {messages.latestResults}
+          </Link>
+        }
+      >
         {history.items.length === 0 ? (
           <StatusCard message={messages.noHistory} />
         ) : (
           <HistoryList locale={supportedLocale} messages={messages} page={currentPage} history={history} />
         )}
-      </ResultsShell>
+      </ResultsPageShell>
     );
   } catch {
     return (
-      <ResultsShell currentPath="history" locale={supportedLocale} messages={messages} title={messages.resultHistory}>
+      <ResultsPageShell
+        currentPath="history"
+        locale={supportedLocale}
+        messages={messages}
+        title={messages.resultHistory}
+        topActions={
+          <Link className="ui-button-secondary" href={`/${supportedLocale}/results`}>
+            {messages.latestResults}
+          </Link>
+        }
+      >
         <StatusCard message={messages.historyUnavailable} />
-      </ResultsShell>
+      </ResultsPageShell>
     );
   }
 }

@@ -23,6 +23,8 @@ export function getLocaleLabel(locale: SupportedLocale): string {
 export interface ResultsMessages {
   home: string;
   latestResults: string;
+  officialLatestResultsTitle: string;
+  officialLatestResultsDescription: string;
   resultHistory: string;
   drawDetail: string;
   officialResultTitle: string;
@@ -55,6 +57,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   en: {
     home: "Home",
     latestResults: "Latest results",
+    officialLatestResultsTitle: "Official Latest Thai Lottery Result",
+    officialLatestResultsDescription:
+      "View the latest official Thai lottery result with the draw date, publish time, and key prize numbers in one trusted update.",
     resultHistory: "Result history",
     drawDetail: "Draw detail",
     officialResultTitle: "Official Thai Lottery Result",
@@ -95,6 +100,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   th: {
     home: "หน้าหลัก",
     latestResults: "ผลรางวัลล่าสุด",
+    officialLatestResultsTitle: "ผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ",
+    officialLatestResultsDescription:
+      "ดูผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ พร้อมวันที่ออกรางวัล เวลาเผยแพร่ และหมายเลขรางวัลสำคัญในหน้าเดียว",
     resultHistory: "ประวัติผลรางวัล",
     drawDetail: "รายละเอียดงวด",
     officialResultTitle: "ผลสลากกินแบ่งรัฐบาลอย่างเป็นทางการ",
@@ -135,6 +143,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   my: {
     home: "ပင်မစာမျက်နှာ",
     latestResults: "နောက်ဆုံးထွက်အောင်ဘာသာရလဒ်",
+    officialLatestResultsTitle: "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်",
+    officialLatestResultsDescription:
+      "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်ကို ထီဖွင့်သည့်နေ့၊ ထုတ်ပြန်ချိန်နှင့် အဓိကဆုနံပါတ်များအပါအဝင် တစ်နေရာတည်းတွင် ကြည့်ရှုနိုင်ပါသည်။",
     resultHistory: "ရလဒ်မှတ်တမ်း",
     drawDetail: "အကြိမ်အသေးစိတ်",
     officialResultTitle: "တရားဝင် ထိုင်းထီရလဒ်",

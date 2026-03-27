@@ -9,6 +9,7 @@ import { LatestSummarySection } from "./latest-summary-section";
 
 interface LatestResultSectionsProps {
   drawDate: string;
+  hideSummaryTitle?: boolean;
   locale: SupportedLocale;
   messages: ResultsMessages;
   prizeGroups: PrizeGroup[];
@@ -25,6 +26,7 @@ const densePrizeTypeConfig: Array<{ columnsDesktop: number; columnsMobile: numbe
 
 export function LatestResultSections({
   drawDate,
+  hideSummaryTitle = false,
   locale,
   messages,
   prizeGroups,
@@ -39,6 +41,7 @@ export function LatestResultSections({
     <div className="ui-detail-page space-y-8 md:space-y-10">
       <LatestSummarySection
         drawDate={drawDate}
+        hideTitle={hideSummaryTitle}
         locale={locale}
         messages={messages}
         prizeGroups={prizeGroups}

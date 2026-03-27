@@ -6,12 +6,14 @@ import type { CSSProperties } from "react";
 
 export function ResultDetailHeader({
   drawDate,
+  hideTitle = false,
   locale,
   messages,
   title,
   publishedAt
 }: {
   drawDate: string;
+  hideTitle?: boolean;
   locale: SupportedLocale;
   messages: ResultsMessages;
   title?: string;
@@ -19,7 +21,7 @@ export function ResultDetailHeader({
 }) {
   return (
     <div className="space-y-3">
-      <h1 className="ui-title">{title ?? messages.officialResultTitle}</h1>
+      {hideTitle ? null : <h1 className="ui-title">{title ?? messages.officialResultTitle}</h1>}
       <p className="ui-detail-date">{formatLongDate(locale, drawDate)}</p>
       <p className="ui-detail-published">
         <Clock3 size={15} strokeWidth={2} />

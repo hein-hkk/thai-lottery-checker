@@ -2,6 +2,7 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HistoryResultCard } from "../../src/components/results/history-result-card";
 import { LatestSummarySection } from "../../src/components/results/latest-summary-section";
 import { StatusCard } from "../../src/components/results/status-card";
 import { PublicPageShell } from "../../src/components/ui/public-page-shell";
@@ -30,10 +31,10 @@ export default async function LocalePage({ params }: LocalePageProps) {
   return (
     <PublicPageShell
       currentPath="home"
-      description="Track the latest Thai lottery result releases and browse draw history from one consistent public surface."
+      description={messages.officialLatestResultsDescription}
       locale={supportedLocale}
       messages={messages}
-      title={messages.latestResults}
+      title={messages.officialLatestResultsTitle}
     >
       <div className="space-y-8">
         <section className="space-y-6">
@@ -41,6 +42,7 @@ export default async function LocalePage({ params }: LocalePageProps) {
             <div className="space-y-6">
               <LatestSummarySection
                 drawDate={latest.drawDate}
+                hideTitle
                 locale={supportedLocale}
                 messages={messages}
                 prizeGroups={latest.prizeGroups}
@@ -76,22 +78,9 @@ export default async function LocalePage({ params }: LocalePageProps) {
 
           <div className="ui-divider mt-6 pt-6">
             {history && history.items.length > 0 ? (
-              <div className="grid gap-3">
+              <div className="grid gap-4">
                 {history.items.slice(0, 5).map((item) => (
-                  <Link
-                    className="ui-panel-muted flex flex-col justify-between gap-4 px-4 py-4 transition hover:border-[var(--border-strong)] md:flex-row md:items-center"
-                    href={`/${supportedLocale}/results/${item.drawDate}`}
-                    key={item.drawDate}
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-[var(--text-primary)]">{item.drawDate}</p>
-                      <p className="mt-1 text-sm text-[var(--text-secondary)]">{item.drawCode ?? "-"}</p>
-                    </div>
-                    <div className="text-right text-sm">
-                      <p className="ui-number-compact text-[var(--text-primary)]">{item.firstPrize}</p>
-                      <p className="ui-number-compact mt-1 text-[var(--text-muted)]">{item.lastTwo}</p>
-                    </div>
-                  </Link>
+                  <HistoryResultCard item={item} key={item.drawDate} locale={supportedLocale} messages={messages} />
                 ))}
               </div>
             ) : (

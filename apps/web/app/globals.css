@@ -193,8 +193,7 @@
   }
 
   .ui-button-primary,
-  .ui-button-secondary,
-  .ui-button-quiet {
+  .ui-button-secondary {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -235,20 +234,8 @@
     background: var(--surface-secondary);
   }
 
-  .ui-button-quiet {
-    border: 1px solid transparent;
-    background: transparent;
-    color: var(--text-secondary);
-  }
-
-  .ui-button-quiet:hover {
-    color: var(--text-primary);
-    background: var(--surface-secondary);
-  }
-
   .ui-button-primary:disabled,
-  .ui-button-secondary:disabled,
-  .ui-button-quiet:disabled {
+  .ui-button-secondary:disabled {
     cursor: not-allowed;
     opacity: 0.55;
   }
@@ -303,9 +290,7 @@
 
   .ui-badge,
   .ui-badge-success,
-  .ui-badge-warning,
-  .ui-badge-info,
-  .ui-badge-danger {
+  .ui-badge-warning {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -333,16 +318,6 @@
     color: var(--color-warning);
   }
 
-  .ui-badge-info {
-    background: var(--color-info-soft);
-    color: var(--color-info);
-  }
-
-  .ui-badge-danger {
-    background: var(--color-danger-soft);
-    color: var(--color-danger);
-  }
-
   .ui-inline-error,
   .ui-inline-success,
   .ui-inline-info {
@@ -363,8 +338,7 @@
   }
 
   .ui-message-box,
-  .ui-message-box-success,
-  .ui-message-box-warning {
+  .ui-message-box-success {
     border-radius: 1rem;
     padding: 1rem;
     font-size: 0.9375rem;
@@ -383,23 +357,10 @@
     color: var(--color-success);
   }
 
-  .ui-message-box-warning {
-    border: 1px solid color-mix(in srgb, var(--color-warning) 28%, transparent);
-    background: var(--color-warning-soft);
-    color: var(--color-warning);
-  }
-
-  .ui-number-large,
   .ui-number-compact {
     font-family: var(--font-number);
     font-variant-numeric: tabular-nums;
     letter-spacing: 0.12em;
-  }
-
-  .ui-number-large {
-    font-size: clamp(1.5rem, 1vw + 1.25rem, 2.25rem);
-    font-weight: 700;
-    line-height: 1.2;
   }
 
   .ui-number-compact {

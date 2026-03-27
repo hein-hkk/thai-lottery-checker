@@ -1,8 +1,9 @@
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LatestResultSections } from "../../../src/components/results/latest-result-sections";
-import { LatestResultsShell } from "../../../src/components/results/latest-results-shell";
+import { ResultsPageShell } from "../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../src/components/results/status-card";
 import { getLatestResults, ResultsApiError } from "../../../src/results/api";
 
@@ -26,24 +27,47 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
     const latest = await getLatestResults();
 
     return (
-      <LatestResultsShell locale={supportedLocale} messages={messages}>
+      <ResultsPageShell
+        bottomAction={
+          <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
+            {messages.viewHistory}
+          </Link>
+        }
+        currentPath="latest"
+        description={messages.officialLatestResultsDescription}
+        locale={supportedLocale}
+        messages={messages}
+        title={messages.officialLatestResultsTitle}
+      >
         <LatestResultSections
           drawDate={latest.drawDate}
+          hideSummaryTitle
           locale={supportedLocale}
           messages={messages}
           prizeGroups={latest.prizeGroups}
           publishedAt={latest.publishedAt}
         />
-      </LatestResultsShell>
+      </ResultsPageShell>
     );
   } catch (error) {
     const message =
       error instanceof ResultsApiError && error.status === 404 ? messages.noResults : messages.latestUnavailable;
 
     return (
-      <LatestResultsShell locale={supportedLocale} messages={messages}>
+      <ResultsPageShell
+        bottomAction={
+          <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
+            {messages.viewHistory}
+          </Link>
+        }
+        currentPath="latest"
+        description={messages.officialLatestResultsDescription}
+        locale={supportedLocale}
+        messages={messages}
+        title={messages.officialLatestResultsTitle}
+      >
         <StatusCard message={message} />
-      </LatestResultsShell>
+      </ResultsPageShell>
     );
   }
 }

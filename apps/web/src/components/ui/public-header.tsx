@@ -69,13 +69,6 @@ export function PublicHeader({ locale, messages, currentPath }: PublicHeaderProp
             >
               {messages.latestResults}
             </Link>
-            <Link
-              className={`ui-mobile-nav-link ${currentPath === "history" ? "ui-mobile-nav-link-active" : ""}`}
-              href={`/${locale}/results/history`}
-              onClick={() => setIsOpen(false)}
-            >
-              {messages.resultHistory}
-            </Link>
           </nav>
 
           <div className="ui-divider my-4" />
@@ -96,9 +89,6 @@ export function PublicHeader({ locale, messages, currentPath }: PublicHeaderProp
               </Link>
               <Link className={`ui-nav-link ${currentPath === "latest" || currentPath === "detail" ? "ui-nav-link-active" : ""}`} href={`/${locale}/results`}>
                 {messages.latestResults}
-              </Link>
-              <Link className={`ui-nav-link ${currentPath === "history" ? "ui-nav-link-active" : ""}`} href={`/${locale}/results/history`}>
-                {messages.resultHistory}
               </Link>
             </nav>
           </div>

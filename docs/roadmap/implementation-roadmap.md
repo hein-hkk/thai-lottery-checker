@@ -143,7 +143,9 @@ Public web:
 - Replace `/{locale}/` placeholder with a real landing page
 - Landing page includes latest hero preview and published-only history list
 - `/{locale}/results` remains bookmarkable and can render the current draw-day draft, including placeholder-only state before the first group release
+- `/{locale}/results/history` remains available as a secondary archive route rather than a primary navigation destination
 - `/{locale}/results/{drawDate}` supports placeholder rendering for unreleased prize groups
+- Landing and latest-result pages use trust-focused localized titles/descriptions while primary navigation labels remain short
 - Blog teasers remain deferred to the later blog slice
 
 Admin UX:
@@ -163,6 +165,7 @@ UI polish:
 - Final publish is blocked until all canonical prize groups are complete and valid
 - `/{locale}/` works as the public landing page with latest hero plus published-only history
 - `/{locale}/results` can show the current Bangkok-time draw-day draft even before the first group release
+- `/{locale}/results/history` stays directly reachable without remaining a primary public-nav item
 - Admins with `manage_results` can release, unrelease, and edit released groups before final publish
 - Release, unrelease, publish, and correction actions remain auditable and invalidate dependent result caches
 
