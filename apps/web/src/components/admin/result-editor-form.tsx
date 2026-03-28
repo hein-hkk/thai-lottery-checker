@@ -10,6 +10,8 @@ import {
   correctAdminResult,
   createAdminResult,
   publishAdminResult,
+  releaseAdminResultGroup,
+  unreleaseAdminResultGroup,
   updateAdminResult
 } from "../../admin/api";
 
@@ -18,6 +20,12 @@ interface ResultEditorFormProps {
 }
 
 type PrizeGroupInputState = Record<PrizeType, string>;
+
+type ValidationMessage = {
+  count?: string;
+  format?: string;
+  canRelease: boolean;
+};
 
 function toInputState(prizeGroups: PrizeGroup[] | undefined): PrizeGroupInputState {
   return prizeTypeMetadataList.reduce((accumulator, metadata) => {
@@ -45,11 +53,6 @@ function buildPayload(drawDate: string, drawCode: string, groupState: PrizeGroup
   };
 }
 
-type ValidationMessage = {
-  count?: string;
-  format?: string;
-};
-
 export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
   const router = useRouter();
   const existingResult = initialResult ?? null;
@@ -60,29 +63,53 @@ export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [actingPrizeType, setActingPrizeType] = useState<PrizeType | null>(null);
 
   const mode = existingResult ? (existingResult.status === "published" ? "correct" : "edit") : "create";
   const payload = useMemo(() => buildPayload(drawDate, drawCode, groupState), [drawDate, drawCode, groupState]);
+  const initialPayloadSnapshot = useMemo(
+    () =>
+      existingResult && existingResult.status === "draft"
+        ? JSON.stringify({
+            drawDate: existingResult.drawDate,
+            drawCode: existingResult.drawCode ?? null,
+            prizeGroups: existingResult.prizeGroups.map((group) => ({
+              type: group.type,
+              numbers: group.numbers
+            }))
+          })
+        : null,
+    [existingResult]
+  );
+  const hasUnsavedDraftChanges =
+    existingResult?.status === "draft" &&
+    initialPayloadSnapshot !== null &&
+    initialPayloadSnapshot !== JSON.stringify(payload);
+
+  const releasedPrizeTypes = useMemo(() => {
+    return new Set(
+      initialResult?.prizeGroups.filter((group) => group.isReleased).map((group) => group.type) ?? []
+    );
+  }, [initialResult?.prizeGroups]);
 
   const validation = useMemo(() => {
     return prizeTypeMetadataList.reduce<Record<PrizeType, ValidationMessage>>((accumulator, metadata) => {
       const numbers = parseGroupNumbers(groupState[metadata.type]);
       const invalidNumber = numbers.find((number) => !isPrizeNumberValid(metadata.type, number));
-      const countMessage =
-        mode === "correct" || mode === "edit"
-          ? numbers.length > 0 && numbers.length !== metadata.expectedCount && mode === "correct"
-            ? `Expected ${metadata.expectedCount} numbers`
-            : undefined
-          : undefined;
+      const hasExactCount = numbers.length === metadata.expectedCount;
 
       accumulator[metadata.type] = {
-        count: countMessage,
-        format: invalidNumber ? `Invalid number: ${invalidNumber}` : undefined
+        count:
+          numbers.length > 0 && !hasExactCount
+            ? `Expected ${metadata.expectedCount} number${metadata.expectedCount > 1 ? "s" : ""}`
+            : undefined,
+        format: invalidNumber ? `Invalid number: ${invalidNumber}` : undefined,
+        canRelease: hasExactCount && !invalidNumber
       };
 
       return accumulator;
     }, {} as Record<PrizeType, ValidationMessage>);
-  }, [groupState, mode]);
+  }, [groupState]);
 
   const isComplete = useMemo(() => hasCompletePrizeGroups(payload.prizeGroups), [payload.prizeGroups]);
 
@@ -148,44 +175,76 @@ export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
     }
   }
 
+  async function handleGroupRelease(prizeType: PrizeType, shouldRelease: boolean) {
+    if (!existingResult || existingResult.status !== "draft") {
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (hasUnsavedDraftChanges) {
+      setErrorMessage("Save the draft before changing release state.");
+      return;
+    }
+
+    if (shouldRelease && !validation[prizeType].canRelease) {
+      setErrorMessage("This prize group must be complete and valid before release.");
+      return;
+    }
+
+    setActingPrizeType(prizeType);
+
+    try {
+      if (shouldRelease) {
+        await releaseAdminResultGroup(existingResult.id, prizeType);
+        setSuccessMessage(`${prizeType} released.`);
+      } else {
+        await unreleaseAdminResultGroup(existingResult.id, prizeType);
+        setSuccessMessage(`${prizeType} hidden from public view.`);
+      }
+
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof AdminApiError ? error.message : "Failed to update release state");
+    } finally {
+      setActingPrizeType(null);
+    }
+  }
+
   return (
     <form className="space-y-8" onSubmit={handleSave}>
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
         <div>
-          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">
-            {mode === "create" ? "New draft" : mode === "edit" ? "Draft editor" : "Published correction"}
-          </p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight text-slate-950">
+          <p className="ui-kicker">{mode === "create" ? "New draft" : mode === "edit" ? "Draft editor" : "Published correction"}</p>
+          <h2 className="ui-title mt-2 text-[clamp(1.75rem,4vw,2.5rem)]">
             {mode === "create" ? "Create result draft" : mode === "edit" ? "Edit draft result" : "Correct published result"}
           </h2>
           {existingResult?.publishedAt ? (
-            <p className="mt-2 text-sm text-slate-600">Published at {new Date(existingResult.publishedAt).toLocaleString()}</p>
+            <p className="ui-copy mt-2">Published at {new Date(existingResult.publishedAt).toLocaleString()}</p>
           ) : null}
         </div>
-        <Link
-          className="inline-flex rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 transition hover:border-slate-500 hover:text-slate-900"
-          href="/admin/results"
-        >
+        <Link className="ui-button-secondary" href="/admin/results">
           Back to results
         </Link>
       </div>
 
-      <section className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
+      <section className="ui-panel p-6">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Draw date</span>
+          <label className="ui-field">
+            <span className="ui-field-label">Draw date</span>
             <input
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+              className="ui-input"
               onChange={(event) => setDrawDate(event.target.value)}
               required
               type="date"
               value={drawDate}
             />
           </label>
-          <label className="space-y-2">
-            <span className="text-sm font-medium text-slate-700">Draw code</span>
+          <label className="ui-field">
+            <span className="ui-field-label">Draw code</span>
             <input
-              className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+              className="ui-input"
               onChange={(event) => setDrawCode(event.target.value)}
               placeholder="Optional manual code"
               value={drawCode}
@@ -197,20 +256,47 @@ export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
       <section className="space-y-4">
         {prizeTypeMetadataList.map((metadata) => {
           const messages = validation[metadata.type];
+          const isReleased = releasedPrizeTypes.has(metadata.type);
+          const isActing = actingPrizeType === metadata.type;
 
           return (
-            <article className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.05)]" key={metadata.type}>
-              <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <article className="ui-panel p-6" key={metadata.type}>
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
                 <div>
-                  <h3 className="text-lg font-semibold text-slate-950">{metadata.type}</h3>
-                  <p className="text-sm text-slate-600">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <h3 className="text-lg font-semibold text-[var(--text-primary)]">{metadata.type}</h3>
+                    {mode === "edit" ? (
+                      <span className={isReleased ? "ui-badge-success" : "ui-badge-warning"}>
+                        {isReleased ? "Released" : "Hidden"}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="ui-copy">
                     Expected {metadata.expectedCount} number{metadata.expectedCount > 1 ? "s" : ""} • {metadata.digitLength} digits each
                   </p>
                 </div>
-                <span className="text-xs uppercase tracking-[0.16em] text-slate-500">One number per line</span>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="ui-kicker">One number per line</span>
+                  {mode === "edit" ? (
+                    <button
+                      className={isReleased ? "ui-button-secondary" : "ui-button-primary"}
+                      disabled={
+                        isActing ||
+                        isSaving ||
+                        isPublishing ||
+                        hasUnsavedDraftChanges ||
+                        (releasedPrizeTypes.has(metadata.type) ? false : !messages.canRelease)
+                      }
+                      onClick={() => void handleGroupRelease(metadata.type, !isReleased)}
+                      type="button"
+                    >
+                      {isActing ? "Updating..." : isReleased ? "Unrelease" : "Release"}
+                    </button>
+                  ) : null}
+                </div>
               </div>
               <textarea
-                className="mt-4 min-h-28 w-full rounded-2xl border border-slate-300 px-4 py-3 font-mono text-sm outline-none transition focus:border-slate-600"
+                className="ui-textarea ui-number-compact mt-4"
                 onChange={(event) =>
                   setGroupState((current) => ({
                     ...current,
@@ -219,28 +305,27 @@ export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
                 }
                 value={groupState[metadata.type]}
               />
-              {messages?.format ? <p className="mt-2 text-sm text-rose-600">{messages.format}</p> : null}
-              {messages?.count ? <p className="mt-2 text-sm text-amber-600">{messages.count}</p> : null}
+              {messages.format ? <p className="ui-inline-error mt-2">{messages.format}</p> : null}
+              {messages.count ? <p className="mt-2 text-sm text-[var(--color-warning)]">{messages.count}</p> : null}
             </article>
           );
         })}
       </section>
 
-      <div className="rounded-[1.75rem] border border-slate-200 bg-white p-6 shadow-[0_14px_40px_rgba(15,23,42,0.05)]">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="ui-panel p-6">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div className="space-y-2">
-            <p className="text-sm font-medium text-slate-700">
+            <p className="ui-inline-info">
               {isComplete ? "Canonical prize structure is complete." : "Prize structure is incomplete for publish/correction."}
             </p>
-            {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
-            {successMessage ? <p className="text-sm text-emerald-700">{successMessage}</p> : null}
+            {hasUnsavedDraftChanges && mode === "edit" ? (
+              <p className="mt-2 text-sm text-[var(--color-warning)]">Save the draft before changing release state.</p>
+            ) : null}
+            {errorMessage ? <p className="ui-inline-error">{errorMessage}</p> : null}
+            {successMessage ? <p className="ui-inline-success">{successMessage}</p> : null}
           </div>
           <div className="flex flex-wrap gap-3">
-            <button
-              className="rounded-xl bg-slate-950 px-5 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
-              disabled={isSaving}
-              type="submit"
-            >
+            <button className="ui-button-primary" disabled={isSaving || actingPrizeType !== null} type="submit">
               {isSaving
                 ? "Saving..."
                 : mode === "create"
@@ -251,8 +336,8 @@ export function ResultEditorForm({ initialResult }: ResultEditorFormProps) {
             </button>
             {existingResult?.status === "draft" ? (
               <button
-                className="rounded-xl border border-slate-300 px-5 py-3 text-sm font-semibold text-slate-800 transition hover:border-slate-500 disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={isPublishing || !isComplete}
+                className="ui-button-secondary"
+                disabled={isPublishing || !isComplete || actingPrizeType !== null}
                 onClick={() => void handlePublish()}
                 type="button"
               >

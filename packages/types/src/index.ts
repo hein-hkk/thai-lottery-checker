@@ -131,6 +131,12 @@ export type PrizeType = (typeof prizeTypes)[number];
 export interface PrizeGroup {
   type: PrizeType;
   numbers: string[];
+  isReleased: boolean;
+}
+
+export interface PrizeGroupInput {
+  type: PrizeType;
+  numbers: string[];
 }
 
 export interface PrizeTypeMetadata {
@@ -150,7 +156,7 @@ export interface GroupableLotteryResult {
 export interface ResultDetailResponse {
   drawDate: string;
   drawCode: string | null;
-  publishedAt: string;
+  publishedAt: string | null;
   prizeGroups: PrizeGroup[];
 }
 
@@ -158,6 +164,8 @@ export interface ResultHistoryItem {
   drawDate: string;
   drawCode: string | null;
   firstPrize: string;
+  frontThree: string[];
+  lastThree: string[];
   lastTwo: string;
 }
 
@@ -198,7 +206,7 @@ export interface AdminResultDetailResponse {
 export interface AdminResultWriteRequest {
   drawDate: string;
   drawCode?: string | null;
-  prizeGroups: PrizeGroup[];
+  prizeGroups: PrizeGroupInput[];
 }
 
 export interface AdminResultPublishResponse {

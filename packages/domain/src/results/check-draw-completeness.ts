@@ -1,4 +1,4 @@
-import type { PrizeGroup, PrizeType } from "@thai-lottery-checker/types";
+import type { PrizeGroupInput, PrizeType } from "@thai-lottery-checker/types";
 import { canonicalPrizeOrder } from "./prize-metadata.js";
 import { getExpectedPrizeCount, getPrizeDigitLength } from "./validate-prize.js";
 
@@ -22,7 +22,7 @@ export function getPrizeDigitLengthMap(): Record<PrizeType, number> {
   );
 }
 
-export function hasCompletePrizeGroups(prizeGroups: readonly PrizeGroup[]): boolean {
+export function hasCompletePrizeGroups(prizeGroups: readonly PrizeGroupInput[]): boolean {
   const prizeGroupMap = new Map(prizeGroups.map((prizeGroup) => [prizeGroup.type, prizeGroup]));
 
   return canonicalPrizeOrder.every((prizeType) => {

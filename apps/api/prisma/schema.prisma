@@ -64,6 +64,7 @@ model Admin {
   auditLogs         AdminAuditLog[]
   createdDraws      LotteryDraw[]          @relation("draw_created_by_admin")
   updatedDraws      LotteryDraw[]          @relation("draw_updated_by_admin")
+  releasedResultGroups LotteryResultGroupRelease[] @relation("result_group_release_admin")
 
   @@map("admins")
 }
@@ -135,6 +136,7 @@ model LotteryDraw {
   createdByAdmin   Admin          @relation("draw_created_by_admin", fields: [createdByAdminId], references: [id])
   updatedByAdmin   Admin          @relation("draw_updated_by_admin", fields: [updatedByAdminId], references: [id])
   results          LotteryResult[]
+  groupReleases    LotteryResultGroupRelease[]
 
   @@index([status])
   @@index([publishedAt], map: "lottery_draws_published_at_idx")
@@ -155,4 +157,22 @@ model LotteryResult {
   @@index([drawId, prizeType], map: "lottery_results_draw_id_prize_type_idx")
   @@unique([drawId, prizeType, prizeIndex], map: "lottery_results_draw_id_prize_type_prize_index_key")
   @@map("lottery_results")
+}
+
+model LotteryResultGroupRelease {
+  id                String      @id @default(uuid()) @db.Uuid
+  drawId            String      @db.Uuid @map("draw_id")
+  prizeType         PrizeType   @map("prize_type")
+  isReleased        Boolean     @default(false) @map("is_released")
+  releasedAt        DateTime?   @map("released_at")
+  releasedByAdminId String?     @db.Uuid @map("released_by_admin_id")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  draw              LotteryDraw @relation(fields: [drawId], references: [id], onDelete: Cascade)
+  releasedByAdmin   Admin?      @relation("result_group_release_admin", fields: [releasedByAdminId], references: [id])
+
+  @@index([drawId], map: "lottery_result_group_releases_draw_id_idx")
+  @@index([drawId, isReleased], map: "lottery_result_group_releases_draw_id_is_released_idx")
+  @@unique([drawId, prizeType], map: "lottery_result_group_releases_draw_id_prize_type_key")
+  @@map("lottery_result_group_releases")
 }

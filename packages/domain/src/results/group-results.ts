@@ -1,7 +1,10 @@
-import type { GroupableLotteryResult, PrizeGroup } from "@thai-lottery-checker/types";
+import type { GroupableLotteryResult, PrizeGroup, PrizeType } from "@thai-lottery-checker/types";
 import { canonicalPrizeOrder } from "./prize-metadata.js";
 
-export function groupPrizeRows(rows: readonly GroupableLotteryResult[]): PrizeGroup[] {
+export function groupPrizeRows(
+  rows: readonly GroupableLotteryResult[],
+  releaseStates?: Partial<Record<PrizeType, boolean>>
+): PrizeGroup[] {
   const grouped = new Map<PrizeGroup["type"], GroupableLotteryResult[]>();
 
   for (const row of rows) {
@@ -18,7 +21,8 @@ export function groupPrizeRows(rows: readonly GroupableLotteryResult[]): PrizeGr
 
     return {
       type: prizeType,
-      numbers
+      numbers,
+      isReleased: releaseStates ? (releaseStates[prizeType] ?? false) : numbers.length > 0
     };
   });
 }

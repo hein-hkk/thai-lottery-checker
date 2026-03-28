@@ -29,11 +29,11 @@ export function LoginForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-slate-700">Email</span>
+      <label className="ui-field">
+        <span className="ui-field-label">Email</span>
         <input
           autoComplete="email"
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-600"
+          className="ui-input"
           disabled={isSubmitting}
           name="email"
           onChange={(event) => setEmail(event.target.value)}
@@ -43,11 +43,11 @@ export function LoginForm() {
         />
       </label>
 
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-slate-700">Password</span>
+      <label className="ui-field">
+        <span className="ui-field-label">Password</span>
         <input
           autoComplete="current-password"
-          className="w-full rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-slate-600"
+          className="ui-input"
           disabled={isSubmitting}
           name="password"
           onChange={(event) => setPassword(event.target.value)}
@@ -57,10 +57,10 @@ export function LoginForm() {
         />
       </label>
 
-      {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="ui-inline-error">{errorMessage}</p> : null}
 
       <button
-        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-900 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="ui-button-primary flex w-full"
         disabled={isSubmitting}
         type="submit"
       >

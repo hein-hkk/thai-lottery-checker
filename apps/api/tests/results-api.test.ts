@@ -801,24 +801,34 @@ describe("results api", () => {
     const payload = body as {
       drawDate: string;
       drawCode: string | null;
-      publishedAt: string;
-      prizeGroups: Array<{ type: string; numbers: string[] }>;
+      publishedAt: string | null;
+      prizeGroups: Array<{ type: string; numbers: string[]; isReleased: boolean }>;
     };
 
     assert.equal(status, 200);
-    assert.equal(payload.drawDate, "2026-03-01");
-    assert.equal(payload.drawCode, "2026-03-01");
+    assert.equal(payload.drawDate, "2026-03-20");
+    assert.equal(payload.drawCode, "2026-03-20-draft");
+    assert.equal(payload.publishedAt, null);
     assert.equal(payload.prizeGroups.length, 9);
     assert.equal(payload.prizeGroups[0]?.type, "FIRST_PRIZE");
-    assert.deepEqual(payload.prizeGroups[0]?.numbers, ["820866"]);
+    assert.deepEqual(payload.prizeGroups[0]?.numbers, ["300001"]);
+    assert.equal(payload.prizeGroups[0]?.isReleased, false);
     assert.equal(payload.prizeGroups[8]?.type, "LAST_TWO");
-    assert.deepEqual(payload.prizeGroups[8]?.numbers, ["06"]);
+    assert.deepEqual(payload.prizeGroups[8]?.numbers, []);
+    assert.equal(payload.prizeGroups[8]?.isReleased, false);
   });
 
   it("returns paginated published history in reverse chronological order", async () => {
     const { status, body } = await getJson("/api/v1/results?page=1&limit=1");
     const payload = body as {
-      items: Array<{ drawDate: string; firstPrize: string; lastTwo: string }>;
+      items: Array<{
+        drawDate: string;
+        drawCode: string | null;
+        firstPrize: string;
+        frontThree: string[];
+        lastThree: string[];
+        lastTwo: string;
+      }>;
       page: number;
       limit: number;
       total: number;
@@ -833,22 +843,26 @@ describe("results api", () => {
       drawDate: "2026-03-01",
       drawCode: "2026-03-01",
       firstPrize: "820866",
+      frontThree: ["510", "983"],
+      lastThree: ["439", "954"],
       lastTwo: "06"
     });
   });
 
-  it("returns detail for a published draw and hides the draft draw", async () => {
+  it("returns detail for a published draw and exposes the Bangkok-today draft immediately", async () => {
     const published = await getJson("/api/v1/results/2026-02-16");
-    const draft = await getJson("/api/v1/results/2026-03-16");
+    const draft = await getJson("/api/v1/results/2026-03-20");
 
     assert.equal(published.status, 200);
     assert.equal((published.body as { drawDate: string }).drawDate, "2026-02-16");
 
-    assert.equal(draft.status, 404);
-    assert.deepEqual(draft.body, {
-      code: "RESULT_NOT_FOUND",
-      message: "Result draw was not found"
-    });
+    assert.equal(draft.status, 200);
+    assert.equal((draft.body as { drawDate: string }).drawDate, "2026-03-20");
+    assert.equal((draft.body as { publishedAt: string | null }).publishedAt, null);
+    assert.equal(
+      (draft.body as { prizeGroups: Array<{ type: string; isReleased: boolean }> }).prizeGroups.every((group) => group.isReleased === false),
+      true
+    );
   });
 
   it("returns structured 400 and 404 errors", async () => {
@@ -877,15 +891,19 @@ describe("results api", () => {
 
   it("fails fast when published draw data is incomplete", async () => {
     const service = createResultsService({
+      async findLatestPublicDraw() {
+        return null;
+      },
       async findLatestPublishedDraw() {
         return {
           id: "draw-1",
           drawDate: new Date("2026-03-01T00:00:00.000Z"),
           drawCode: "2026-03-01",
+          status: "published",
           publishedAt: new Date("2026-03-01T09:30:00.000Z")
         };
       },
-      async findPublishedDrawByDate() {
+      async findPublicDrawByDate() {
         return null;
       },
       async findPublishedDrawHistory() {
@@ -897,6 +915,9 @@ describe("results api", () => {
       },
       async findResultsByDrawId() {
         return [{ drawId: "draw-1", prizeType: "FIRST_PRIZE", prizeIndex: 0, number: "820866" }];
+      },
+      async findGroupReleasesByDrawId() {
+        return [];
       }
     } satisfies ResultsRepository);
 

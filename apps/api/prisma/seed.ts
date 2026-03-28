@@ -80,6 +80,7 @@ export async function seed(): Promise<void> {
   await prisma.adminPasswordReset.deleteMany();
   await prisma.adminInvitation.deleteMany();
   await prisma.adminPermissionGrant.deleteMany();
+  await prisma.lotteryResultGroupRelease.deleteMany();
   await prisma.lotteryResult.deleteMany();
   await prisma.lotteryDraw.deleteMany();
   await prisma.admin.deleteMany({
@@ -148,6 +149,14 @@ export async function seed(): Promise<void> {
             prizeType: row.prizeType,
             prizeIndex: row.prizeIndex,
             number: row.number
+          }))
+        },
+        groupReleases: {
+          create: draw.prizeGroups.map((prizeGroup) => ({
+            prizeType: prizeGroup.type,
+            isReleased: true,
+            releasedAt: draw.publishedAt,
+            releasedByAdminId: bootstrapAdmin.id
           }))
         }
       }

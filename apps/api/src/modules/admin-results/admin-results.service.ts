@@ -1,13 +1,15 @@
 import { ZodError } from "zod";
-import { adminResultWriteRequestSchema } from "@thai-lottery-checker/schemas";
+import { adminResultWriteRequestSchema, prizeTypeSchema } from "@thai-lottery-checker/schemas";
 import type {
   AdminResultDetailResponse,
   AdminResultListResponse,
   AdminResultPublishResponse,
   AdminResultWriteRequest,
   AuthenticatedAdmin,
-  GroupableLotteryResult
+  GroupableLotteryResult,
+  PrizeType
 } from "@thai-lottery-checker/types";
+import { getExpectedPrizeCount, getPrizeDigitLength } from "@thai-lottery-checker/domain";
 import { requireAdminPermission } from "../admin-auth/admin-auth.service.js";
 import { noopAdminResultsCache, type AdminResultsCache } from "./admin-results.cache.js";
 import {
@@ -22,6 +24,7 @@ import { normalizePrizeGroups } from "./admin-results.normalize.js";
 import {
   prismaAdminResultsRepository,
   type AdminResultRepositoryDraw,
+  type AdminResultRepositoryGroupRelease,
   type AdminResultsRepository
 } from "./admin-results.repository.js";
 import { prisma } from "../../db/client.js";
@@ -73,6 +76,8 @@ export interface AdminResultsService {
   getResultDetail(actor: AuthenticatedAdmin, drawId: string): Promise<AdminResultDetailResponse>;
   createDraft(actor: AuthenticatedAdmin, input: unknown): Promise<AdminResultDetailResponse>;
   updateDraft(actor: AuthenticatedAdmin, drawId: string, input: unknown): Promise<AdminResultDetailResponse>;
+  releaseGroup(actor: AuthenticatedAdmin, drawId: string, prizeType: string): Promise<AdminResultDetailResponse>;
+  unreleaseGroup(actor: AuthenticatedAdmin, drawId: string, prizeType: string): Promise<AdminResultDetailResponse>;
   publishDraft(actor: AuthenticatedAdmin, drawId: string): Promise<AdminResultPublishResponse>;
   correctPublished(actor: AuthenticatedAdmin, drawId: string, input: unknown): Promise<AdminResultDetailResponse>;
 }
@@ -96,8 +101,11 @@ export function createAdminResultsService(
         throw adminResultNotFoundError();
       }
 
-      const rows = await repository.findRowsByDrawId(draw.id);
-      return mapAdminResultDetailResponse(draw, rows);
+      const [rows, releases] = await Promise.all([
+        repository.findRowsByDrawId(draw.id),
+        repository.findGroupReleasesByDrawId(draw.id)
+      ]);
+      return mapAdminResultDetailResponse(draw, rows, releases);
     },
 
     async createDraft(actor, input) {
@@ -116,7 +124,10 @@ export function createAdminResultsService(
         adminId: actor.id,
         rows: normalized.rows.map((row) => ({ ...row, drawId: "" }))
       });
-      const rows = await repository.findRowsByDrawId(draw.id);
+      const [rows, releases] = await Promise.all([
+        repository.findRowsByDrawId(draw.id),
+        repository.findGroupReleasesByDrawId(draw.id)
+      ]);
 
       await createAuditLog({
         adminId: actor.id,
@@ -131,7 +142,7 @@ export function createAdminResultsService(
         }
       });
 
-      return mapAdminResultDetailResponse(draw, rows);
+      return mapAdminResultDetailResponse(draw, rows, releases);
     },
 
     async updateDraft(actor, drawId, input) {
@@ -154,8 +165,12 @@ export function createAdminResultsService(
         throw adminResultDuplicateDrawDateError();
       }
 
-      const beforeRows = await repository.findRowsByDrawId(existingDraw.id);
+      const [beforeRows, releaseStates] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
       const normalized = normalizePrizeGroups(parsed.prizeGroups);
+      ensureReleasedGroupsRemainValid(normalized.prizeGroups, releaseStates);
       const updatedDraw = await repository.updateDraftResult({
         drawId: existingDraw.id,
         drawDate,
@@ -163,17 +178,116 @@ export function createAdminResultsService(
         adminId: actor.id,
         rows: normalized.rows.map((row) => ({ ...row, drawId: existingDraw.id }))
       });
-      const updatedRows = await repository.findRowsByDrawId(existingDraw.id);
+      const [updatedRows, updatedReleases] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
 
       await createAuditLog({
         adminId: actor.id,
-        action: "update_result",
+        action: didReleasedGroupChange(beforeRows, normalized.rows, releaseStates) ? "update_released_result_group" : "update_result",
         entityId: existingDraw.id,
         beforeData: mapAuditSnapshot(existingDraw, beforeRows),
         afterData: mapAuditSnapshot(updatedDraw, updatedRows)
       });
 
-      return mapAdminResultDetailResponse(updatedDraw, updatedRows);
+      return mapAdminResultDetailResponse(updatedDraw, updatedRows, updatedReleases);
+    },
+
+    async releaseGroup(actor, drawId, prizeType) {
+      requireAdminPermission(actor, "manage_results");
+      const existingDraw = await repository.findDrawById(drawId);
+
+      if (!existingDraw) {
+        throw adminResultNotFoundError();
+      }
+
+      if (existingDraw.status !== "draft") {
+        throw adminResultInvalidStateError("Only draft result groups can be released");
+      }
+
+      const parsedPrizeType = parsePrizeType(prizeType);
+      const [rows, beforeReleases] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
+
+      ensurePrizeGroupCanBeReleased(mapRowsToPrizeGroups(rows), parsedPrizeType);
+
+      await repository.setGroupRelease(existingDraw.id, parsedPrizeType, true, actor.id, new Date());
+      const [afterDraw, afterReleases] = await Promise.all([
+        repository.findDrawById(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
+
+      if (!afterDraw) {
+        throw adminResultNotFoundError();
+      }
+
+      await createAuditLog({
+        adminId: actor.id,
+        action: "release_result_group",
+        entityId: existingDraw.id,
+        beforeData: {
+          prizeType: parsedPrizeType,
+          releases: mapReleaseAudit(beforeReleases)
+        },
+        afterData: {
+          prizeType: parsedPrizeType,
+          releases: mapReleaseAudit(afterReleases)
+        }
+      });
+
+      await cache.invalidateResultCaches();
+
+      return mapAdminResultDetailResponse(afterDraw, rows, afterReleases);
+    },
+
+    async unreleaseGroup(actor, drawId, prizeType) {
+      requireAdminPermission(actor, "manage_results");
+      const existingDraw = await repository.findDrawById(drawId);
+
+      if (!existingDraw) {
+        throw adminResultNotFoundError();
+      }
+
+      if (existingDraw.status !== "draft") {
+        throw adminResultInvalidStateError("Only draft result groups can be unreleased");
+      }
+
+      const parsedPrizeType = parsePrizeType(prizeType);
+      const [rows, beforeReleases] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
+
+      await repository.setGroupRelease(existingDraw.id, parsedPrizeType, false, actor.id, null);
+      const [afterDraw, afterReleases] = await Promise.all([
+        repository.findDrawById(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
+
+      if (!afterDraw) {
+        throw adminResultNotFoundError();
+      }
+
+      await createAuditLog({
+        adminId: actor.id,
+        action: "unrelease_result_group",
+        entityId: existingDraw.id,
+        beforeData: {
+          prizeType: parsedPrizeType,
+          releases: mapReleaseAudit(beforeReleases)
+        },
+        afterData: {
+          prizeType: parsedPrizeType,
+          releases: mapReleaseAudit(afterReleases)
+        }
+      });
+
+      await cache.invalidateResultCaches();
+
+      return mapAdminResultDetailResponse(afterDraw, rows, afterReleases);
     },
 
     async publishDraft(actor, drawId) {
@@ -200,7 +314,10 @@ export function createAdminResultsService(
 
       const publishedAt = existingDraw.publishedAt ?? new Date();
       const publishedDraw = await repository.publishDraftResult(existingDraw.id, actor.id, publishedAt);
-      const publishedRows = await repository.findRowsByDrawId(existingDraw.id);
+      const [publishedRows, publishedReleases] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
 
       await createAuditLog({
         adminId: actor.id,
@@ -211,7 +328,7 @@ export function createAdminResultsService(
 
       await cache.invalidateResultCaches();
 
-      return mapAdminResultDetailResponse(publishedDraw, publishedRows);
+      return mapAdminResultDetailResponse(publishedDraw, publishedRows, publishedReleases);
     },
 
     async correctPublished(actor, drawId, input) {
@@ -243,7 +360,10 @@ export function createAdminResultsService(
         adminId: actor.id,
         rows: normalized.rows.map((row) => ({ ...row, drawId: existingDraw.id }))
       });
-      const correctedRows = await repository.findRowsByDrawId(existingDraw.id);
+      const [correctedRows, correctedReleases] = await Promise.all([
+        repository.findRowsByDrawId(existingDraw.id),
+        repository.findGroupReleasesByDrawId(existingDraw.id)
+      ]);
 
       await createAuditLog({
         adminId: actor.id,
@@ -255,7 +375,7 @@ export function createAdminResultsService(
 
       await cache.invalidateResultCaches();
 
-      return mapAdminResultDetailResponse(correctedDraw, correctedRows);
+      return mapAdminResultDetailResponse(correctedDraw, correctedRows, correctedReleases);
     }
   };
 }
@@ -266,6 +386,18 @@ function parseWriteRequest(input: unknown): AdminResultWriteRequest {
   } catch (error) {
     if (error instanceof ZodError) {
       throw invalidAdminResultRequestError("Admin result request is invalid");
+    }
+
+    throw error;
+  }
+}
+
+function parsePrizeType(input: string): PrizeType {
+  try {
+    return prizeTypeSchema.parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminResultRequestError("Prize type is invalid");
     }
 
     throw error;
@@ -284,6 +416,67 @@ function mapRowsToPrizeGroups(rows: readonly GroupableLotteryResult[]) {
   return [...groups.entries()].map(([type, numbers]) => ({
     type: type as GroupableLotteryResult["prizeType"],
     numbers
+  }));
+}
+
+function ensurePrizeGroupCanBeReleased(
+  prizeGroups: ReturnType<typeof mapRowsToPrizeGroups>,
+  prizeType: PrizeType
+): void {
+  const prizeGroup = prizeGroups.find((group) => group.type === prizeType);
+
+  if (!prizeGroup) {
+    throw adminResultDataInvalidError("Prize group is incomplete or invalid for staged release");
+  }
+
+  if (prizeGroup.numbers.length !== getExpectedPrizeCount(prizeType)) {
+    throw adminResultDataInvalidError("Prize group is incomplete or invalid for staged release");
+  }
+
+  if (prizeGroup.numbers.some((number) => number.length !== getPrizeDigitLength(prizeType))) {
+    throw adminResultDataInvalidError("Prize group is incomplete or invalid for staged release");
+  }
+}
+
+function ensureReleasedGroupsRemainValid(
+  prizeGroups: ReturnType<typeof mapRowsToPrizeGroups>,
+  releases: readonly AdminResultRepositoryGroupRelease[]
+): void {
+  for (const release of releases) {
+    if (!release.isReleased) {
+      continue;
+    }
+
+    ensurePrizeGroupCanBeReleased(prizeGroups, release.prizeType);
+  }
+}
+
+function didReleasedGroupChange(
+  beforeRows: readonly GroupableLotteryResult[],
+  afterRows: readonly GroupableLotteryResult[],
+  releases: readonly AdminResultRepositoryGroupRelease[]
+): boolean {
+  const releasedPrizeTypes = new Set(releases.filter((release) => release.isReleased).map((release) => release.prizeType));
+
+  if (releasedPrizeTypes.size === 0) {
+    return false;
+  }
+
+  const filterRows = (rows: readonly GroupableLotteryResult[]) =>
+    rows
+      .filter((row) => releasedPrizeTypes.has(row.prizeType))
+      .map((row) => `${row.prizeType}:${row.prizeIndex}:${row.number}`)
+      .sort();
+
+  return JSON.stringify(filterRows(beforeRows)) !== JSON.stringify(filterRows(afterRows));
+}
+
+function mapReleaseAudit(releases: readonly AdminResultRepositoryGroupRelease[]) {
+  return releases.map((release) => ({
+    prizeType: release.prizeType,
+    isReleased: release.isReleased,
+    releasedAt: release.releasedAt?.toISOString() ?? null,
+    releasedByAdminId: release.releasedByAdminId
   }));
 }
 

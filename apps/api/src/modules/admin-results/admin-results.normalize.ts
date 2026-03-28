@@ -1,15 +1,18 @@
 import { assertValidPrizeNumber, canonicalPrizeOrder, hasCompletePrizeGroups } from "@thai-lottery-checker/domain";
-import type { GroupableLotteryResult, PrizeGroup, PrizeType } from "@thai-lottery-checker/types";
+import type { GroupableLotteryResult, PrizeGroupInput, PrizeType } from "@thai-lottery-checker/types";
 import { adminResultDataInvalidError } from "./admin-results.errors.js";
 
 export interface NormalizedAdminResultInput {
-  prizeGroups: PrizeGroup[];
+  prizeGroups: PrizeGroupInput[];
   rows: GroupableLotteryResult[];
 }
 
-export function normalizePrizeGroups(prizeGroups: readonly PrizeGroup[], options?: { requireComplete?: boolean }): NormalizedAdminResultInput {
+export function normalizePrizeGroups(
+  prizeGroups: readonly PrizeGroupInput[],
+  options?: { requireComplete?: boolean }
+): NormalizedAdminResultInput {
   const seenPrizeTypes = new Set<PrizeType>();
-  const groupedByType = new Map<PrizeType, PrizeGroup>();
+  const groupedByType = new Map<PrizeType, PrizeGroupInput>();
 
   for (const prizeGroup of prizeGroups) {
     if (seenPrizeTypes.has(prizeGroup.type)) {
@@ -34,7 +37,7 @@ export function normalizePrizeGroups(prizeGroups: readonly PrizeGroup[], options
 
   const normalizedPrizeGroups = canonicalPrizeOrder
     .map((prizeType) => groupedByType.get(prizeType))
-    .filter((prizeGroup): prizeGroup is PrizeGroup => prizeGroup !== undefined);
+    .filter((prizeGroup): prizeGroup is PrizeGroupInput => prizeGroup !== undefined);
 
   if (options?.requireComplete && !hasCompletePrizeGroups(normalizedPrizeGroups)) {
     throw adminResultDataInvalidError("Result prize groups are incomplete or invalid for publish/correction");

@@ -22,9 +22,9 @@ export default async function AdminsPage() {
   return (
     <section className="space-y-6">
       <div className="space-y-2">
-        <p className="text-sm font-semibold uppercase tracking-[0.16em] text-slate-500">Governance</p>
-        <h2 className="text-3xl font-semibold tracking-tight text-slate-950">Admin management</h2>
-        <p className="max-w-2xl text-sm leading-6 text-slate-600">
+        <p className="ui-kicker">Governance</p>
+        <h2 className="ui-title text-[clamp(1.75rem,4vw,2.5rem)]">Admin management</h2>
+        <p className="ui-copy max-w-2xl">
           Invite new admins, control active access, and manage role or permission changes for the platform.
         </p>
       </div>

@@ -21,12 +21,17 @@ export function getLocaleLabel(locale: SupportedLocale): string {
 }
 
 export interface ResultsMessages {
+  home: string;
   latestResults: string;
+  officialLatestResultsTitle: string;
+  officialLatestResultsDescription: string;
   resultHistory: string;
   drawDetail: string;
+  officialResultTitle: string;
   drawDate: string;
   drawCode: string;
   publishedAt: string;
+  pendingPublication: string;
   currentLocale: string;
   defaultLocale: string;
   viewHistory: string;
@@ -41,17 +46,27 @@ export interface ResultsMessages {
   previousPage: string;
   nextPage: string;
   page: string;
+  language: string;
+  theme: string;
+  lightMode: string;
+  darkMode: string;
   prizeLabels: Record<PrizeType, string>;
 }
 
 const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   en: {
+    home: "Home",
     latestResults: "Latest results",
+    officialLatestResultsTitle: "Official Latest Thai Lottery Result",
+    officialLatestResultsDescription:
+      "View the latest official Thai lottery result with the draw date, publish time, and key prize numbers in one trusted update.",
     resultHistory: "Result history",
     drawDetail: "Draw detail",
+    officialResultTitle: "Official Thai Lottery Result",
     drawDate: "Draw date",
     drawCode: "Draw code",
     publishedAt: "Published at",
+    pendingPublication: "Not yet published",
     currentLocale: "Current locale",
     defaultLocale: "Default locale",
     viewHistory: "View history",
@@ -66,6 +81,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "Previous",
     nextPage: "Next",
     page: "Page",
+    language: "Language",
+    theme: "Theme",
+    lightMode: "Light",
+    darkMode: "Dark",
     prizeLabels: {
       FIRST_PRIZE: "First prize",
       NEAR_FIRST_PRIZE: "Near first prize",
@@ -79,12 +98,18 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     }
   },
   th: {
+    home: "หน้าหลัก",
     latestResults: "ผลรางวัลล่าสุด",
+    officialLatestResultsTitle: "ผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ",
+    officialLatestResultsDescription:
+      "ดูผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ พร้อมวันที่ออกรางวัล เวลาเผยแพร่ และหมายเลขรางวัลสำคัญในหน้าเดียว",
     resultHistory: "ประวัติผลรางวัล",
     drawDetail: "รายละเอียดงวด",
+    officialResultTitle: "ผลสลากกินแบ่งรัฐบาลอย่างเป็นทางการ",
     drawDate: "วันที่ออกรางวัล",
     drawCode: "รหัสงวด",
     publishedAt: "เผยแพร่เมื่อ",
+    pendingPublication: "ยังไม่เผยแพร่",
     currentLocale: "ภาษาปัจจุบัน",
     defaultLocale: "ภาษาเริ่มต้น",
     viewHistory: "ดูประวัติผลรางวัล",
@@ -99,6 +124,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "ก่อนหน้า",
     nextPage: "ถัดไป",
     page: "หน้า",
+    language: "ภาษา",
+    theme: "ธีม",
+    lightMode: "สว่าง",
+    darkMode: "มืด",
     prizeLabels: {
       FIRST_PRIZE: "รางวัลที่ 1",
       NEAR_FIRST_PRIZE: "รางวัลข้างเคียงรางวัลที่ 1",
@@ -112,12 +141,18 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     }
   },
   my: {
+    home: "ပင်မစာမျက်နှာ",
     latestResults: "နောက်ဆုံးထွက်အောင်ဘာသာရလဒ်",
+    officialLatestResultsTitle: "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်",
+    officialLatestResultsDescription:
+      "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်ကို ထီဖွင့်သည့်နေ့၊ ထုတ်ပြန်ချိန်နှင့် အဓိကဆုနံပါတ်များအပါအဝင် တစ်နေရာတည်းတွင် ကြည့်ရှုနိုင်ပါသည်။",
     resultHistory: "ရလဒ်မှတ်တမ်း",
     drawDetail: "အကြိမ်အသေးစိတ်",
+    officialResultTitle: "တရားဝင် ထိုင်းထီရလဒ်",
     drawDate: "ထွက်သည့်နေ့",
     drawCode: "အကြိမ်ကုဒ်",
     publishedAt: "ထုတ်ပြန်ချိန်",
+    pendingPublication: "မထုတ်ပြန်ရသေးပါ",
     currentLocale: "လက်ရှိဘာသာ",
     defaultLocale: "မူလဘာသာ",
     viewHistory: "ရလဒ်မှတ်တမ်းကြည့်ရန်",
@@ -132,6 +167,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     previousPage: "ရှေ့",
     nextPage: "နောက်",
     page: "စာမျက်နှာ",
+    language: "ဘာသာစကား",
+    theme: "အပြင်အဆင်",
+    lightMode: "အလင်း",
+    darkMode: "အမှောင်",
     prizeLabels: {
       FIRST_PRIZE: "ပထမဆု",
       NEAR_FIRST_PRIZE: "ပထမဆုဘေးချင်းကပ်ဆု",

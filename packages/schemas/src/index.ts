@@ -138,13 +138,19 @@ export const historyQuerySchema = z.object({
 
 export const prizeGroupSchema = z.object({
   type: prizeTypeSchema,
+  numbers: z.array(z.string()),
+  isReleased: z.boolean()
+});
+
+export const prizeGroupInputSchema = z.object({
+  type: prizeTypeSchema,
   numbers: z.array(z.string())
 });
 
 export const resultDetailResponseSchema = z.object({
   drawDate: z.string().regex(drawDatePattern),
   drawCode: z.string().nullable(),
-  publishedAt: z.string().datetime({ offset: true }),
+  publishedAt: z.string().datetime({ offset: true }).nullable(),
   prizeGroups: z.array(prizeGroupSchema)
 });
 
@@ -152,6 +158,8 @@ export const resultHistoryItemSchema = z.object({
   drawDate: z.string().regex(drawDatePattern),
   drawCode: z.string().nullable(),
   firstPrize: z.string(),
+  frontThree: z.array(z.string()).optional().default([]),
+  lastThree: z.array(z.string()).optional().default([]),
   lastTwo: z.string()
 });
 
@@ -192,7 +200,7 @@ export const adminResultDetailResponseSchema = z.object({
 export const adminResultWriteRequestSchema = z.object({
   drawDate: z.string().regex(drawDatePattern),
   drawCode: z.string().trim().min(1).nullable().optional(),
-  prizeGroups: z.array(prizeGroupSchema)
+  prizeGroups: z.array(prizeGroupInputSchema)
 });
 
 export const adminResultPublishResponseSchema = z.object({
@@ -223,6 +231,7 @@ export type AdminUpdateRequestSchema = z.infer<typeof adminUpdateRequestSchema>;
 export type AdminUpdateResponseSchema = z.infer<typeof adminUpdateResponseSchema>;
 export type HistoryQuerySchema = z.infer<typeof historyQuerySchema>;
 export type PrizeGroupSchema = z.infer<typeof prizeGroupSchema>;
+export type PrizeGroupInputSchema = z.infer<typeof prizeGroupInputSchema>;
 export type ResultDetailResponseSchema = z.infer<typeof resultDetailResponseSchema>;
 export type ResultHistoryItemSchema = z.infer<typeof resultHistoryItemSchema>;
 export type ResultHistoryResponseSchema = z.infer<typeof resultHistoryResponseSchema>;

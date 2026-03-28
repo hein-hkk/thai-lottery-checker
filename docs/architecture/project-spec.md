@@ -66,9 +66,9 @@ Internal operators who manage:
 
 ### Public website
 
-- Locale landing page with latest-result hero and history entry point
-- Latest Thai lottery results
-- Historical draw results
+- Locale landing page as the primary public discovery surface
+- Dedicated bookmarkable latest-results page for users who want the newest official result directly
+- Historical draw archive as a secondary browsing surface
 - Number checking flow
 - Blog list and blog detail pages
 - Multilingual routing and content presentation
@@ -107,9 +107,9 @@ The admin area is implemented inside the same Next.js web application under prot
 
 ### Website MVP
 
-- Locale landing page
-- Latest result page
-- Result history page
+- Locale landing page with latest-result preview and history entry point
+- Latest result page as a dedicated bookmarkable surface
+- Result history page as a secondary full archive surface
 - Result detail page by draw date
 - Number checker page
 - Blog list and blog detail pages
@@ -463,12 +463,14 @@ Example history item:
 
 ### Staged latest/detail behavior
 
-- `GET /api/v1/results/latest` prefers a current Bangkok-time draw-day draft when it has at least one released preview group; otherwise it falls back to the latest published draw
+- `GET /api/v1/results/latest` prefers a current Bangkok-time draw-day draft immediately; if no Bangkok-today draft exists, it falls back to the latest published draw
 - `GET /api/v1/results` remains published-only history
-- `GET /api/v1/results/:drawDate` may return either a fully published draw or a partially released draft draw
+- `GET /api/v1/results/:drawDate` may return either a fully published draw or the Bangkok-today draft, including placeholder-only state before the first group release
 - Unreleased prize groups in latest/detail responses must be represented as placeholders while preserving canonical prize-group order
-- `/{locale}/results` remains bookmarkable and can render the partially released latest draw
+- `/{locale}/results` remains bookmarkable and can render the current draw-day draft, including placeholder-only state before the first group release
 - `/{locale}/` becomes the public landing page with latest hero preview plus published-history entry points
+- `/{locale}/results/history` remains available as the full archive route but is treated as a secondary navigation destination
+- landing and latest-result pages should use trust-focused localized page titles/descriptions while keeping primary navigation labels short
 
 ### Authenticated user endpoints
 

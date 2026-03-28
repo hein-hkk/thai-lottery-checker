@@ -31,7 +31,16 @@ describe("result schemas", () => {
 
     assert.ok(
       resultHistoryResponseSchema.parse({
-        items: [{ drawDate: "2026-03-01", drawCode: "2026-03-01", firstPrize: "820866", lastTwo: "06" }],
+        items: [
+          {
+            drawDate: "2026-03-01",
+            drawCode: "2026-03-01",
+            firstPrize: "820866",
+            frontThree: ["510", "983"],
+            lastThree: ["439", "954"],
+            lastTwo: "06"
+          }
+        ],
         page: 1,
         limit: 20,
         total: 2

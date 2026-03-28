@@ -28,10 +28,10 @@ export function ResetPasswordConfirmForm({ token }: { token: string }) {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <label className="block space-y-2">
-        <span className="text-sm font-medium text-slate-700">New password</span>
+      <label className="ui-field">
+        <span className="ui-field-label">New password</span>
         <input
-          className="w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-slate-600"
+          className="ui-input"
           minLength={8}
           onChange={(event) => setPassword(event.target.value)}
           required
@@ -39,9 +39,9 @@ export function ResetPasswordConfirmForm({ token }: { token: string }) {
           value={password}
         />
       </label>
-      {errorMessage ? <p className="text-sm text-rose-600">{errorMessage}</p> : null}
+      {errorMessage ? <p className="ui-inline-error">{errorMessage}</p> : null}
       <button
-        className="inline-flex w-full items-center justify-center rounded-xl bg-slate-950 px-4 py-3 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-400"
+        className="ui-button-primary flex w-full"
         disabled={isSubmitting}
         type="submit"
       >

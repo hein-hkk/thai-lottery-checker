@@ -19,13 +19,9 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
 ### 2. Draw-day latest-selection behavior
 
 - Use `Asia/Bangkok` as the business timezone for draw-day matching
-- `GET /api/v1/results/latest` should prefer the current draw-day draft when it has at least one released preview group
-- If no eligible staged draw exists, fall back to the latest published draw
-- Preview eligibility for the latest hero is based on released values from:
-  - `FIRST_PRIZE`
-  - `FRONT_THREE`
-  - `LAST_THREE`
-  - `LAST_TWO`
+- `GET /api/v1/results/latest` should prefer the current Bangkok-today draft immediately, even before the first group release
+- If no Bangkok-today draft exists, fall back to the latest published draw
+- Before the first group release, the draw-day draft is still public and should render as placeholder-only
 
 ### 3. Public route and page refinement
 
@@ -35,8 +31,11 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
   - published-only history list
 - Blog teasers are intentionally deferred to the later blog slice even though the longer-term landing vision includes them
 - Keep `/{locale}/results` as a stable bookmarkable latest-results page
-- Allow `/{locale}/results` to render a partially released current draw
-- Keep `/{locale}/results/{drawDate}` as the draw detail route for both published draws and partially released draft draws
+- Treat `/{locale}/results/history` as a secondary archive route rather than a primary navigation destination
+- Allow `/{locale}/results` to render the current draw-day draft, including placeholder-only state before the first group release
+- Keep `/{locale}/results/{drawDate}` as the draw detail route for both published draws and the Bangkok-today draft, including placeholder-only state before the first group release
+- Use trust-focused localized title/description copy on the landing page and latest page while keeping primary navigation labels short
+- Keep latest-result metadata visible on both home and latest page without repeating redundant section titles
 
 ### 4. Public API refinement
 
@@ -45,7 +44,7 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
   - `GET /api/v1/results`
   - `GET /api/v1/results/:drawDate`
 - Keep `GET /api/v1/results` as a published-only history list
-- Extend latest/detail response contracts to support placeholder-aware prize groups for unreleased values
+- Extend latest/detail response contracts to support placeholder-aware prize groups for unreleased values, including zero-release draw-day drafts
 - Keep canonical prize order unchanged in public payloads
 
 ### 5. Admin result workflow refinement
@@ -89,19 +88,20 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
 
 - Domain tests
   - staged group visibility follows release state
-  - Bangkok-time draw-day selection prefers eligible staged draws
+  - Bangkok-time draw-day selection prefers the Bangkok-today draft immediately
   - final publish requires complete and valid canonical result data
 - Public API tests
-  - latest endpoint falls back correctly when no staged draw is eligible
+  - latest endpoint falls back correctly when no Bangkok-today draft exists
   - history endpoint remains published-only
-  - draw detail returns placeholder-ready groups for unreleased values
+  - draw detail returns placeholder-ready groups for unreleased values, including zero-release draw-day drafts
 - Admin workflow tests
   - release, unrelease, and edit-before-publish behave correctly
   - post-publish correction updates in place and remains auditable
 - Public web tests
   - landing page renders latest hero plus published-only history
-  - latest page can show a partially released current draw
-  - detail page supports both published and partially released draws
+  - primary public navigation emphasizes Home and Latest results, with history reachable through page-level CTA and direct URL
+  - latest page can show the draw-day draft before the first release
+  - detail page supports both published draws and placeholder-only draw-day drafts
 - Admin web tests
   - admin list defaults to activated accounts
   - deactivated and all-account views behave correctly
@@ -111,3 +111,4 @@ This slice does not introduce a new draw lifecycle status. It keeps the existing
 - This slice documents and implements the agreed staged-release refinement without yet delivering blog teasers on the landing page.
 - The longer-term landing-page vision can add blog teasers later in the blog-reading slice without changing the staged-release model defined here.
 - Number checker work remains the next slice after this refinement is complete.
+- Home history preview and archive history listing may share the same history-card primitive as part of UI cleanup within this slice.

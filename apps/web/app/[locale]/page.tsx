@@ -1,27 +1,18 @@
-import { defaultLocale, getLocaleLabel, getResultsMessages, isSupportedLocale, supportedLocales } from "@thai-lottery-checker/i18n";
+import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { getPublicEnv } from "../../src/config/env";
+import { HistoryResultCard } from "../../src/components/results/history-result-card";
+import { LatestSummarySection } from "../../src/components/results/latest-summary-section";
+import { StatusCard } from "../../src/components/results/status-card";
+import { PublicPageShell } from "../../src/components/ui/public-page-shell";
+import { getResultHistory, getLatestResults, ResultsApiError } from "../../src/results/api";
+
+export const dynamic = "force-dynamic";
 
 interface LocalePageProps {
   params: Promise<{ locale: string }>;
 }
-
-const copyByLocale: Record<SupportedLocale, { title: string; body: string }> = {
-  en: {
-    title: "Foundation skeleton",
-    body: "The web workspace is running with locale-aware routing and shared package imports."
-  },
-  th: {
-    title: "Foundation skeleton",
-    body: "เว็บแอปพร้อมใช้งานด้วยเส้นทางหลายภาษาและการเชื่อมต่อแพ็กเกจร่วมแล้ว"
-  },
-  my: {
-    title: "Foundation skeleton",
-    body: "Localized routing and shared workspace packages are ready for the next slices."
-  }
-};
 
 export default async function LocalePage({ params }: LocalePageProps) {
   const { locale } = await params;
@@ -30,51 +21,73 @@ export default async function LocalePage({ params }: LocalePageProps) {
     notFound();
   }
 
-  const publicEnv = getPublicEnv();
-  const copy = copyByLocale[locale];
-  const resultsMessages = getResultsMessages(locale);
+  const supportedLocale = locale as SupportedLocale;
+  const messages = getResultsMessages(supportedLocale);
+  const [latestResult, historyResult] = await Promise.allSettled([getLatestResults(), getResultHistory(1)]);
+
+  const latest = latestResult.status === "fulfilled" ? latestResult.value : null;
+  const history = historyResult.status === "fulfilled" ? historyResult.value : null;
 
   return (
-    <main className="min-h-screen px-5 py-12 md:px-8">
-      <section className="mx-auto max-w-3xl rounded-3xl border border-shell-border bg-white/88 p-8 shadow-[0_18px_60px_rgba(18,49,79,0.08)] backdrop-blur-sm md:p-10">
-        <p className="text-sm font-medium tracking-wide text-slate-500">{publicEnv.appUrl}</p>
-        <h1 className="mt-4 text-4xl font-semibold tracking-tight text-slate-900">{copy.title}</h1>
-        <p className="mt-4 text-base leading-7 text-slate-700">{copy.body}</p>
-        <div className="mt-8 grid gap-3 text-sm text-slate-600">
-          <p>
-            <span className="font-semibold text-slate-900">{resultsMessages.currentLocale}:</span> {getLocaleLabel(locale)}
-          </p>
-          <p>
-            <span className="font-semibold text-slate-900">{resultsMessages.defaultLocale}:</span> {getLocaleLabel(defaultLocale)}
-          </p>
-        </div>
-        <ul className="mt-8 flex flex-wrap gap-3">
-          {supportedLocales.map((supportedLocale) => (
-            <li key={supportedLocale}>
-              <Link
-                className="inline-flex rounded-full bg-shell-pill px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-sky-100"
-                href={`/${supportedLocale}`}
-              >
-                {supportedLocale}
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-8 flex flex-wrap gap-3">
-          <Link
-            className="inline-flex rounded-full bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800"
-            href={`/${locale}/results`}
-          >
-            {resultsMessages.browseLatest}
-          </Link>
-          <Link
-            className="inline-flex rounded-full border border-shell-border bg-white px-4 py-2 text-sm font-medium text-slate-800 transition hover:bg-slate-50"
-            href={`/${locale}/results/history`}
-          >
-            {resultsMessages.viewHistory}
-          </Link>
-        </div>
-      </section>
-    </main>
+    <PublicPageShell
+      currentPath="home"
+      description={messages.officialLatestResultsDescription}
+      locale={supportedLocale}
+      messages={messages}
+      title={messages.officialLatestResultsTitle}
+    >
+      <div className="space-y-8">
+        <section className="space-y-6">
+          {latest ? (
+            <div className="space-y-6">
+              <LatestSummarySection
+                drawDate={latest.drawDate}
+                hideTitle
+                locale={supportedLocale}
+                messages={messages}
+                prizeGroups={latest.prizeGroups}
+                publishedAt={latest.publishedAt}
+              />
+              <div className="flex justify-start">
+                <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
+                  {messages.browseLatest}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <StatusCard
+              message={
+                latestResult.status === "rejected" && latestResult.reason instanceof ResultsApiError && latestResult.reason.status === 404
+                  ? messages.noResults
+                  : messages.latestUnavailable
+              }
+            />
+          )}
+        </section>
+
+        <section className="space-y-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div>
+              <h2 className="ui-section-title">{messages.resultHistory}</h2>
+            </div>
+            <Link className="ui-button-secondary" href={`/${supportedLocale}/results/history`}>
+              {messages.viewHistory}
+            </Link>
+          </div>
+
+          <div className="ui-divider mt-6 pt-6">
+            {history && history.items.length > 0 ? (
+              <div className="grid gap-4">
+                {history.items.slice(0, 5).map((item) => (
+                  <HistoryResultCard item={item} key={item.drawDate} locale={supportedLocale} messages={messages} />
+                ))}
+              </div>
+            ) : (
+              <StatusCard message={history ? messages.noHistory : messages.historyUnavailable} />
+            )}
+          </div>
+        </section>
+      </div>
+    </PublicPageShell>
   );
 }

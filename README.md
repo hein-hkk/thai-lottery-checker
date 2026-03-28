@@ -5,6 +5,7 @@ Thai Lottery Checker is a monorepo for a multilingual lottery product with a pub
 The current shipped baseline includes:
 
 - public Thai lottery results browsing
+- public locale landing page with latest preview and history entry point
 - admin auth/session with HTTP-only cookie handling
 - invitation-based admin onboarding
 - admin password reset
@@ -105,11 +106,21 @@ Default local URLs:
 
 Assuming the web app runs at `http://localhost:3000`:
 
+- `/en`
 - `/en/results`
 - `/en/results/history`
 - `/en/results/2026-03-01`
+- `/th`
 - `/th/results`
+- `/my`
 - `/my/results`
+
+Current public route roles:
+
+- `/{locale}`: primary landing page with the official latest-result preview and a published-history preview
+- `/{locale}/results`: dedicated bookmarkable latest-results page
+- `/{locale}/results/history`: secondary full archive page
+- `/{locale}/results/{drawDate}`: result detail page for a specific draw date
 
 The seeded draft draw `2026-03-16` should not appear publicly and should resolve to not-found on the public detail route.
 
@@ -186,8 +197,13 @@ pnpm --filter @thai-lottery-checker/web build
 
 Manual checks:
 
+- Open `http://localhost:3000/en`
+- Confirm the primary public header shows `Home` and `Latest results`
+- Confirm the landing page latest section shows a trust-focused localized title/description with latest draw metadata below it
 - Open `http://localhost:3000/en/results`
+- Confirm the latest page shows the same localized trust-focused title/description plus latest draw metadata
 - Open `http://localhost:3000/en/results/history`
+- Confirm history remains directly reachable but is no longer a primary nav item
 - Open `http://localhost:3000/en/results/2026-03-01`
 - Open `http://localhost:3000/en/results/2026-03-16` and confirm not-found
 - Open `http://localhost:3000/admin/login`
@@ -232,3 +248,21 @@ packages/
 - Slice 2 includes a cache-invalidation abstraction for result publish/correct flows; full Redis-backed performance hardening remains a later slice.
 - Number checker, blog management, mobile features, and analytics remain outside the currently shipped baseline.
 - The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
+
+## License
+
+This project is licensed under the MIT License.
+
+You are free to use, modify, and distribute the source code.
+
+---
+
+## Brand & Trademark
+
+"LottoKai" and all related branding (logo, design, identity) are NOT open source.
+
+They are protected and may NOT be used without permission.
+
+See:
+- TRADEMARK.md
+- BRAND_LICENSE.md
