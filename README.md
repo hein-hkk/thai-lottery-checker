@@ -6,6 +6,7 @@ The current shipped baseline includes:
 
 - public Thai lottery results browsing
 - public locale landing page with latest preview and history entry point
+- public embedded number checker with draw-detail overlay results
 - admin auth/session with HTTP-only cookie handling
 - invitation-based admin onboarding
 - admin password reset
@@ -121,8 +122,9 @@ Current public route roles:
 - `/{locale}/results`: dedicated bookmarkable latest-results page
 - `/{locale}/results/history`: secondary full archive page
 - `/{locale}/results/{drawDate}`: result detail page for a specific draw date
+- `/{locale}/results/{drawDate}?checker=1&ticket=123456`: draw detail page with checker-result overlay state
 
-The seeded draft draw `2026-03-16` should not appear publicly and should resolve to not-found on the public detail route.
+The public checker is embedded on the public pages above and navigates to the selected draw detail page for result presentation.
 
 ## Admin Web Routes
 
@@ -168,6 +170,35 @@ curl "http://localhost:4000/api/v1/results?page=0&limit=200"
 curl http://localhost:4000/api/v1/results/2026-03-16
 ```
 
+## Checker API
+
+Base URL:
+
+```text
+http://localhost:4000/api/v1/checker
+```
+
+Endpoints:
+
+- `GET /draws`
+- `POST /check`
+
+Examples:
+
+```bash
+curl http://localhost:4000/api/v1/checker/draws
+curl -X POST http://localhost:4000/api/v1/checker/check \
+  -H "Content-Type: application/json" \
+  -d '{"ticketNumber":"820866","drawDate":"2026-03-01"}'
+```
+
+Checker behavior:
+
+- ticket numbers must be exactly 6 digits
+- omitted `drawDate` resolves to the latest public draw
+- Bangkok-today public drafts may return `checkStatus: "partial"`
+- checker responses include per-match prize amounts and `totalWinningAmount`
+
 ## Admin API
 
 Main admin route groups:
@@ -205,7 +236,8 @@ Manual checks:
 - Open `http://localhost:3000/en/results/history`
 - Confirm history remains directly reachable but is no longer a primary nav item
 - Open `http://localhost:3000/en/results/2026-03-01`
-- Open `http://localhost:3000/en/results/2026-03-16` and confirm not-found
+- Use the embedded checker on a public page and confirm it navigates to the selected draw detail page with `checker` and `ticket` query params
+- Confirm the draw detail page opens the checker overlay and keeps the official draw numbers visible behind it
 - Open `http://localhost:3000/admin/login`
 - Sign in with the bootstrap admin from `.env`
 - Open `http://localhost:3000/admin/admins`
@@ -246,7 +278,7 @@ packages/
 
 - PostgreSQL remains the source of truth.
 - Slice 2 includes a cache-invalidation abstraction for result publish/correct flows; full Redis-backed performance hardening remains a later slice.
-- Number checker, blog management, mobile features, and analytics remain outside the currently shipped baseline.
+- Blog management, mobile features, and analytics remain outside the currently shipped baseline.
 - The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
 
 ## License
