@@ -6,9 +6,9 @@ import type {
   PublishStatus,
   SupportedLocale
 } from "@thai-lottery-checker/types";
-import { ChevronDown } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { getCheckerDrawOptions, ResultsApiError } from "../../results/api";
 
 interface EmbeddedCheckerProps {
@@ -30,8 +30,14 @@ export function EmbeddedChecker({
   const [ticketNumber, setTicketNumber] = useState("");
   const [isNavigating, setIsNavigating] = useState(false);
   const [isLoadingDraws, setIsLoadingDraws] = useState(false);
+  const [isDrawMenuOpen, setIsDrawMenuOpen] = useState(false);
   const [drawOptions, setDrawOptions] = useState<CheckerDrawOption[] | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const drawMenuRef = useRef<HTMLDivElement>(null);
+  const drawMenuId = useId();
+
+  const availableDrawOptions =
+    drawOptions ?? [{ drawDate: defaultDrawDate, drawStatus: defaultDrawStatus satisfies PublishStatus }];
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -75,13 +81,48 @@ export function EmbeddedChecker({
     const nextDraw = drawOptions?.find((item) => item.drawDate === drawDate);
     setSelectedDrawDate(drawDate);
     setSelectedDrawStatus(nextDraw?.drawStatus ?? "published");
+    setIsDrawMenuOpen(false);
   }
+
+  async function handleToggleDrawMenu() {
+    if (!isDrawMenuOpen) {
+      await ensureDrawOptionsLoaded();
+    }
+
+    setIsDrawMenuOpen((current) => !current);
+  }
+
+  useEffect(() => {
+    if (!isDrawMenuOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!drawMenuRef.current?.contains(event.target as Node)) {
+        setIsDrawMenuOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsDrawMenuOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isDrawMenuOpen]);
 
   return (
     <aside className="ui-panel ui-checker-panel">
       <div className="ui-checker-stack">
         <div className="ui-checker-header">
-          <h2 className="ui-section-title ui-checker-title">{messages.checkerTitle}</h2>
+          <h2 className="ui-checker-title">{messages.checkerTitle}</h2>
           <span className={selectedDrawStatus === "draft" ? "ui-badge-warning" : "ui-badge-success"}>
             {selectedDrawStatus === "draft" ? messages.checkerDrawStatusDraft : messages.checkerDrawStatusPublished}
           </span>
@@ -90,27 +131,48 @@ export function EmbeddedChecker({
         <form className="ui-checker-form" onSubmit={handleSubmit}>
           <label className="ui-field">
             <span className="ui-field-label">{messages.checkerDateLabel}</span>
-            <div className="ui-checker-date-select-wrap">
-              <select
-                className="ui-checker-date-select"
-                onChange={(event) => handleSelectDraw(event.target.value)}
-                onClick={() => void ensureDrawOptionsLoaded()}
-                onFocus={() => void ensureDrawOptionsLoaded()}
-                value={selectedDrawDate}
+            <div className="ui-checker-date-select-wrap" ref={drawMenuRef}>
+              <button
+                aria-controls={drawMenuId}
+                aria-expanded={isDrawMenuOpen}
+                aria-haspopup="listbox"
+                className="ui-checker-date-trigger"
+                onClick={() => void handleToggleDrawMenu()}
+                type="button"
               >
-                {drawOptions?.map((option) => (
-                  <option key={option.drawDate} value={option.drawDate}>
-                    {formatLongDate(locale, option.drawDate)}
-                    {option.drawStatus === "draft" ? ` (${messages.checkerDrawStatusDraft})` : ""}
-                  </option>
-                )) ?? <option value={selectedDrawDate}>{formatLongDate(locale, selectedDrawDate)}</option>}
-              </select>
-              <span aria-hidden="true" className="ui-checker-date-display">
-                {formatLongDate(locale, selectedDrawDate)}
-              </span>
-              <span aria-hidden="true" className="ui-checker-date-icon">
-                <ChevronDown size={18} strokeWidth={2} />
-              </span>
+                <span className="ui-checker-date-display">{formatLongDate(locale, selectedDrawDate)}</span>
+                <span aria-hidden="true" className="ui-checker-date-icon">
+                  <ChevronDown size={18} strokeWidth={2} />
+                </span>
+              </button>
+              {isDrawMenuOpen ? (
+                <div aria-label={messages.checkerDateLabel} className="ui-checker-date-menu" id={drawMenuId} role="listbox">
+                  {availableDrawOptions.map((option) => {
+                    const isSelected = option.drawDate === selectedDrawDate;
+
+                    return (
+                      <button
+                        aria-selected={isSelected}
+                        className={`ui-checker-date-option ${isSelected ? "ui-checker-date-option-active" : ""}`}
+                        key={option.drawDate}
+                        onClick={() => handleSelectDraw(option.drawDate)}
+                        role="option"
+                        type="button"
+                      >
+                        <span className="ui-checker-date-option-label">
+                          {formatLongDate(locale, option.drawDate)}
+                          {option.drawStatus === "draft" ? ` (${messages.checkerDrawStatusDraft})` : ""}
+                        </span>
+                        {isSelected ? (
+                          <span aria-hidden="true" className="ui-checker-date-option-icon">
+                            <Check size={16} strokeWidth={2} />
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null}
             </div>
             {isLoadingDraws ? <p className="ui-inline-info ui-checker-inline-note">{messages.checkerDrawLoading}</p> : null}
           </label>
