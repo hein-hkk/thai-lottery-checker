@@ -22,6 +22,8 @@ export {
   getPrizeDigitLength,
   isPrizeNumberValid
 } from "./results/validate-prize.js";
+export { evaluateTicketAgainstPrizeGroups } from "./results/check-ticket.js";
+export type { TicketCheckEvaluation } from "./results/check-ticket.js";
 export {
   getExpectedPrizeCountMap,
   getPrizeDigitLengthMap,

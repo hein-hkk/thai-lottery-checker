@@ -4,6 +4,8 @@ export const localeSchema = z.enum(["en", "th", "my"]);
 export const adminRoleSchema = z.enum(["super_admin", "editor"]);
 export const adminPermissionSchema = z.enum(["manage_results", "manage_blogs"]);
 export const publishStatusSchema = z.enum(["draft", "published"]);
+export const checkerStatusSchema = z.enum(["complete", "partial"]);
+export const checkerMatchKindSchema = z.enum(["exact", "front3", "last3", "last2"]);
 
 export type LocaleSchema = z.infer<typeof localeSchema>;
 
@@ -136,6 +138,11 @@ export const historyQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(20)
 });
 
+export const checkerCheckRequestSchema = z.object({
+  ticketNumber: z.string().regex(/^\d{6}$/, "ticketNumber must use exactly 6 digits"),
+  drawDate: z.string().regex(drawDatePattern, "drawDate must use YYYY-MM-DD format").optional()
+});
+
 export const prizeGroupSchema = z.object({
   type: prizeTypeSchema,
   numbers: z.array(z.string()),
@@ -168,6 +175,36 @@ export const resultHistoryResponseSchema = z.object({
   page: z.number().int().min(1),
   limit: z.number().int().min(1).max(50),
   total: z.number().int().min(0)
+});
+
+export const checkerDrawOptionSchema = z.object({
+  drawDate: z.string().regex(drawDatePattern),
+  drawCode: z.string().nullable(),
+  drawStatus: publishStatusSchema
+});
+
+export const checkerDrawOptionsResponseSchema = z.object({
+  items: z.array(checkerDrawOptionSchema)
+});
+
+export const checkerMatchSchema = z.object({
+  prizeType: prizeTypeSchema,
+  prizeAmount: z.number().int().nonnegative(),
+  matchedNumber: z.string(),
+  matchKind: checkerMatchKindSchema
+});
+
+export const checkerCheckResponseSchema = z.object({
+  ticketNumber: z.string().regex(/^\d{6}$/),
+  drawDate: z.string().regex(drawDatePattern),
+  drawCode: z.string().nullable(),
+  drawStatus: publishStatusSchema,
+  checkStatus: checkerStatusSchema,
+  isWinner: z.boolean(),
+  matches: z.array(checkerMatchSchema),
+  totalWinningAmount: z.number().int().nonnegative(),
+  checkedPrizeTypes: z.array(prizeTypeSchema),
+  uncheckedPrizeTypes: z.array(prizeTypeSchema)
 });
 
 export const adminResultListItemSchema = z.object({
@@ -210,6 +247,8 @@ export const adminResultPublishResponseSchema = z.object({
 export type AdminRoleSchema = z.infer<typeof adminRoleSchema>;
 export type AdminPermissionSchema = z.infer<typeof adminPermissionSchema>;
 export type PublishStatusSchema = z.infer<typeof publishStatusSchema>;
+export type CheckerStatusSchema = z.infer<typeof checkerStatusSchema>;
+export type CheckerMatchKindSchema = z.infer<typeof checkerMatchKindSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
 export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
 export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;
@@ -230,11 +269,16 @@ export type AdminListResponseSchema = z.infer<typeof adminListResponseSchema>;
 export type AdminUpdateRequestSchema = z.infer<typeof adminUpdateRequestSchema>;
 export type AdminUpdateResponseSchema = z.infer<typeof adminUpdateResponseSchema>;
 export type HistoryQuerySchema = z.infer<typeof historyQuerySchema>;
+export type CheckerCheckRequestSchema = z.infer<typeof checkerCheckRequestSchema>;
 export type PrizeGroupSchema = z.infer<typeof prizeGroupSchema>;
 export type PrizeGroupInputSchema = z.infer<typeof prizeGroupInputSchema>;
 export type ResultDetailResponseSchema = z.infer<typeof resultDetailResponseSchema>;
 export type ResultHistoryItemSchema = z.infer<typeof resultHistoryItemSchema>;
 export type ResultHistoryResponseSchema = z.infer<typeof resultHistoryResponseSchema>;
+export type CheckerDrawOptionSchema = z.infer<typeof checkerDrawOptionSchema>;
+export type CheckerDrawOptionsResponseSchema = z.infer<typeof checkerDrawOptionsResponseSchema>;
+export type CheckerMatchSchema = z.infer<typeof checkerMatchSchema>;
+export type CheckerCheckResponseSchema = z.infer<typeof checkerCheckResponseSchema>;
 export type AdminResultListItemSchema = z.infer<typeof adminResultListItemSchema>;
 export type AdminResultListResponseSchema = z.infer<typeof adminResultListResponseSchema>;
 export type AdminResultDetailSchema = z.infer<typeof adminResultDetailSchema>;

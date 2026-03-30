@@ -2,6 +2,7 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmbeddedChecker } from "../../src/components/results/embedded-checker";
 import { HistoryResultCard } from "../../src/components/results/history-result-card";
 import { LatestSummarySection } from "../../src/components/results/latest-summary-section";
 import { StatusCard } from "../../src/components/results/status-card";
@@ -40,18 +41,28 @@ export default async function LocalePage({ params }: LocalePageProps) {
         <section className="space-y-6">
           {latest ? (
             <div className="space-y-6">
-              <LatestSummarySection
-                drawDate={latest.drawDate}
-                hideTitle
-                locale={supportedLocale}
-                messages={messages}
-                prizeGroups={latest.prizeGroups}
-                publishedAt={latest.publishedAt}
-              />
-              <div className="flex justify-start">
-                <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
-                  {messages.browseLatest}
-                </Link>
+              <div className="ui-hero-with-aside">
+                <div className="space-y-6">
+                  <LatestSummarySection
+                    drawDate={latest.drawDate}
+                    hideTitle
+                    locale={supportedLocale}
+                    messages={messages}
+                    prizeGroups={latest.prizeGroups}
+                    publishedAt={latest.publishedAt}
+                  />
+                  <div className="flex justify-start">
+                    <Link className="ui-button-primary" href={`/${supportedLocale}/results`}>
+                      {messages.browseLatest}
+                    </Link>
+                  </div>
+                </div>
+                <EmbeddedChecker
+                  defaultDrawDate={latest.drawDate}
+                  defaultDrawStatus={latest.publishedAt ? "published" : "draft"}
+                  locale={supportedLocale}
+                  messages={messages}
+                />
               </div>
             </div>
           ) : (

@@ -5,6 +5,9 @@ import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
 import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
+import { createCheckerService } from "../src/modules/checker/checker.service.js";
+import type { CheckerRepository } from "../src/modules/checker/checker.repository.js";
+import { type CheckerApiError } from "../src/modules/checker/checker.errors.js";
 import { createResultsService } from "../src/modules/results/results.service.js";
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
@@ -158,6 +161,93 @@ async function ensureEditorAdmin(email: string, password: string, permissions: A
       }))
     });
   }
+}
+
+function getBangkokTodayForTests(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Failed to resolve Bangkok today in tests");
+  }
+
+  return `${year}-${month}-${day}`;
+}
+
+function toDrawDate(value: string): Date {
+  return new Date(`${value}T00:00:00.000Z`);
+}
+
+async function createPublicDraftForToday(): Promise<string> {
+  const env = getApiEnv();
+  const drawDate = getBangkokTodayForTests();
+  const existingDrafts = await prisma.lotteryDraw.findMany({
+    where: {
+      drawDate: toDrawDate(drawDate),
+      status: "draft"
+    },
+    select: { id: true }
+  });
+  const existingDraftIds = existingDrafts.map((item) => item.id);
+
+  if (existingDraftIds.length > 0) {
+    await prisma.lotteryResultGroupRelease.deleteMany({
+      where: { drawId: { in: existingDraftIds } }
+    });
+    await prisma.lotteryResult.deleteMany({
+      where: { drawId: { in: existingDraftIds } }
+    });
+    await prisma.lotteryDraw.deleteMany({
+      where: { id: { in: existingDraftIds } }
+    });
+  }
+
+  const admin = await prisma.admin.findUniqueOrThrow({
+    where: { email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase() }
+  });
+
+  await prisma.lotteryDraw.create({
+    data: {
+      drawDate: toDrawDate(drawDate),
+      drawCode: `${drawDate}-draft`,
+      status: "draft",
+      publishedAt: null,
+      createdByAdminId: admin.id,
+      updatedByAdminId: admin.id,
+      results: {
+        create: [
+          { prizeType: "FIRST_PRIZE", prizeIndex: 0, number: "654321" },
+          { prizeType: "LAST_TWO", prizeIndex: 0, number: "21" }
+        ]
+      },
+      groupReleases: {
+        create: [
+          {
+            prizeType: "FIRST_PRIZE",
+            isReleased: true,
+            releasedAt: new Date(),
+            releasedByAdminId: admin.id
+          },
+          {
+            prizeType: "LAST_TWO",
+            isReleased: false,
+            releasedAt: null,
+            releasedByAdminId: null
+          }
+        ]
+      }
+    }
+  });
+
+  return drawDate;
 }
 
 describe("results api", () => {
@@ -797,6 +887,7 @@ describe("results api", () => {
   });
 
   it("returns the latest published draw with grouped prize data in canonical order", async () => {
+    const todayDraft = await createPublicDraftForToday();
     const { status, body } = await getJson("/api/v1/results/latest");
     const payload = body as {
       drawDate: string;
@@ -806,8 +897,8 @@ describe("results api", () => {
     };
 
     assert.equal(status, 200);
-    assert.equal(payload.drawDate, "2026-03-20");
-    assert.equal(payload.drawCode, "2026-03-20-draft");
+    assert.equal(payload.drawDate, todayDraft);
+    assert.equal(payload.drawCode, `${todayDraft}-draft`);
     assert.equal(payload.publishedAt, null);
     assert.equal(payload.prizeGroups.length, 9);
     assert.equal(payload.prizeGroups[0]?.type, "FIRST_PRIZE");
@@ -843,21 +934,142 @@ describe("results api", () => {
       drawDate: "2026-03-01",
       drawCode: "2026-03-01",
       firstPrize: "820866",
-      frontThree: ["510", "983"],
-      lastThree: ["439", "954"],
+      frontThree: ["068", "837"],
+      lastThree: ["054", "479"],
       lastTwo: "06"
     });
   });
 
+  it("returns checker draw options and uses the latest public draft when no draw date is supplied", async () => {
+    const todayDraft = await createPublicDraftForToday();
+
+    const draws = await getJson("/api/v1/checker/draws");
+    const options = draws.body as {
+      items: Array<{ drawDate: string; drawCode: string | null; drawStatus: string }>;
+    };
+
+    assert.equal(draws.status, 200);
+    assert.equal(options.items[0]?.drawDate, todayDraft);
+    assert.equal(options.items[0]?.drawStatus, "draft");
+
+    const winner = await postJson("/api/v1/checker/check", {
+      ticketNumber: "654321"
+    });
+    const winnerPayload = winner.body as {
+      drawDate: string;
+      drawStatus: string;
+      checkStatus: string;
+      isWinner: boolean;
+      totalWinningAmount: number;
+      matches: Array<{ prizeType: string; prizeAmount: number; matchedNumber: string; matchKind: string }>;
+      checkedPrizeTypes: string[];
+      uncheckedPrizeTypes: string[];
+    };
+
+    assert.equal(winner.status, 200);
+    assert.equal(winnerPayload.drawDate, todayDraft);
+    assert.equal(winnerPayload.drawStatus, "draft");
+    assert.equal(winnerPayload.checkStatus, "partial");
+    assert.equal(winnerPayload.isWinner, true);
+    assert.equal(winnerPayload.totalWinningAmount, 6000000);
+    assert.deepEqual(winnerPayload.matches, [
+      {
+        prizeType: "FIRST_PRIZE",
+        prizeAmount: 6000000,
+        matchedNumber: "654321",
+        matchKind: "exact"
+      }
+    ]);
+    assert.deepEqual(winnerPayload.checkedPrizeTypes, ["FIRST_PRIZE"]);
+    assert.equal(winnerPayload.uncheckedPrizeTypes.includes("LAST_TWO"), true);
+
+    const nonWinner = await postJson("/api/v1/checker/check", {
+      ticketNumber: "123456"
+    });
+    const nonWinnerPayload = nonWinner.body as {
+      checkStatus: string;
+      isWinner: boolean;
+      totalWinningAmount: number;
+      uncheckedPrizeTypes: string[];
+    };
+
+    assert.equal(nonWinner.status, 200);
+    assert.equal(nonWinnerPayload.checkStatus, "partial");
+    assert.equal(nonWinnerPayload.isWinner, false);
+    assert.equal(nonWinnerPayload.totalWinningAmount, 0);
+    assert.equal(nonWinnerPayload.uncheckedPrizeTypes.includes("LAST_TWO"), true);
+  });
+
+  it("checks an explicit published draw and returns structured checker validation errors", async () => {
+    const check = await postJson("/api/v1/checker/check", {
+      ticketNumber: "820866",
+      drawDate: "2026-03-01"
+    });
+    const payload = check.body as {
+      drawDate: string;
+      drawStatus: string;
+      checkStatus: string;
+      isWinner: boolean;
+      totalWinningAmount: number;
+      matches: Array<{ prizeType: string; prizeAmount: number; matchedNumber: string; matchKind: string }>;
+    };
+
+    assert.equal(check.status, 200);
+    assert.equal(payload.drawDate, "2026-03-01");
+    assert.equal(payload.drawStatus, "published");
+    assert.equal(payload.checkStatus, "complete");
+    assert.equal(payload.isWinner, true);
+    assert.equal(payload.totalWinningAmount, 6000000);
+    assert.deepEqual(payload.matches, [
+      {
+        prizeType: "FIRST_PRIZE",
+        prizeAmount: 6000000,
+        matchedNumber: "820866",
+        matchKind: "exact"
+      }
+    ]);
+
+    const invalidTicket = await postJson("/api/v1/checker/check", {
+      ticketNumber: "12345A"
+    });
+    const invalidDate = await postJson("/api/v1/checker/check", {
+      ticketNumber: "123456",
+      drawDate: "01-03-2026"
+    });
+    const missingDraw = await postJson("/api/v1/checker/check", {
+      ticketNumber: "123456",
+      drawDate: "2026-01-01"
+    });
+
+    assert.equal(invalidTicket.status, 400);
+    assert.deepEqual(invalidTicket.body, {
+      code: "INVALID_TICKET_NUMBER",
+      message: "ticketNumber must use exactly 6 digits"
+    });
+
+    assert.equal(invalidDate.status, 400);
+    assert.deepEqual(invalidDate.body, {
+      code: "INVALID_DRAW_DATE",
+      message: "drawDate must use YYYY-MM-DD format"
+    });
+
+    assert.equal(missingDraw.status, 404);
+    assert.deepEqual(missingDraw.body, {
+      code: "CHECKER_DRAW_NOT_FOUND",
+      message: "Checker draw was not found"
+    });
+  });
+
   it("returns detail for a published draw and exposes the Bangkok-today draft immediately", async () => {
+    const todayDraft = await createPublicDraftForToday();
     const published = await getJson("/api/v1/results/2026-02-16");
-    const draft = await getJson("/api/v1/results/2026-03-20");
+    const draft = await getJson(`/api/v1/results/${todayDraft}`);
 
     assert.equal(published.status, 200);
     assert.equal((published.body as { drawDate: string }).drawDate, "2026-02-16");
 
     assert.equal(draft.status, 200);
-    assert.equal((draft.body as { drawDate: string }).drawDate, "2026-03-20");
+    assert.equal((draft.body as { drawDate: string }).drawDate, todayDraft);
     assert.equal((draft.body as { publishedAt: string | null }).publishedAt, null);
     assert.equal(
       (draft.body as { prizeGroups: Array<{ type: string; isReleased: boolean }> }).prizeGroups.every((group) => group.isReleased === false),
@@ -927,6 +1139,43 @@ describe("results api", () => {
         error instanceof Error &&
         (error as ResultsApiError).code === "RESULT_DATA_INVALID" &&
         error.message === "Published result data is incomplete or invalid"
+    );
+  });
+
+  it("fails fast when checker draw data is incomplete", async () => {
+    const service = createCheckerService({
+      async findLatestPublicDraw() {
+        return null;
+      },
+      async findLatestPublishedDraw() {
+        return {
+          id: "draw-1",
+          drawDate: new Date("2026-03-01T00:00:00.000Z"),
+          drawCode: "2026-03-01",
+          status: "published",
+          publishedAt: new Date("2026-03-01T09:30:00.000Z")
+        };
+      },
+      async findPublicDrawByDate() {
+        return null;
+      },
+      async findCheckerDrawOptions() {
+        return [];
+      },
+      async findResultsByDrawId() {
+        return [{ drawId: "draw-1", prizeType: "FIRST_PRIZE", prizeIndex: 0, number: "820866" }];
+      },
+      async findGroupReleasesByDrawId() {
+        return [];
+      }
+    } satisfies CheckerRepository);
+
+    await assert.rejects(
+      () => service.checkTicket({ ticketNumber: "820866" }),
+      (error: unknown) =>
+        error instanceof Error &&
+        (error as CheckerApiError).code === "CHECKER_DATA_INVALID" &&
+        error.message === "Checker draw data is incomplete or invalid"
     );
   });
 });

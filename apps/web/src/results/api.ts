@@ -1,8 +1,16 @@
 import {
+  checkerCheckResponseSchema,
+  checkerDrawOptionsResponseSchema,
   resultDetailResponseSchema,
   resultHistoryResponseSchema
 } from "@thai-lottery-checker/schemas";
-import type { ResultDetailResponse, ResultHistoryResponse } from "@thai-lottery-checker/types";
+import type {
+  CheckerCheckRequest,
+  CheckerCheckResponse,
+  CheckerDrawOptionsResponse,
+  ResultDetailResponse,
+  ResultHistoryResponse
+} from "@thai-lottery-checker/types";
 import { getPublicEnv } from "../config/env";
 
 export class ResultsApiError extends Error {
@@ -55,4 +63,32 @@ export async function getResultDetail(drawDate: string): Promise<ResultDetailRes
   }
 
   return resultDetailResponseSchema.parse(await response.json());
+}
+
+export async function getCheckerDrawOptions(): Promise<CheckerDrawOptionsResponse> {
+  const response = await fetchResultsJson("/api/v1/checker/draws");
+
+  if (!response.ok) {
+    throw new ResultsApiError(response.status, "Failed to load checker draw options");
+  }
+
+  return checkerDrawOptionsResponseSchema.parse(await response.json());
+}
+
+export async function checkLotteryTicket(payload: CheckerCheckRequest): Promise<CheckerCheckResponse> {
+  const response = await fetch(`${getPublicEnv().apiBaseUrl}/api/v1/checker/check`, {
+    method: "POST",
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  if (!response.ok) {
+    const body = (await response.json()) as { message?: string };
+    throw new ResultsApiError(response.status, body.message ?? "Failed to check ticket");
+  }
+
+  return checkerCheckResponseSchema.parse(await response.json());
 }

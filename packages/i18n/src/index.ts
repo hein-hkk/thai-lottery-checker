@@ -50,6 +50,29 @@ export interface ResultsMessages {
   theme: string;
   lightMode: string;
   darkMode: string;
+  checkerTitle: string;
+  checkerDateLabel: string;
+  checkerTicketLabel: string;
+  checkerTicketPlaceholder: string;
+  checkerChangeDraw: string;
+  checkerDrawLoading: string;
+  checkerSelectDraw: string;
+  checkerSubmit: string;
+  checkerSubmitting: string;
+  checkerResultsTitle: string;
+  checkerClose: string;
+  checkerResultFor: string;
+  checkerDrawStatusDraft: string;
+  checkerDrawStatusPublished: string;
+  checkerPartialSummary: string;
+  checkerCompleteSummary: string;
+  checkerNoMatch: string;
+  checkerTicketInvalid: string;
+  checkerCheckedGroups: string;
+  checkerUncheckedGroups: string;
+  checkerTotalWinningAmount: string;
+  checkerMatches: string;
+  checkerMatchKinds: Record<"exact" | "front3" | "last3" | "last2", string>;
   prizeLabels: Record<PrizeType, string>;
 }
 
@@ -85,6 +108,34 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     theme: "Theme",
     lightMode: "Light",
     darkMode: "Dark",
+    checkerTitle: "Check lottery results",
+    checkerDateLabel: "Draw date",
+    checkerTicketLabel: "Lottery number",
+    checkerTicketPlaceholder: "Enter 6-digit lottery number",
+    checkerChangeDraw: "Change draw",
+    checkerDrawLoading: "Loading draw dates...",
+    checkerSelectDraw: "Select draw date",
+    checkerSubmit: "Check lottery",
+    checkerSubmitting: "Checking...",
+    checkerResultsTitle: "Checker result",
+    checkerClose: "Close checker result",
+    checkerResultFor: "Result for",
+    checkerDrawStatusDraft: "Draft",
+    checkerDrawStatusPublished: "Published",
+    checkerPartialSummary: "Partial check only. Unreleased prize groups are still pending.",
+    checkerCompleteSummary: "Complete check across all public prize groups.",
+    checkerNoMatch: "No winning match found in the checked prize groups.",
+    checkerTicketInvalid: "Please enter a valid 6-digit lottery number.",
+    checkerCheckedGroups: "Checked prize groups",
+    checkerUncheckedGroups: "Unchecked prize groups",
+    checkerTotalWinningAmount: "Total winning amount",
+    checkerMatches: "Winning matches",
+    checkerMatchKinds: {
+      exact: "Exact match",
+      front3: "Front 3 digits",
+      last3: "Last 3 digits",
+      last2: "Last 2 digits"
+    },
     prizeLabels: {
       FIRST_PRIZE: "First prize",
       NEAR_FIRST_PRIZE: "Near first prize",
@@ -128,6 +179,34 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     theme: "ธีม",
     lightMode: "สว่าง",
     darkMode: "มืด",
+    checkerTitle: "ตรวจผลสลากกินแบ่ง",
+    checkerDateLabel: "งวดวันที่",
+    checkerTicketLabel: "เลขสลาก",
+    checkerTicketPlaceholder: "กรอกเลขสลาก 6 หลัก",
+    checkerChangeDraw: "เปลี่ยนงวด",
+    checkerDrawLoading: "กำลังโหลดงวด...",
+    checkerSelectDraw: "เลือกงวดวันที่",
+    checkerSubmit: "ตรวจลอตเตอรี่",
+    checkerSubmitting: "กำลังตรวจ...",
+    checkerResultsTitle: "ผลการตรวจ",
+    checkerClose: "ปิดผลการตรวจ",
+    checkerResultFor: "ผลสำหรับงวด",
+    checkerDrawStatusDraft: "ฉบับร่าง",
+    checkerDrawStatusPublished: "เผยแพร่แล้ว",
+    checkerPartialSummary: "เป็นการตรวจแบบบางส่วนเท่านั้น กลุ่มรางวัลที่ยังไม่เผยแพร่ยังรอตรวจอยู่",
+    checkerCompleteSummary: "ตรวจครบทุกกลุ่มรางวัลสาธารณะแล้ว",
+    checkerNoMatch: "ยังไม่พบถูกรางวัลในกลุ่มรางวัลที่ตรวจได้ตอนนี้",
+    checkerTicketInvalid: "กรุณากรอกเลขสลาก 6 หลักให้ถูกต้อง",
+    checkerCheckedGroups: "กลุ่มรางวัลที่ตรวจแล้ว",
+    checkerUncheckedGroups: "กลุ่มรางวัลที่ยังไม่ตรวจ",
+    checkerTotalWinningAmount: "ยอดเงินรางวัลรวม",
+    checkerMatches: "รายการที่ถูกรางวัล",
+    checkerMatchKinds: {
+      exact: "ตรงทั้ง 6 หลัก",
+      front3: "เลขหน้า 3 ตัว",
+      last3: "เลขท้าย 3 ตัว",
+      last2: "เลขท้าย 2 ตัว"
+    },
     prizeLabels: {
       FIRST_PRIZE: "รางวัลที่ 1",
       NEAR_FIRST_PRIZE: "รางวัลข้างเคียงรางวัลที่ 1",
@@ -171,6 +250,34 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     theme: "အပြင်အဆင်",
     lightMode: "အလင်း",
     darkMode: "အမှောင်",
+    checkerTitle: "ထီရလဒ်စစ်ရန်",
+    checkerDateLabel: "အကြိမ်နေ့စွဲ",
+    checkerTicketLabel: "ထီနံပါတ်",
+    checkerTicketPlaceholder: "၆ လုံးထီနံပါတ်ထည့်ပါ",
+    checkerChangeDraw: "အကြိမ်ပြောင်းရန်",
+    checkerDrawLoading: "အကြိမ်များကို ဖွင့်နေသည်...",
+    checkerSelectDraw: "အကြိမ်နေ့စွဲရွေးပါ",
+    checkerSubmit: "ထီစစ်ရန်",
+    checkerSubmitting: "စစ်နေသည်...",
+    checkerResultsTitle: "စစ်ဆေးမှုရလဒ်",
+    checkerClose: "စစ်ဆေးမှုရလဒ် ပိတ်ရန်",
+    checkerResultFor: "ဤအကြိမ်အတွက် ရလဒ်",
+    checkerDrawStatusDraft: "မူကြမ်း",
+    checkerDrawStatusPublished: "ထုတ်ပြန်ပြီး",
+    checkerPartialSummary: "တစ်စိတ်တစ်ပိုင်းသာ စစ်ဆေးထားပါသည်။ မထုတ်ပြန်ရသေးသော ဆုအုပ်စုများ ကျန်ရှိနေသေးသည်။",
+    checkerCompleteSummary: "အများပြည်သူမြင်နိုင်သော ဆုအုပ်စုအားလုံး စစ်ဆေးပြီးပါပြီ။",
+    checkerNoMatch: "လက်ရှိစစ်ဆေးနိုင်သော ဆုအုပ်စုများတွင် မကိုက်ညီပါ။",
+    checkerTicketInvalid: "မှန်ကန်သော ၆ လုံးထီနံပါတ်ကို ထည့်ပါ။",
+    checkerCheckedGroups: "စစ်ဆေးပြီး ဆုအုပ်စုများ",
+    checkerUncheckedGroups: "မစစ်ဆေးရသေးသော ဆုအုပ်စုများ",
+    checkerTotalWinningAmount: "စုစုပေါင်းဆုကြေး",
+    checkerMatches: "ကိုက်ညီသော ဆုများ",
+    checkerMatchKinds: {
+      exact: "အတိအကျကိုက်ညီ",
+      front3: "ရှေ့ ၃ လုံး",
+      last3: "နောက် ၃ လုံး",
+      last2: "နောက် ၂ လုံး"
+    },
     prizeLabels: {
       FIRST_PRIZE: "ပထမဆု",
       NEAR_FIRST_PRIZE: "ပထမဆုဘေးချင်းကပ်ဆု",

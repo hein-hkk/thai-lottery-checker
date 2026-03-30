@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
   canonicalPrizeOrder,
+  evaluateTicketAgainstPrizeGroups,
   getExpectedPrizeCount,
   getPrizeDigitLength,
   groupPrizeRows,
@@ -26,6 +27,10 @@ describe("result domain metadata", () => {
     assert.equal(prizeTypeMetadataList.length, 9);
     assert.equal(getExpectedPrizeCount("FIFTH_PRIZE"), 100);
     assert.equal(getPrizeDigitLength("LAST_TWO"), 2);
+    assert.ok(prizeTypeMetadataList.every((metadata) => Number.isInteger(metadata.prizeAmount)));
+    assert.equal(prizeTypeMetadataList[0]?.prizeAmount, 6000000);
+    assert.equal(prizeTypeMetadataList[6]?.prizeAmount, 4000);
+    assert.equal(prizeTypeMetadataList[8]?.prizeAmount, 2000);
   });
 
   it("groups rows in canonical order and preserves leading zeros", () => {
@@ -97,5 +102,49 @@ describe("result domain metadata", () => {
     assert.equal(isPrizeNumberValid("LAST_TWO", "06"), true);
     assert.equal(isPrizeNumberValid("LAST_TWO", "6"), false);
     assert.equal(isPrizeNumberValid("FRONT_THREE", "0A6"), false);
+  });
+
+  it("matches exact and derived prize groups and totals prize amounts", () => {
+    const evaluation = evaluateTicketAgainstPrizeGroups("068506", [
+      { type: "FIRST_PRIZE", numbers: ["068506"], isReleased: true },
+      { type: "FRONT_THREE", numbers: ["068", "999"], isReleased: true },
+      { type: "LAST_THREE", numbers: ["506", "111"], isReleased: true },
+      { type: "LAST_TWO", numbers: ["06"], isReleased: true },
+      { type: "SECOND_PRIZE", numbers: ["123456"], isReleased: true }
+    ]);
+
+    assert.equal(evaluation.isWinner, true);
+    assert.deepEqual(
+      evaluation.matches.map((match) => ({
+        prizeType: match.prizeType,
+        prizeAmount: match.prizeAmount,
+        matchedNumber: match.matchedNumber,
+        matchKind: match.matchKind
+      })),
+      [
+        { prizeType: "FIRST_PRIZE", prizeAmount: 6000000, matchedNumber: "068506", matchKind: "exact" },
+        { prizeType: "FRONT_THREE", prizeAmount: 4000, matchedNumber: "068", matchKind: "front3" },
+        { prizeType: "LAST_THREE", prizeAmount: 4000, matchedNumber: "506", matchKind: "last3" },
+        { prizeType: "LAST_TWO", prizeAmount: 2000, matchedNumber: "06", matchKind: "last2" }
+      ]
+    );
+    assert.equal(evaluation.totalWinningAmount, 6010000);
+    assert.deepEqual(evaluation.checkedPrizeTypes, ["FIRST_PRIZE", "SECOND_PRIZE", "FRONT_THREE", "LAST_THREE", "LAST_TWO"]);
+    assert.deepEqual(evaluation.uncheckedPrizeTypes, ["NEAR_FIRST_PRIZE", "THIRD_PRIZE", "FOURTH_PRIZE", "FIFTH_PRIZE"]);
+  });
+
+  it("ignores unreleased groups so partial checks stay honest", () => {
+    const evaluation = evaluateTicketAgainstPrizeGroups("300001", [
+      { type: "FIRST_PRIZE", numbers: ["300001"], isReleased: false },
+      { type: "LAST_TWO", numbers: ["01"], isReleased: true }
+    ]);
+
+    assert.equal(evaluation.isWinner, true);
+    assert.deepEqual(evaluation.matches, [
+      { prizeType: "LAST_TWO", prizeAmount: 2000, matchedNumber: "01", matchKind: "last2" }
+    ]);
+    assert.equal(evaluation.totalWinningAmount, 2000);
+    assert.deepEqual(evaluation.checkedPrizeTypes, ["LAST_TWO"]);
+    assert.equal(evaluation.uncheckedPrizeTypes.includes("FIRST_PRIZE"), true);
   });
 });

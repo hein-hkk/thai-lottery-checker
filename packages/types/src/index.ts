@@ -113,6 +113,8 @@ export interface AdminUpdateResponse {
 }
 
 export type PublishStatus = "draft" | "published";
+export type CheckerStatus = "complete" | "partial";
+export type CheckerMatchKind = "exact" | "front3" | "last3" | "last2";
 
 export const prizeTypes = [
   "FIRST_PRIZE",
@@ -143,6 +145,7 @@ export interface PrizeTypeMetadata {
   type: PrizeType;
   digitLength: number;
   expectedCount: number;
+  prizeAmount: number;
   order: number;
   labelKey: string;
 }
@@ -174,6 +177,41 @@ export interface ResultHistoryResponse {
   page: number;
   limit: number;
   total: number;
+}
+
+export interface CheckerDrawOption {
+  drawDate: string;
+  drawCode: string | null;
+  drawStatus: PublishStatus;
+}
+
+export interface CheckerDrawOptionsResponse {
+  items: CheckerDrawOption[];
+}
+
+export interface CheckerCheckRequest {
+  ticketNumber: string;
+  drawDate?: string;
+}
+
+export interface CheckerMatch {
+  prizeType: PrizeType;
+  prizeAmount: number;
+  matchedNumber: string;
+  matchKind: CheckerMatchKind;
+}
+
+export interface CheckerCheckResponse {
+  ticketNumber: string;
+  drawDate: string;
+  drawCode: string | null;
+  drawStatus: PublishStatus;
+  checkStatus: CheckerStatus;
+  isWinner: boolean;
+  matches: CheckerMatch[];
+  totalWinningAmount: number;
+  checkedPrizeTypes: PrizeType[];
+  uncheckedPrizeTypes: PrizeType[];
 }
 
 export interface AdminResultListItem {
