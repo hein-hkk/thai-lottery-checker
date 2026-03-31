@@ -494,6 +494,79 @@
     gap: 0.75rem;
   }
 
+  .ui-checker-coverage-summary {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .ui-checker-groups-details {
+    border-top: 1px solid var(--border-default);
+    padding-top: 0.875rem;
+  }
+
+  .ui-checker-groups-summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    cursor: pointer;
+    list-style: none;
+  }
+
+  .ui-checker-groups-summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .ui-checker-groups-summary-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    transition: transform 150ms ease-out;
+  }
+
+  .ui-checker-groups-details[open] .ui-checker-groups-summary-icon {
+    transform: rotate(180deg);
+  }
+
+  .ui-checker-groups-panel {
+    display: grid;
+    gap: 0.875rem;
+    padding-top: 0.875rem;
+  }
+
+  .ui-checker-group-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+
+  .ui-checker-group-token {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2rem;
+    border-radius: 9999px;
+    padding-inline: 0.625rem;
+    padding-block: 0.375rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    line-height: 1.35;
+  }
+
+  .ui-checker-group-token-checked {
+    border: 1px solid var(--border-default);
+    background: color-mix(in srgb, var(--surface-secondary) 82%, transparent);
+    color: var(--text-secondary);
+  }
+
+  .ui-checker-group-token-unchecked {
+    border: 1px dashed var(--border-strong);
+    background: transparent;
+    color: var(--text-muted);
+  }
+
   .ui-checker-date-select-wrap {
     position: relative;
   }

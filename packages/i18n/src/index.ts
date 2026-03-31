@@ -70,6 +70,9 @@ export interface ResultsMessages {
   checkerTicketInvalid: string;
   checkerCheckedGroups: string;
   checkerUncheckedGroups: string;
+  checkerGroupDetails: string;
+  checkerCoverageComplete: string;
+  checkerCoveragePartial: string;
   checkerTotalWinningAmount: string;
   checkerMatches: string;
   checkerMatchKinds: Record<"exact" | "front3" | "last3" | "last2", string>;
@@ -128,6 +131,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     checkerTicketInvalid: "Please enter a valid 6-digit lottery number.",
     checkerCheckedGroups: "Checked prize groups",
     checkerUncheckedGroups: "Unchecked prize groups",
+    checkerGroupDetails: "Prize group details",
+    checkerCoverageComplete: "Checked all public prize groups.",
+    checkerCoveragePartial: "Checked {checkedCount} prize groups. {uncheckedCount} prize groups are still pending.",
     checkerTotalWinningAmount: "Total winning amount",
     checkerMatches: "Winning matches",
     checkerMatchKinds: {
@@ -199,6 +205,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     checkerTicketInvalid: "กรุณากรอกเลขสลาก 6 หลักให้ถูกต้อง",
     checkerCheckedGroups: "กลุ่มรางวัลที่ตรวจแล้ว",
     checkerUncheckedGroups: "กลุ่มรางวัลที่ยังไม่ตรวจ",
+    checkerGroupDetails: "รายละเอียดกลุ่มรางวัล",
+    checkerCoverageComplete: "ตรวจครบทุกกลุ่มรางวัลสาธารณะแล้ว",
+    checkerCoveragePartial: "ตรวจแล้ว {checkedCount} กลุ่มรางวัล และยังมีอีก {uncheckedCount} กลุ่มรางวัลที่รอตรวจ",
     checkerTotalWinningAmount: "ยอดเงินรางวัลรวม",
     checkerMatches: "รายการที่ถูกรางวัล",
     checkerMatchKinds: {
@@ -270,6 +279,9 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     checkerTicketInvalid: "မှန်ကန်သော ၆ လုံးထီနံပါတ်ကို ထည့်ပါ။",
     checkerCheckedGroups: "စစ်ဆေးပြီး ဆုအုပ်စုများ",
     checkerUncheckedGroups: "မစစ်ဆေးရသေးသော ဆုအုပ်စုများ",
+    checkerGroupDetails: "ဆုအုပ်စုအသေးစိတ်",
+    checkerCoverageComplete: "အများပြည်သူမြင်နိုင်သော ဆုအုပ်စုအားလုံး စစ်ဆေးပြီးပါပြီ။",
+    checkerCoveragePartial: "ဆုအုပ်စု {checkedCount} ခုကို စစ်ဆေးပြီးပါပြီ။ {uncheckedCount} ခုမှာ စောင့်ဆိုင်းနေဆဲဖြစ်သည်။",
     checkerTotalWinningAmount: "စုစုပေါင်းဆုကြေး",
     checkerMatches: "ကိုက်ညီသော ဆုများ",
     checkerMatchKinds: {

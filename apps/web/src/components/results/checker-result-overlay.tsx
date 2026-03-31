@@ -3,7 +3,7 @@
 import { prizeTypeMetadataByType } from "@thai-lottery-checker/domain";
 import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { CheckerCheckResponse, SupportedLocale } from "@thai-lottery-checker/types";
-import { X } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 
@@ -115,10 +115,7 @@ export function CheckerResultOverlay({ locale, messages, result }: CheckerResult
               <p className="ui-inline-info">{messages.checkerNoMatch}</p>
             )}
 
-            <div className="space-y-3">
-              <GroupList label={messages.checkerCheckedGroups} locale={locale} messages={messages} prizeTypes={result.checkedPrizeTypes} />
-              <GroupList label={messages.checkerUncheckedGroups} locale={locale} messages={messages} prizeTypes={result.uncheckedPrizeTypes} />
-            </div>
+            <CheckerCoverageDetails locale={locale} messages={messages} result={result} />
           </div>
         </div>
       </aside>
@@ -127,11 +124,13 @@ export function CheckerResultOverlay({ locale, messages, result }: CheckerResult
 }
 
 function GroupList({
+  variant = "checked",
   label,
   locale,
   messages,
   prizeTypes
 }: {
+  variant?: "checked" | "unchecked";
   label: string;
   locale: SupportedLocale;
   messages: ResultsMessages;
@@ -144,13 +143,63 @@ function GroupList({
   return (
     <div className="space-y-2">
       <p className="ui-kicker">{label}</p>
-      <div className="flex flex-wrap gap-2">
+      <div className="ui-checker-group-list">
         {prizeTypes.map((prizeType) => (
-          <span className="ui-badge" key={prizeType}>
+          <span className={`ui-checker-group-token ui-checker-group-token-${variant}`} key={prizeType}>
             {messages.prizeLabels[prizeType]} · {formatBaht(locale, prizeTypeMetadataByType[prizeType].prizeAmount)}
           </span>
         ))}
       </div>
+    </div>
+  );
+}
+
+function CheckerCoverageDetails({
+  locale,
+  messages,
+  result
+}: {
+  locale: SupportedLocale;
+  messages: ResultsMessages;
+  result: CheckerCheckResponse;
+}) {
+  const hasUncheckedGroups = result.uncheckedPrizeTypes.length > 0;
+  const hasAnyGroups = result.checkedPrizeTypes.length > 0 || hasUncheckedGroups;
+
+  if (!hasAnyGroups) {
+    return null;
+  }
+
+  const coverageSummary =
+    result.checkStatus === "partial"
+      ? formatCoverageSummary(
+          messages.checkerCoveragePartial,
+          result.checkedPrizeTypes.length,
+          result.uncheckedPrizeTypes.length
+        )
+      : messages.checkerCoverageComplete;
+
+  return (
+    <div className="space-y-3">
+      <p className="ui-checker-coverage-summary">{coverageSummary}</p>
+      <details className="ui-checker-groups-details">
+        <summary className="ui-checker-groups-summary">
+          <span className="ui-kicker">{messages.checkerGroupDetails}</span>
+          <span aria-hidden="true" className="ui-checker-groups-summary-icon">
+            <ChevronDown size={16} strokeWidth={2} />
+          </span>
+        </summary>
+        <div className="ui-checker-groups-panel">
+          <GroupList label={messages.checkerCheckedGroups} locale={locale} messages={messages} prizeTypes={result.checkedPrizeTypes} />
+          <GroupList
+            label={messages.checkerUncheckedGroups}
+            locale={locale}
+            messages={messages}
+            prizeTypes={result.uncheckedPrizeTypes}
+            variant="unchecked"
+          />
+        </div>
+      </details>
     </div>
   );
 }
@@ -170,6 +219,12 @@ function formatBaht(locale: SupportedLocale | "en", value: number) {
     currency: "THB",
     maximumFractionDigits: 0
   }).format(value);
+}
+
+function formatCoverageSummary(template: string, checkedCount: number, uncheckedCount: number) {
+  return template
+    .replace("{checkedCount}", checkedCount.toString())
+    .replace("{uncheckedCount}", uncheckedCount.toString());
 }
 
 function toIntlLocale(locale: SupportedLocale) {
