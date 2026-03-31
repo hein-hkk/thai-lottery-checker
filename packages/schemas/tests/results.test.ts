@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  checkerCheckRequestSchema,
+  checkerCheckResponseSchema,
+  checkerDrawOptionsResponseSchema,
   drawDateParamSchema,
   historyQuerySchema,
   resultDetailResponseSchema,
@@ -25,7 +28,7 @@ describe("result schemas", () => {
         drawDate: "2026-03-01",
         drawCode: "2026-03-01",
         publishedAt: "2026-03-01T09:30:00.000Z",
-        prizeGroups: [{ type: "FIRST_PRIZE", numbers: ["820866"] }]
+        prizeGroups: [{ type: "FIRST_PRIZE", numbers: ["820866"], isReleased: true }]
       })
     );
 
@@ -44,6 +47,39 @@ describe("result schemas", () => {
         page: 1,
         limit: 20,
         total: 2
+      })
+    );
+  });
+
+  it("validates checker requests and responses", () => {
+    assert.deepEqual(checkerCheckRequestSchema.parse({ ticketNumber: "012345" }), { ticketNumber: "012345" });
+    assert.throws(() => checkerCheckRequestSchema.parse({ ticketNumber: "12345" }));
+
+    assert.ok(
+      checkerDrawOptionsResponseSchema.parse({
+        items: [{ drawDate: "2026-03-16", drawCode: "2026-03-16-draft", drawStatus: "draft" }]
+      })
+    );
+
+    assert.ok(
+      checkerCheckResponseSchema.parse({
+        ticketNumber: "820866",
+        drawDate: "2026-03-01",
+        drawCode: "2026-03-01",
+        drawStatus: "published",
+        checkStatus: "complete",
+        isWinner: true,
+        matches: [
+          {
+            prizeType: "FIRST_PRIZE",
+            prizeAmount: 6000000,
+            matchedNumber: "820866",
+            matchKind: "exact"
+          }
+        ],
+        totalWinningAmount: 6000000,
+        checkedPrizeTypes: ["FIRST_PRIZE"],
+        uncheckedPrizeTypes: ["LAST_TWO"]
       })
     );
   });

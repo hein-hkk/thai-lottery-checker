@@ -595,6 +595,7 @@ Contains:
 - labeled input
 - primary CTA
 - validation or result feedback
+- anchored draw-date dropdown
 
 Rules:
 
@@ -602,6 +603,10 @@ Rules:
 - CTA must remain visually primary
 - feedback should be immediate but not visually aggressive
 - helper text and error text must be distinct
+- embedded checker placement should respond to page context:
+  - latest/detail result surfaces may place the checker beside summary content from tablet widths upward
+  - history page should remain stacked longer and only move to a side-by-side layout at larger desktop widths
+- custom draw-date menus should stay visually anchored to the trigger during resize and narrow-screen changes rather than relying on native browser popups
 
 ### 12.6 Admin Table
 
@@ -632,6 +637,27 @@ Use:
 - status badges for persistent state
 
 Do not use toast notifications for critical blocking failures that need immediate local action context.
+
+### 12.9 Checker Result Overlay
+
+Contains:
+
+- ticket number
+- draw status
+- partial or complete summary
+- total winning amount
+- winning matches or no-match message
+- prize-group coverage summary
+- optional prize-group details disclosure
+
+Rules:
+
+- total winning amount and winning matches are the primary scan path
+- checked versus unchecked prize groups are supporting context, not primary content
+- complete checks should summarize coverage compactly instead of exposing a full wall of pills by default
+- partial checks should surface a short coverage summary first, then allow users to expand prize-group details only when needed
+- unchecked prize groups must appear visually quieter than checked prize groups
+- disclosure content may use compact soft tokens or subdued text, but should not compete with winning-match cards
 
 ## 14. Public vs Admin UI
 

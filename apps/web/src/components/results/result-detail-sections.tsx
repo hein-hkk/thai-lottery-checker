@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { PrizeGroup, PrizeType, SupportedLocale } from "@thai-lottery-checker/types";
 import {
@@ -14,6 +15,7 @@ interface ResultDetailSectionsProps {
   messages: ResultsMessages;
   prizeGroups: PrizeGroup[];
   publishedAt: string | null;
+  summaryAside?: ReactNode;
 }
 
 type PrizeGroupMap = Partial<Record<PrizeType, PrizeGroup>>;
@@ -31,7 +33,8 @@ export function ResultDetailSections({
   locale,
   messages,
   prizeGroups,
-  publishedAt
+  publishedAt,
+  summaryAside
 }: ResultDetailSectionsProps) {
   const prizeGroupMap = prizeGroups.reduce((accumulator, prizeGroup) => {
     accumulator[prizeGroup.type] = prizeGroup;
@@ -40,13 +43,16 @@ export function ResultDetailSections({
 
   return (
     <div className="ui-detail-page space-y-8 md:space-y-10">
-      <section className="space-y-6">
-        <ResultDetailHeader drawDate={drawDate} locale={locale} messages={messages} publishedAt={publishedAt} />
-        <div className="ui-detail-summary-grid">
-          {topSummaryPrizeTypes.map((type) => (
-            <SummaryPrizeCard key={type} messages={messages} prizeGroup={getDisplayPrizeGroup(prizeGroupMap, type)} />
-          ))}
+      <section className={summaryAside ? "ui-hero-with-aside" : "space-y-6"}>
+        <div className="space-y-6">
+          <ResultDetailHeader drawDate={drawDate} locale={locale} messages={messages} publishedAt={publishedAt} />
+          <div className="ui-detail-summary-grid">
+            {topSummaryPrizeTypes.map((type) => (
+              <SummaryPrizeCard key={type} messages={messages} prizeGroup={getDisplayPrizeGroup(prizeGroupMap, type)} />
+            ))}
+          </div>
         </div>
+        {summaryAside}
       </section>
 
       <section className="ui-detail-section">

@@ -2,19 +2,23 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmbeddedChecker } from "../../../../src/components/results/embedded-checker";
+import { CheckerResultOverlay } from "../../../../src/components/results/checker-result-overlay";
 import { ResultDetailSections } from "../../../../src/components/results/result-detail-sections";
 import { ResultsPageShell } from "../../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
-import { getResultDetail } from "../../../../src/results/api";
+import { checkLotteryTicket, getResultDetail, ResultsApiError } from "../../../../src/results/api";
 
 export const dynamic = "force-dynamic";
 
 interface ResultDetailPageProps {
   params: Promise<{ locale: string; drawDate: string }>;
+  searchParams: Promise<{ checker?: string | string[]; ticket?: string | string[] }>;
 }
 
-export default async function ResultDetailPage({ params }: ResultDetailPageProps) {
+export default async function ResultDetailPage({ params, searchParams }: ResultDetailPageProps) {
   const { locale, drawDate } = await params;
+  const { checker, ticket } = await searchParams;
 
   if (!isSupportedLocale(locale)) {
     notFound();
@@ -30,6 +34,13 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
       notFound();
     }
 
+    const shouldOpenChecker = getSingleSearchParam(checker) === "1";
+    const checkerTicket = getSingleSearchParam(ticket);
+    const checkerResult =
+      shouldOpenChecker && checkerTicket && /^\d{6}$/.test(checkerTicket)
+        ? await loadCheckerResult(checkerTicket, detail.drawDate)
+        : null;
+
     return (
       <ResultsPageShell
         bottomAction={
@@ -41,12 +52,21 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
         locale={supportedLocale}
         messages={messages}
       >
+        {checkerResult ? <CheckerResultOverlay locale={supportedLocale} messages={messages} result={checkerResult} /> : null}
         <ResultDetailSections
           drawDate={detail.drawDate}
           locale={supportedLocale}
           messages={messages}
           prizeGroups={detail.prizeGroups}
           publishedAt={detail.publishedAt}
+          summaryAside={
+            <EmbeddedChecker
+              defaultDrawDate={detail.drawDate}
+              defaultDrawStatus={detail.publishedAt ? "published" : "draft"}
+              locale={supportedLocale}
+              messages={messages}
+            />
+          }
         />
       </ResultsPageShell>
     );
@@ -65,5 +85,25 @@ export default async function ResultDetailPage({ params }: ResultDetailPageProps
         <StatusCard message={messages.detailUnavailable} />
       </ResultsPageShell>
     );
+  }
+}
+
+function getSingleSearchParam(value: string | string[] | undefined): string | null {
+  if (Array.isArray(value)) {
+    return value[0] ?? null;
+  }
+
+  return value ?? null;
+}
+
+async function loadCheckerResult(ticketNumber: string, drawDate: string) {
+  try {
+    return await checkLotteryTicket({ ticketNumber, drawDate });
+  } catch (error) {
+    if (error instanceof ResultsApiError) {
+      return null;
+    }
+
+    throw error;
   }
 }

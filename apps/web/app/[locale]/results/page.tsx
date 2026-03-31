@@ -2,6 +2,7 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmbeddedChecker } from "../../../src/components/results/embedded-checker";
 import { LatestResultSections } from "../../../src/components/results/latest-result-sections";
 import { ResultsPageShell } from "../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../src/components/results/status-card";
@@ -46,6 +47,14 @@ export default async function LatestResultsPage({ params }: LatestResultsPagePro
           messages={messages}
           prizeGroups={latest.prizeGroups}
           publishedAt={latest.publishedAt}
+          summaryAside={
+            <EmbeddedChecker
+              defaultDrawDate={latest.drawDate}
+              defaultDrawStatus={latest.publishedAt ? "published" : "draft"}
+              locale={supportedLocale}
+              messages={messages}
+            />
+          }
         />
       </ResultsPageShell>
     );

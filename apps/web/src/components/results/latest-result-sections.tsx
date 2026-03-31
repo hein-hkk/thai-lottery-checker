@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { PrizeGroup, PrizeType, SupportedLocale } from "@thai-lottery-checker/types";
 import {
@@ -14,6 +15,7 @@ interface LatestResultSectionsProps {
   messages: ResultsMessages;
   prizeGroups: PrizeGroup[];
   publishedAt: string | null;
+  summaryAside?: ReactNode;
 }
 
 type PrizeGroupMap = Partial<Record<PrizeType, PrizeGroup>>;
@@ -30,7 +32,8 @@ export function LatestResultSections({
   locale,
   messages,
   prizeGroups,
-  publishedAt
+  publishedAt,
+  summaryAside
 }: LatestResultSectionsProps) {
   const prizeGroupMap = prizeGroups.reduce((accumulator, prizeGroup) => {
     accumulator[prizeGroup.type] = prizeGroup;
@@ -39,14 +42,17 @@ export function LatestResultSections({
 
   return (
     <div className="ui-detail-page space-y-8 md:space-y-10">
-      <LatestSummarySection
-        drawDate={drawDate}
-        hideTitle={hideSummaryTitle}
-        locale={locale}
-        messages={messages}
-        prizeGroups={prizeGroups}
-        publishedAt={publishedAt}
-      />
+      <section className={summaryAside ? "ui-hero-with-aside" : undefined}>
+        <LatestSummarySection
+          drawDate={drawDate}
+          hideTitle={hideSummaryTitle}
+          locale={locale}
+          messages={messages}
+          prizeGroups={prizeGroups}
+          publishedAt={publishedAt}
+        />
+        {summaryAside}
+      </section>
 
       <section className="ui-detail-section">
         <div className="ui-detail-two-up">

@@ -93,7 +93,6 @@ Example routes:
 - `/{locale}/results`
 - `/{locale}/results/history`
 - `/{locale}/results/{drawDate}`
-- `/{locale}/check`
 - `/{locale}/blog`
 - `/{locale}/blog/{slug}`
 - `/en`
@@ -209,6 +208,7 @@ Define API endpoints.
 Example:
 
 - `GET /api/v1/results/latest`
+- `GET /api/v1/checker/draws`
 - `POST /api/v1/checker/check`
 
 ### Controllers
@@ -228,6 +228,35 @@ Contain business logic such as:
 ### Repositories
 
 Handle database queries.
+
+---
+
+## 5.2.1 Number Checker Flow
+
+The public checker is implemented as an embedded web capability rather than a standalone page.
+
+Web flow:
+
+- public pages render an embedded checker beside key result content
+- latest/detail result surfaces may shift to a side-by-side checker layout earlier than the history page; history remains stacked until larger desktop widths
+- the checker defaults to the current page context or latest public draw
+- valid draw options are loaded lazily from the backend
+- draw selection uses an anchored custom menu so resize behavior stays stable across supported breakpoints
+- submit navigates to the draw detail page for the selected draw
+- the draw detail page opens a checker-result overlay using URL query params
+- the overlay prioritizes winning amount and match cards, while prize-group coverage is summarized first and detailed checked/unchecked groups live behind a disclosure
+
+Canonical checker-result URL pattern:
+
+- `/{locale}/results/{drawDate}?checker=1&ticket=123456`
+
+Backend behavior:
+
+- `GET /api/v1/checker/draws` returns valid public checker draw options
+- `POST /api/v1/checker/check` validates a 6-digit ticket number and checks it against one public draw
+- if `drawDate` is omitted, the checker uses the same latest-public draw rule as the result pages
+- published draws return a `complete` checker result
+- public drafts may return a `partial` checker result based on released prize groups only
 
 ---
 

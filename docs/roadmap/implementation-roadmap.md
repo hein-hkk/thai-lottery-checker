@@ -180,18 +180,28 @@ Allow users to check ticket numbers against results.
 ## Included
 
 API:
+- `GET /api/v1/checker/draws`
 - `POST /api/v1/checker/check`
 
 Features:
 - Ticket number validation
 - Prize matching logic
-- Checker web page
+- Prize-amount and total-winning calculations
+- Draft-aware partial checker status using released prize groups only
+- Embedded checker on public pages
+- URL-driven checker result overlay on `/{locale}/results/{drawDate}?checker=1&ticket=XXXXXX`
+- Valid draw-date options loaded on demand through an anchored custom dropdown rather than a free calendar picker
+- Checker-result overlay emphasizes winning summary first and keeps checked/unchecked prize-group details in a collapsed secondary disclosure
 
 ## Acceptance Criteria
 
 - Valid numbers can be checked
 - Invalid input returns validation error
 - Correct prize categories returned
+- Checker returns matched prize amounts plus `totalWinningAmount`
+- Public Bangkok-today drafts can be checked with `partial` status
+- Embedded checker can navigate to the selected draw detail page and open the checker overlay
+- Draw options include only publicly checkable draws
 
 ------------------------------------------------------------------------
 

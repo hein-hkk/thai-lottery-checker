@@ -2,10 +2,11 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EmbeddedChecker } from "../../../../src/components/results/embedded-checker";
 import { HistoryList } from "../../../../src/components/results/history-list";
 import { ResultsPageShell } from "../../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
-import { getResultHistory } from "../../../../src/results/api";
+import { getLatestResults, getResultHistory } from "../../../../src/results/api";
 import { parseHistoryPage } from "../../../../src/results/queries";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +29,7 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
   const currentPage = parseHistoryPage(page);
 
   try {
-    const history = await getResultHistory(currentPage);
+    const [history, latest] = await Promise.all([getResultHistory(currentPage), getLatestResults()]);
 
     return (
       <ResultsPageShell
@@ -42,11 +43,23 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
           </Link>
         }
       >
-        {history.items.length === 0 ? (
-          <StatusCard message={messages.noHistory} />
-        ) : (
-          <HistoryList locale={supportedLocale} messages={messages} page={currentPage} history={history} />
-        )}
+        <div className="ui-history-page-layout">
+          <div className="ui-history-page-checker">
+            <EmbeddedChecker
+              defaultDrawDate={latest.drawDate}
+              defaultDrawStatus={latest.publishedAt ? "published" : "draft"}
+              locale={supportedLocale}
+              messages={messages}
+            />
+          </div>
+          <div className="ui-history-page-content">
+            {history.items.length === 0 ? (
+              <StatusCard message={messages.noHistory} />
+            ) : (
+              <HistoryList locale={supportedLocale} messages={messages} page={currentPage} history={history} />
+            )}
+          </div>
+        </div>
       </ResultsPageShell>
     );
   } catch {
