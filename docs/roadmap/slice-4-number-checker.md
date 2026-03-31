@@ -60,7 +60,7 @@ This slice adds no new draw lifecycle state. It reuses the existing `draft` and 
 
 - Use an embedded checker on public pages rather than a standalone `/{locale}/check` page
 - Embedded checker appears alongside key public result surfaces
-- Draw-date selection uses valid draw options only and lazy-loads options on demand
+- Draw-date selection uses valid draw options only, lazy-loads options on demand, and renders as an anchored custom dropdown instead of a free native calendar/select popup
 - Checker submit navigates to:
   - `/{locale}/results/{drawDate}?checker=1&ticket=XXXXXX`
 - The draw detail page remains the canonical checker-result destination
@@ -69,9 +69,11 @@ This slice adds no new draw lifecycle state. It reuses the existing `draft` and 
   - ticket number
   - draw status
   - partial/complete summary
-  - matches
-  - checked/unchecked prize groups
   - total winning amount
+  - matches
+  - compact prize-group coverage summary
+  - collapsed prize-group details when users want deeper visibility into checked and unchecked groups
+- unchecked prize groups in the detail disclosure should be visually quieter than checked prize groups
 - Official draw numbers remain visible in the page behind the overlay
 
 ## Public APIs / Interfaces

@@ -238,10 +238,13 @@ The public checker is implemented as an embedded web capability rather than a st
 Web flow:
 
 - public pages render an embedded checker beside key result content
+- latest/detail result surfaces may shift to a side-by-side checker layout earlier than the history page; history remains stacked until larger desktop widths
 - the checker defaults to the current page context or latest public draw
 - valid draw options are loaded lazily from the backend
+- draw selection uses an anchored custom menu so resize behavior stays stable across supported breakpoints
 - submit navigates to the draw detail page for the selected draw
 - the draw detail page opens a checker-result overlay using URL query params
+- the overlay prioritizes winning amount and match cards, while prize-group coverage is summarized first and detailed checked/unchecked groups live behind a disclosure
 
 Canonical checker-result URL pattern:
 
