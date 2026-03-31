@@ -43,8 +43,8 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
           </Link>
         }
       >
-        <div className="space-y-6">
-          <div className="flex justify-end">
+        <div className="ui-history-page-layout">
+          <div className="ui-history-page-checker">
             <EmbeddedChecker
               defaultDrawDate={latest.drawDate}
               defaultDrawStatus={latest.publishedAt ? "published" : "draft"}
@@ -52,11 +52,13 @@ export default async function ResultsHistoryPage({ params, searchParams }: Resul
               messages={messages}
             />
           </div>
-          {history.items.length === 0 ? (
-            <StatusCard message={messages.noHistory} />
-          ) : (
-            <HistoryList locale={supportedLocale} messages={messages} page={currentPage} history={history} />
-          )}
+          <div className="ui-history-page-content">
+            {history.items.length === 0 ? (
+              <StatusCard message={messages.noHistory} />
+            ) : (
+              <HistoryList locale={supportedLocale} messages={messages} page={currentPage} history={history} />
+            )}
+          </div>
         </div>
       </ResultsPageShell>
     );
