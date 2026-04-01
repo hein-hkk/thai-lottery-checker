@@ -7,6 +7,12 @@ datasource db {
   provider = "postgresql"
 }
 
+enum Locale {
+  en
+  th
+  my
+}
+
 enum PublishStatus {
   draft
   published
@@ -44,26 +50,28 @@ model SystemHeartbeat {
 }
 
 model Admin {
-  id                String                 @id @default(uuid()) @db.Uuid
-  email             String                 @unique
-  name              String?
-  passwordHash      String                 @map("password_hash")
-  role              AdminRole              @default(editor)
-  isActive          Boolean                @default(true) @map("is_active")
-  passwordUpdatedAt DateTime?              @map("password_updated_at")
-  deactivatedAt     DateTime?              @map("deactivated_at")
-  lastLoginAt       DateTime?              @map("last_login_at")
-  invitedByAdminId  String?                @db.Uuid @map("invited_by_admin_id")
-  createdAt         DateTime               @default(now()) @map("created_at")
-  updatedAt         DateTime               @updatedAt @map("updated_at")
-  invitedByAdmin    Admin?                 @relation("admin_inviter", fields: [invitedByAdminId], references: [id], onDelete: SetNull)
-  invitedAdmins     Admin[]                @relation("admin_inviter")
-  permissions       AdminPermissionGrant[]
-  invitationsSent   AdminInvitation[]      @relation("admin_invitation_sender")
-  passwordResets    AdminPasswordReset[]
-  auditLogs         AdminAuditLog[]
-  createdDraws      LotteryDraw[]          @relation("draw_created_by_admin")
-  updatedDraws      LotteryDraw[]          @relation("draw_updated_by_admin")
+  id                   String                      @id @default(uuid()) @db.Uuid
+  email                String                      @unique
+  name                 String?
+  passwordHash         String                      @map("password_hash")
+  role                 AdminRole                   @default(editor)
+  isActive             Boolean                     @default(true) @map("is_active")
+  passwordUpdatedAt    DateTime?                   @map("password_updated_at")
+  deactivatedAt        DateTime?                   @map("deactivated_at")
+  lastLoginAt          DateTime?                   @map("last_login_at")
+  invitedByAdminId     String?                     @db.Uuid @map("invited_by_admin_id")
+  createdAt            DateTime                    @default(now()) @map("created_at")
+  updatedAt            DateTime                    @updatedAt @map("updated_at")
+  invitedByAdmin       Admin?                      @relation("admin_inviter", fields: [invitedByAdminId], references: [id], onDelete: SetNull)
+  invitedAdmins        Admin[]                     @relation("admin_inviter")
+  permissions          AdminPermissionGrant[]
+  invitationsSent      AdminInvitation[]           @relation("admin_invitation_sender")
+  passwordResets       AdminPasswordReset[]
+  auditLogs            AdminAuditLog[]
+  createdDraws         LotteryDraw[]               @relation("draw_created_by_admin")
+  updatedDraws         LotteryDraw[]               @relation("draw_updated_by_admin")
+  createdBlogPosts     BlogPost[]                  @relation("blog_created_by_admin")
+  updatedBlogPosts     BlogPost[]                  @relation("blog_updated_by_admin")
   releasedResultGroups LotteryResultGroupRelease[] @relation("result_group_release_admin")
 
   @@map("admins")
@@ -175,4 +183,40 @@ model LotteryResultGroupRelease {
   @@index([drawId, isReleased], map: "lottery_result_group_releases_draw_id_is_released_idx")
   @@unique([drawId, prizeType], map: "lottery_result_group_releases_draw_id_prize_type_key")
   @@map("lottery_result_group_releases")
+}
+
+model BlogPost {
+  id               String                @id @default(uuid()) @db.Uuid
+  slug             String                @unique
+  bannerImageUrl   String?               @map("banner_image_url")
+  status           PublishStatus         @default(draft)
+  publishedAt      DateTime?             @map("published_at")
+  createdByAdminId String                @db.Uuid @map("created_by_admin_id")
+  updatedByAdminId String                @db.Uuid @map("updated_by_admin_id")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  createdByAdmin   Admin                 @relation("blog_created_by_admin", fields: [createdByAdminId], references: [id])
+  updatedByAdmin   Admin                 @relation("blog_updated_by_admin", fields: [updatedByAdminId], references: [id])
+  translations     BlogPostTranslation[]
+
+  @@index([status], map: "blog_posts_status_idx")
+  @@index([publishedAt], map: "blog_posts_published_at_idx")
+  @@map("blog_posts")
+}
+
+model BlogPostTranslation {
+  id             String   @id @default(uuid()) @db.Uuid
+  blogPostId     String   @db.Uuid @map("blog_post_id")
+  locale         Locale
+  title          String
+  body           Json
+  excerpt        String?
+  seoTitle       String?  @map("seo_title")
+  seoDescription String?  @map("seo_description")
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+  blogPost       BlogPost @relation(fields: [blogPostId], references: [id], onDelete: Cascade)
+
+  @@unique([blogPostId, locale], map: "blog_post_translations_blog_post_id_locale_key")
+  @@map("blog_post_translations")
 }

@@ -214,6 +214,44 @@ export interface CheckerCheckResponse {
   uncheckedPrizeTypes: PrizeType[];
 }
 
+export interface BlogParagraphBlock {
+  type: "paragraph";
+  text: string;
+}
+
+export type BlogBodyBlock = BlogParagraphBlock;
+
+export interface BlogListItem {
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  bannerImageUrl: string | null;
+  publishedAt: string;
+}
+
+export interface BlogListResponse {
+  items: BlogListItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface BlogTranslation {
+  locale: SupportedLocale;
+  title: string;
+  body: BlogBodyBlock[];
+  excerpt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+}
+
+export interface BlogDetailResponse {
+  slug: string;
+  bannerImageUrl: string | null;
+  publishedAt: string;
+  translation: BlogTranslation;
+}
+
 export interface AdminResultListItem {
   id: string;
   drawDate: string;

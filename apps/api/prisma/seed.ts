@@ -71,11 +71,20 @@ const draftDrawGroups: SeedPrizeGroup[] = [
   { type: "FRONT_THREE", numbers: ["111"] }
 ];
 
+const blogParagraphBody = (text: string) => [
+  {
+    type: "paragraph",
+    text
+  }
+];
+
 export async function seed(): Promise<void> {
   const env = getApiEnv();
   const passwordHash = await hashPassword(env.ADMIN_BOOTSTRAP_PASSWORD);
   const bootstrapEmail = env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase();
 
+  await prisma.blogPostTranslation.deleteMany();
+  await prisma.blogPost.deleteMany();
   await prisma.adminAuditLog.deleteMany();
   await prisma.adminPasswordReset.deleteMany();
   await prisma.adminInvitation.deleteMany();
@@ -179,6 +188,91 @@ export async function seed(): Promise<void> {
           prizeIndex: row.prizeIndex,
           number: row.number
         }))
+      }
+    }
+  });
+
+  await prisma.blogPost.create({
+    data: {
+      slug: "how-to-check-thai-lottery",
+      bannerImageUrl: "https://example.com/blog/how-to-check-thai-lottery.jpg",
+      status: "published",
+      publishedAt: new Date("2026-03-31T08:00:00.000Z"),
+      createdByAdminId: bootstrapAdmin.id,
+      updatedByAdminId: bootstrapAdmin.id,
+      translations: {
+        create: [
+          {
+            locale: "en",
+            title: "How to Check Thai Lottery Results",
+            body: blogParagraphBody("Learn how to read official Thai lottery results step by step."),
+            excerpt: "A simple guide to reading Thai lottery results.",
+            seoTitle: "How to Check Thai Lottery Results",
+            seoDescription: "Learn how to read and check Thai lottery results."
+          },
+          {
+            locale: "th",
+            title: "วิธีตรวจผลสลากกินแบ่งรัฐบาล",
+            body: blogParagraphBody("เรียนรู้วิธีอ่านผลสลากกินแบ่งรัฐบาลอย่างเป็นขั้นตอน."),
+            excerpt: "คู่มือง่าย ๆ สำหรับการตรวจผลสลากกินแบ่งรัฐบาล",
+            seoTitle: "วิธีตรวจผลสลากกินแบ่งรัฐบาล",
+            seoDescription: "เรียนรู้วิธีอ่านและตรวจผลสลากกินแบ่งรัฐบาล"
+          },
+          {
+            locale: "my",
+            title: "ထိုင်းထီရလဒ် စစ်နည်း",
+            body: blogParagraphBody("တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"),
+            excerpt: "ထိုင်းထီရလဒ်ကို ဖတ်ရှုစစ်ဆေးရန် လွယ်ကူသော လမ်းညွှန်ချက်",
+            seoTitle: "ထိုင်းထီရလဒ် စစ်နည်း",
+            seoDescription: "ထိုင်းထီရလဒ်ကို ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
+          }
+        ]
+      }
+    }
+  });
+
+  await prisma.blogPost.create({
+    data: {
+      slug: "thai-lottery-draw-day-tips",
+      bannerImageUrl: null,
+      status: "published",
+      publishedAt: new Date("2026-03-28T08:00:00.000Z"),
+      createdByAdminId: bootstrapAdmin.id,
+      updatedByAdminId: bootstrapAdmin.id,
+      translations: {
+        create: [
+          {
+            locale: "en",
+            title: "Thai Lottery Draw Day Tips",
+            body: blogParagraphBody("Prepare your ticket numbers and trusted result sources before draw time."),
+            excerpt: "Small habits that make draw day easier.",
+            seoTitle: null,
+            seoDescription: null
+          }
+        ]
+      }
+    }
+  });
+
+  await prisma.blogPost.create({
+    data: {
+      slug: "thai-lottery-common-mistakes",
+      bannerImageUrl: null,
+      status: "draft",
+      publishedAt: null,
+      createdByAdminId: bootstrapAdmin.id,
+      updatedByAdminId: bootstrapAdmin.id,
+      translations: {
+        create: [
+          {
+            locale: "th",
+            title: "ข้อผิดพลาดที่พบบ่อยในการตรวจหวย",
+            body: blogParagraphBody("หลีกเลี่ยงการอ่านหมายเลขสลับตำแหน่งเมื่อเทียบกับผลรางวัล."),
+            excerpt: "ข้อควรระวังเมื่อตรวจผลสลากกินแบ่งรัฐบาล",
+            seoTitle: null,
+            seoDescription: null
+          }
+        ]
       }
     }
   });
