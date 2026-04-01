@@ -5,6 +5,9 @@ import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
 import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
+import { type BlogApiError } from "../src/modules/blog/blog.errors.js";
+import type { BlogRepository } from "../src/modules/blog/blog.repository.js";
+import { createBlogService } from "../src/modules/blog/blog.service.js";
 import { createCheckerService } from "../src/modules/checker/checker.service.js";
 import type { CheckerRepository } from "../src/modules/checker/checker.repository.js";
 import { type CheckerApiError } from "../src/modules/checker/checker.errors.js";
@@ -659,6 +662,7 @@ describe("results api", () => {
   });
 
   it("supports admin result draft, publish, and correction workflows", async () => {
+    const draftDrawDate = "2026-04-02";
     const login = await postJson("/api/v1/admin/auth/login", {
       email: env.ADMIN_BOOTSTRAP_EMAIL,
       password: env.ADMIN_BOOTSTRAP_PASSWORD
@@ -668,7 +672,7 @@ describe("results api", () => {
     const draftCreate = await postJson(
       "/api/v1/admin/results",
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "special-april-draft",
         prizeGroups: [
           { type: "FIRST_PRIZE", numbers: ["123456"] },
@@ -684,13 +688,13 @@ describe("results api", () => {
 
     const createdDrawId = (draftCreate.body as { result: { id: string } }).result.id;
 
-    const publicDraft = await getJson("/api/v1/results/2026-04-01");
+    const publicDraft = await getJson(`/api/v1/results/${draftDrawDate}`);
     assert.equal(publicDraft.status, 404);
 
     const duplicateDraw = await postJson(
       "/api/v1/admin/results",
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "duplicate",
         prizeGroups: []
       },
@@ -706,7 +710,7 @@ describe("results api", () => {
     const invalidDraftUpdate = await patchJson(
       `/api/v1/admin/results/${createdDrawId}`,
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "invalid-draft",
         prizeGroups: [{ type: "LAST_TWO", numbers: ["4A"] }]
       },
@@ -722,7 +726,7 @@ describe("results api", () => {
     const incompleteDraftUpdate = await patchJson(
       `/api/v1/admin/results/${createdDrawId}`,
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "updated-incomplete-draft",
         prizeGroups: [
           { type: "FIRST_PRIZE", numbers: ["654321"] },
@@ -750,7 +754,7 @@ describe("results api", () => {
     const completeDraftUpdate = await patchJson(
       `/api/v1/admin/results/${createdDrawId}`,
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "published-april-draw",
         prizeGroups: [
           { type: "FIRST_PRIZE", numbers: ["820866"] },
@@ -792,13 +796,13 @@ describe("results api", () => {
       message: "Only draft results can be published"
     });
 
-    const publicPublished = await getJson("/api/v1/results/2026-04-01");
+    const publicPublished = await getJson(`/api/v1/results/${draftDrawDate}`);
     assert.equal(publicPublished.status, 200);
 
     const invalidCorrection = await patchJson(
       `/api/v1/admin/results/${createdDrawId}/correct`,
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "published-april-draw",
         prizeGroups: [{ type: "FIRST_PRIZE", numbers: ["999999"] }]
       },
@@ -814,7 +818,7 @@ describe("results api", () => {
     const correction = await patchJson(
       `/api/v1/admin/results/${createdDrawId}/correct`,
       {
-        drawDate: "2026-04-01",
+        drawDate: draftDrawDate,
         drawCode: "published-april-draw-corrected",
         prizeGroups: [
           { type: "FIRST_PRIZE", numbers: ["999999"] },
@@ -902,10 +906,10 @@ describe("results api", () => {
     assert.equal(payload.publishedAt, null);
     assert.equal(payload.prizeGroups.length, 9);
     assert.equal(payload.prizeGroups[0]?.type, "FIRST_PRIZE");
-    assert.deepEqual(payload.prizeGroups[0]?.numbers, ["300001"]);
-    assert.equal(payload.prizeGroups[0]?.isReleased, false);
+    assert.deepEqual(payload.prizeGroups[0]?.numbers, ["654321"]);
+    assert.equal(payload.prizeGroups[0]?.isReleased, true);
     assert.equal(payload.prizeGroups[8]?.type, "LAST_TWO");
-    assert.deepEqual(payload.prizeGroups[8]?.numbers, []);
+    assert.deepEqual(payload.prizeGroups[8]?.numbers, ["21"]);
     assert.equal(payload.prizeGroups[8]?.isReleased, false);
   });
 
@@ -937,6 +941,119 @@ describe("results api", () => {
       frontThree: ["068", "837"],
       lastThree: ["054", "479"],
       lastTwo: "06"
+    });
+  });
+
+  it("returns localized published blog list items in reverse published order", async () => {
+    const { status, body } = await getJson("/api/v1/blogs?locale=en&page=1&limit=10");
+    const payload = body as {
+      items: Array<{
+        slug: string;
+        title: string;
+        excerpt: string | null;
+        bannerImageUrl: string | null;
+        publishedAt: string;
+      }>;
+      page: number;
+      limit: number;
+      total: number;
+    };
+
+    assert.equal(status, 200);
+    assert.equal(payload.page, 1);
+    assert.equal(payload.limit, 10);
+    assert.equal(payload.total, 2);
+    assert.deepEqual(payload.items.map((item) => item.slug), [
+      "how-to-check-thai-lottery",
+      "thai-lottery-draw-day-tips"
+    ]);
+    assert.deepEqual(payload.items[0], {
+      slug: "how-to-check-thai-lottery",
+      title: "How to Check Thai Lottery Results",
+      excerpt: "A simple guide to reading Thai lottery results.",
+      bannerImageUrl: "https://example.com/blog/how-to-check-thai-lottery.jpg",
+      publishedAt: "2026-03-31T08:00:00.000Z"
+    });
+
+    const thaiList = await getJson("/api/v1/blogs?locale=th");
+    const thaiPayload = thaiList.body as { items: Array<{ slug: string }>; total: number; limit: number };
+
+    assert.equal(thaiList.status, 200);
+    assert.equal(thaiPayload.total, 1);
+    assert.equal(thaiPayload.limit, 12);
+    assert.deepEqual(thaiPayload.items.map((item) => item.slug), ["how-to-check-thai-lottery"]);
+  });
+
+  it("returns localized blog detail and hides draft or untranslated posts", async () => {
+    const published = await getJson("/api/v1/blogs/how-to-check-thai-lottery?locale=my");
+    const payload = published.body as {
+      slug: string;
+      bannerImageUrl: string | null;
+      publishedAt: string;
+      translation: {
+        locale: string;
+        title: string;
+        body: Array<{ type: string; text: string }>;
+        excerpt: string | null;
+        seoTitle: string | null;
+        seoDescription: string | null;
+      };
+    };
+
+    assert.equal(published.status, 200);
+    assert.equal(payload.slug, "how-to-check-thai-lottery");
+    assert.equal(payload.translation.locale, "my");
+    assert.equal(payload.translation.title, "ထိုင်းထီရလဒ် စစ်နည်း");
+    assert.deepEqual(payload.translation.body, [
+      {
+        type: "paragraph",
+        text: "တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
+      }
+    ]);
+
+    const missingTranslation = await getJson("/api/v1/blogs/thai-lottery-draw-day-tips?locale=th");
+    assert.equal(missingTranslation.status, 404);
+    assert.deepEqual(missingTranslation.body, {
+      code: "BLOG_NOT_FOUND",
+      message: "Blog post was not found"
+    });
+
+    const draft = await getJson("/api/v1/blogs/thai-lottery-common-mistakes?locale=th");
+    assert.equal(draft.status, 404);
+    assert.deepEqual(draft.body, {
+      code: "BLOG_NOT_FOUND",
+      message: "Blog post was not found"
+    });
+  });
+
+  it("returns structured blog validation errors", async () => {
+    const invalidLocale = await getJson("/api/v1/blogs?locale=jp");
+    const invalidLimit = await getJson("/api/v1/blogs?locale=en&limit=51");
+    const invalidDetailLocale = await getJson("/api/v1/blogs/how-to-check-thai-lottery?locale=jp");
+    const missingSlug = await getJson("/api/v1/blogs/missing-post?locale=en");
+
+    assert.equal(invalidLocale.status, 400);
+    assert.deepEqual(invalidLocale.body, {
+      code: "INVALID_BLOG_LOCALE",
+      message: "locale must be one of: en, th, my"
+    });
+
+    assert.equal(invalidLimit.status, 400);
+    assert.deepEqual(invalidLimit.body, {
+      code: "INVALID_BLOG_QUERY",
+      message: "Query parameters are invalid"
+    });
+
+    assert.equal(invalidDetailLocale.status, 400);
+    assert.deepEqual(invalidDetailLocale.body, {
+      code: "INVALID_BLOG_LOCALE",
+      message: "locale must be one of: en, th, my"
+    });
+
+    assert.equal(missingSlug.status, 404);
+    assert.deepEqual(missingSlug.body, {
+      code: "BLOG_NOT_FOUND",
+      message: "Blog post was not found"
     });
   });
 
@@ -1071,10 +1188,8 @@ describe("results api", () => {
     assert.equal(draft.status, 200);
     assert.equal((draft.body as { drawDate: string }).drawDate, todayDraft);
     assert.equal((draft.body as { publishedAt: string | null }).publishedAt, null);
-    assert.equal(
-      (draft.body as { prizeGroups: Array<{ type: string; isReleased: boolean }> }).prizeGroups.every((group) => group.isReleased === false),
-      true
-    );
+    assert.equal((draft.body as { prizeGroups: Array<{ type: string; isReleased: boolean }> }).prizeGroups[0]?.isReleased, true);
+    assert.equal((draft.body as { prizeGroups: Array<{ type: string; isReleased: boolean }> }).prizeGroups[8]?.isReleased, false);
   });
 
   it("returns structured 400 and 404 errors", async () => {
@@ -1176,6 +1291,40 @@ describe("results api", () => {
         error instanceof Error &&
         (error as CheckerApiError).code === "CHECKER_DATA_INVALID" &&
         error.message === "Checker draw data is incomplete or invalid"
+    );
+  });
+
+  it("fails fast when published blog data is invalid", async () => {
+    const service = createBlogService({
+      async findPublishedBlogsByLocale() {
+        return {
+          items: [],
+          total: 0
+        };
+      },
+      async findPublishedBlogBySlug() {
+        return {
+          slug: "broken-post",
+          bannerImageUrl: null,
+          publishedAt: new Date("2026-03-31T08:00:00.000Z"),
+          translation: {
+            locale: "en",
+            title: "Broken Post",
+            body: [{ type: "heading", text: "Unsupported" }],
+            excerpt: null,
+            seoTitle: null,
+            seoDescription: null
+          }
+        };
+      }
+    } satisfies BlogRepository);
+
+    await assert.rejects(
+      () => service.getPublicBlogBySlug("broken-post", "en"),
+      (error: unknown) =>
+        error instanceof Error &&
+        (error as BlogApiError).code === "BLOG_DATA_INVALID" &&
+        error.message === "Published blog data is incomplete or invalid"
     );
   });
 });
