@@ -1,12 +1,12 @@
 import type { ReactNode } from "react";
-import type { ResultsMessages } from "@thai-lottery-checker/i18n";
+import type { PublicMessages } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import { PublicHeader } from "./public-header";
 
 interface PublicPageShellProps {
   locale: SupportedLocale;
-  messages: ResultsMessages;
-  currentPath: "home" | "latest" | "history" | "detail";
+  messages: PublicMessages;
+  currentPath: "home" | "latest" | "history" | "detail" | "blog";
   title?: string;
   description?: string;
   children: ReactNode;

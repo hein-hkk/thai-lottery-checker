@@ -23,9 +23,13 @@ export function getLocaleLabel(locale: SupportedLocale): string {
 export interface ResultsMessages {
   home: string;
   latestResults: string;
+  blog: string;
   officialLatestResultsTitle: string;
   officialLatestResultsDescription: string;
   resultHistory: string;
+  blogListTitle: string;
+  blogListDescription: string;
+  blogDetailDescriptionFallback: string;
   drawDetail: string;
   officialResultTitle: string;
   drawDate: string;
@@ -43,9 +47,14 @@ export interface ResultsMessages {
   detailUnavailable: string;
   noResults: string;
   noHistory: string;
+  noBlogPosts: string;
+  blogListUnavailable: string;
+  blogDetailUnavailable: string;
   previousPage: string;
   nextPage: string;
   page: string;
+  readArticle: string;
+  backToBlog: string;
   language: string;
   theme: string;
   lightMode: string;
@@ -83,10 +92,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   en: {
     home: "Home",
     latestResults: "Latest results",
+    blog: "Blog",
     officialLatestResultsTitle: "Official Latest Thai Lottery Result",
     officialLatestResultsDescription:
       "View the latest official Thai lottery result with the draw date, publish time, and key prize numbers in one trusted update.",
     resultHistory: "Result history",
+    blogListTitle: "Thai Lottery Blog",
+    blogListDescription: "Read multilingual guides and explainers about Thai lottery results, draw days, and checking tips.",
+    blogDetailDescriptionFallback: "Read this Thai lottery article and guide.",
     drawDetail: "Draw detail",
     officialResultTitle: "Official Thai Lottery Result",
     drawDate: "Draw date",
@@ -104,9 +117,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     detailUnavailable: "This result detail is temporarily unavailable.",
     noResults: "No published results are available yet.",
     noHistory: "No published draw history is available yet.",
+    noBlogPosts: "No published blog posts are available for this language yet.",
+    blogListUnavailable: "The blog list is temporarily unavailable.",
+    blogDetailUnavailable: "This blog article is temporarily unavailable.",
     previousPage: "Previous",
     nextPage: "Next",
     page: "Page",
+    readArticle: "Read article",
+    backToBlog: "Back to blog",
     language: "Language",
     theme: "Theme",
     lightMode: "Light",
@@ -157,10 +175,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   th: {
     home: "หน้าหลัก",
     latestResults: "ผลรางวัลล่าสุด",
+    blog: "บทความ",
     officialLatestResultsTitle: "ผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ",
     officialLatestResultsDescription:
       "ดูผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ พร้อมวันที่ออกรางวัล เวลาเผยแพร่ และหมายเลขรางวัลสำคัญในหน้าเดียว",
     resultHistory: "ประวัติผลรางวัล",
+    blogListTitle: "บทความเกี่ยวกับสลากกินแบ่งรัฐบาล",
+    blogListDescription: "อ่านบทความหลายภาษาเกี่ยวกับการตรวจผลสลากกินแบ่งรัฐบาล วันออกรางวัล และคำแนะนำในการตรวจผล",
+    blogDetailDescriptionFallback: "อ่านบทความและคู่มือเกี่ยวกับสลากกินแบ่งรัฐบาล",
     drawDetail: "รายละเอียดงวด",
     officialResultTitle: "ผลสลากกินแบ่งรัฐบาลอย่างเป็นทางการ",
     drawDate: "วันที่ออกรางวัล",
@@ -178,9 +200,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     detailUnavailable: "ยังไม่สามารถแสดงรายละเอียดผลรางวัลงวดนี้ได้ในขณะนี้",
     noResults: "ยังไม่มีผลรางวัลที่เผยแพร่",
     noHistory: "ยังไม่มีประวัติผลรางวัลที่เผยแพร่",
+    noBlogPosts: "ยังไม่มีบทความที่เผยแพร่สำหรับภาษานี้",
+    blogListUnavailable: "ยังไม่สามารถแสดงรายการบทความได้ในขณะนี้",
+    blogDetailUnavailable: "ยังไม่สามารถแสดงบทความนี้ได้ในขณะนี้",
     previousPage: "ก่อนหน้า",
     nextPage: "ถัดไป",
     page: "หน้า",
+    readArticle: "อ่านบทความ",
+    backToBlog: "กลับไปบทความ",
     language: "ภาษา",
     theme: "ธีม",
     lightMode: "สว่าง",
@@ -231,10 +258,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   my: {
     home: "ပင်မစာမျက်နှာ",
     latestResults: "နောက်ဆုံးထွက်အောင်ဘာသာရလဒ်",
+    blog: "ဘလော့ဂ်",
     officialLatestResultsTitle: "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်",
     officialLatestResultsDescription:
       "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်ကို ထီဖွင့်သည့်နေ့၊ ထုတ်ပြန်ချိန်နှင့် အဓိကဆုနံပါတ်များအပါအဝင် တစ်နေရာတည်းတွင် ကြည့်ရှုနိုင်ပါသည်။",
     resultHistory: "ရလဒ်မှတ်တမ်း",
+    blogListTitle: "ထိုင်းထီ ဘလော့ဂ်",
+    blogListDescription: "ထိုင်းထီရလဒ်များ၊ ထီဖွင့်ရက်များနှင့် စစ်ဆေးနည်းအကြံပြုချက်များအကြောင်း ဘာသာစုံဆောင်းပါးများကို ဖတ်ရှုပါ။",
+    blogDetailDescriptionFallback: "ဤ ထိုင်းထီ ဆောင်းပါးနှင့် လမ်းညွှန်ချက်ကို ဖတ်ရှုပါ။",
     drawDetail: "အကြိမ်အသေးစိတ်",
     officialResultTitle: "တရားဝင် ထိုင်းထီရလဒ်",
     drawDate: "ထွက်သည့်နေ့",
@@ -252,9 +283,14 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     detailUnavailable: "ဤအကြိမ်ရလဒ်အသေးစိတ်ကို ယာယီမပြနိုင်သေးပါ",
     noResults: "ထုတ်ပြန်ထားသော ရလဒ်မရှိသေးပါ",
     noHistory: "ထုတ်ပြန်ထားသော ရလဒ်မှတ်တမ်းမရှိသေးပါ",
+    noBlogPosts: "ဤဘာသာစကားအတွက် ထုတ်ပြန်ထားသော ဆောင်းပါးများ မရှိသေးပါ။",
+    blogListUnavailable: "ဘလော့ဂ်စာရင်းကို ယာယီမပြနိုင်သေးပါ။",
+    blogDetailUnavailable: "ဤဘလော့ဂ်ဆောင်းပါးကို ယာယီမပြနိုင်သေးပါ။",
     previousPage: "ရှေ့",
     nextPage: "နောက်",
     page: "စာမျက်နှာ",
+    readArticle: "ဆောင်းပါးဖတ်ရန်",
+    backToBlog: "ဘလော့ဂ်သို့ ပြန်ရန်",
     language: "ဘာသာစကား",
     theme: "အပြင်အဆင်",
     lightMode: "အလင်း",
@@ -306,4 +342,10 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
 
 export function getResultsMessages(locale: SupportedLocale): ResultsMessages {
   return resultsMessagesByLocale[locale];
+}
+
+export type PublicMessages = ResultsMessages;
+
+export function getPublicMessages(locale: SupportedLocale): PublicMessages {
+  return getResultsMessages(locale);
 }

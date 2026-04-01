@@ -187,6 +187,56 @@ export const checkerDrawOptionsResponseSchema = z.object({
   items: z.array(checkerDrawOptionSchema)
 });
 
+export const blogParagraphBlockSchema = z.object({
+  type: z.literal("paragraph"),
+  text: z.string().trim().min(1)
+});
+
+export const blogBodyBlockSchema = blogParagraphBlockSchema;
+
+export const blogBodySchema = z.array(blogBodyBlockSchema).min(1);
+
+export const blogListQuerySchema = z.object({
+  locale: localeSchema,
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12)
+});
+
+export const blogSlugParamSchema = z.object({
+  slug: z.string().trim().min(1)
+});
+
+export const blogListItemSchema = z.object({
+  slug: z.string().min(1),
+  title: z.string().min(1),
+  excerpt: z.string().nullable(),
+  bannerImageUrl: z.string().url().nullable(),
+  publishedAt: z.string().datetime({ offset: true })
+});
+
+export const blogListResponseSchema = z.object({
+  items: z.array(blogListItemSchema),
+  page: z.number().int().min(1),
+  limit: z.number().int().min(1).max(50),
+  total: z.number().int().min(0)
+});
+
+export const blogTranslationSchema = z.object({
+  locale: localeSchema,
+  title: z.string().min(1),
+  body: blogBodySchema,
+  excerpt: z.string().nullable(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable()
+});
+
+export const blogDetailResponseSchema = z.object({
+  slug: z.string().min(1),
+  bannerImageUrl: z.string().url().nullable(),
+  publishedAt: z.string().datetime({ offset: true }),
+  translation: blogTranslationSchema
+});
+
 export const checkerMatchSchema = z.object({
   prizeType: prizeTypeSchema,
   prizeAmount: z.number().int().nonnegative(),
@@ -249,6 +299,15 @@ export type AdminPermissionSchema = z.infer<typeof adminPermissionSchema>;
 export type PublishStatusSchema = z.infer<typeof publishStatusSchema>;
 export type CheckerStatusSchema = z.infer<typeof checkerStatusSchema>;
 export type CheckerMatchKindSchema = z.infer<typeof checkerMatchKindSchema>;
+export type BlogParagraphBlockSchema = z.infer<typeof blogParagraphBlockSchema>;
+export type BlogBodyBlockSchema = z.infer<typeof blogBodyBlockSchema>;
+export type BlogBodySchema = z.infer<typeof blogBodySchema>;
+export type BlogListQuerySchema = z.infer<typeof blogListQuerySchema>;
+export type BlogSlugParamSchema = z.infer<typeof blogSlugParamSchema>;
+export type BlogListItemSchema = z.infer<typeof blogListItemSchema>;
+export type BlogListResponseSchema = z.infer<typeof blogListResponseSchema>;
+export type BlogTranslationSchema = z.infer<typeof blogTranslationSchema>;
+export type BlogDetailResponseSchema = z.infer<typeof blogDetailResponseSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
 export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
 export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;

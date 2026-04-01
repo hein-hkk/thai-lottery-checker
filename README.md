@@ -7,6 +7,7 @@ The current shipped baseline includes:
 - public Thai lottery results browsing
 - public locale landing page with latest preview and history entry point
 - public embedded number checker with draw-detail overlay results
+- public multilingual blog list and detail reading
 - admin auth/session with HTTP-only cookie handling
 - invitation-based admin onboarding
 - admin password reset
@@ -23,6 +24,7 @@ Repo structure:
 For deeper product and architecture details, see:
 
 - [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
+- [Slice 5 plan](docs/roadmap/slice-5-blog-public-reading.md)
 - [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
 - [System architecture](docs/architecture/system-architecture.md)
 
@@ -81,6 +83,8 @@ The seed creates:
 - 1 bootstrap `super_admin` from env
 - 2 published draws for public browsing
 - 1 draft draw for admin workflows
+- 2 published blog posts for public reading
+- 1 draft blog post for admin/blog workflow preparation
 
 ## Run the apps
 
@@ -111,10 +115,14 @@ Assuming the web app runs at `http://localhost:3000`:
 - `/en/results`
 - `/en/results/history`
 - `/en/results/2026-03-01`
+- `/en/blog`
+- `/en/blog/how-to-check-thai-lottery`
 - `/th`
 - `/th/results`
+- `/th/blog`
 - `/my`
 - `/my/results`
+- `/my/blog`
 
 Current public route roles:
 
@@ -123,6 +131,8 @@ Current public route roles:
 - `/{locale}/results/history`: secondary full archive page
 - `/{locale}/results/{drawDate}`: result detail page for a specific draw date
 - `/{locale}/results/{drawDate}?checker=1&ticket=123456`: draw detail page with checker-result overlay state
+- `/{locale}/blog`: localized public blog list page
+- `/{locale}/blog/{slug}`: localized public blog detail page by shared slug
 
 The public checker is embedded on the public pages above and navigates to the selected draw detail page for result presentation.
 
@@ -142,7 +152,7 @@ Use the seeded bootstrap admin credentials from `.env` to sign in at `/admin/log
 
 ## Public API
 
-Base URL:
+Results base URL:
 
 ```text
 http://localhost:4000/api/v1/results
@@ -169,6 +179,32 @@ curl http://localhost:4000/api/v1/results/not-a-date
 curl "http://localhost:4000/api/v1/results?page=0&limit=200"
 curl http://localhost:4000/api/v1/results/2026-03-16
 ```
+
+Blog base URL:
+
+```text
+http://localhost:4000/api/v1/blogs
+```
+
+Endpoints:
+
+- `GET /?locale={locale}&page={page}&limit={limit}`
+- `GET /:slug?locale={locale}`
+
+Examples:
+
+```bash
+curl "http://localhost:4000/api/v1/blogs?locale=en&page=1&limit=12"
+curl "http://localhost:4000/api/v1/blogs/how-to-check-thai-lottery?locale=en"
+curl "http://localhost:4000/api/v1/blogs/how-to-check-thai-lottery?locale=th"
+```
+
+Blog behavior:
+
+- only `published` posts with non-null `publishedAt` are public
+- blog detail requires a translation for the requested locale
+- no locale fallback is applied for public blog pages
+- blog body content is paragraph-block JSON in the current Slice 5 public contract
 
 ## Checker API
 
@@ -229,12 +265,18 @@ pnpm --filter @thai-lottery-checker/web build
 Manual checks:
 
 - Open `http://localhost:3000/en`
-- Confirm the primary public header shows `Home` and `Latest results`
+- Confirm the primary public header shows `Home`, `Latest results`, and `Blog`
 - Confirm the landing page latest section shows a trust-focused localized title/description with latest draw metadata below it
 - Open `http://localhost:3000/en/results`
 - Confirm the latest page shows the same localized trust-focused title/description plus latest draw metadata
 - Open `http://localhost:3000/en/results/history`
 - Confirm history remains directly reachable but is no longer a primary nav item
+- Open `http://localhost:3000/en/blog`
+- Confirm the blog list page renders published English posts with localized metadata and pagination controls
+- Open `http://localhost:3000/th/blog`
+- Confirm locale-specific filtering hides English-only posts from the Thai blog list
+- Open `http://localhost:3000/en/blog/how-to-check-thai-lottery`
+- Confirm the blog detail page renders paragraph content, banner image, and localized metadata fallback behavior
 - Open `http://localhost:3000/en/results/2026-03-01`
 - Use the embedded checker on a public page and confirm it navigates to the selected draw detail page with `checker` and `ticket` query params
 - Confirm the draw detail page opens the checker overlay and keeps the official draw numbers visible behind it

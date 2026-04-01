@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Menu } from "lucide-react";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import type { ResultsMessages } from "@thai-lottery-checker/i18n";
+import type { PublicMessages } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import { BrandLogo } from "./brand-logo";
 import { HeaderDrawer } from "./header-drawer";
@@ -13,8 +13,8 @@ import { ThemeToggle } from "./theme-toggle";
 
 interface PublicHeaderProps {
   locale: SupportedLocale;
-  messages: ResultsMessages;
-  currentPath: "home" | "latest" | "history" | "detail";
+  messages: PublicMessages;
+  currentPath: "home" | "latest" | "history" | "detail" | "blog";
 }
 
 export function PublicHeader({ locale, messages, currentPath }: PublicHeaderProps) {
@@ -69,6 +69,13 @@ export function PublicHeader({ locale, messages, currentPath }: PublicHeaderProp
             >
               {messages.latestResults}
             </Link>
+            <Link
+              className={`ui-mobile-nav-link ${currentPath === "blog" ? "ui-mobile-nav-link-active" : ""}`}
+              href={`/${locale}/blog`}
+              onClick={() => setIsOpen(false)}
+            >
+              {messages.blog}
+            </Link>
           </nav>
 
           <div className="ui-divider my-4" />
@@ -89,6 +96,9 @@ export function PublicHeader({ locale, messages, currentPath }: PublicHeaderProp
               </Link>
               <Link className={`ui-nav-link ${currentPath === "latest" || currentPath === "detail" ? "ui-nav-link-active" : ""}`} href={`/${locale}/results`}>
                 {messages.latestResults}
+              </Link>
+              <Link className={`ui-nav-link ${currentPath === "blog" ? "ui-nav-link-active" : ""}`} href={`/${locale}/blog`}>
+                {messages.blog}
               </Link>
             </nav>
           </div>
