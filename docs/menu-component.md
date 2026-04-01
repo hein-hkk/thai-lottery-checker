@@ -139,6 +139,7 @@ Public drawer content:
 
 - Home
 - Latest results
+- Blog
 - theme control below navigation
 
 Admin drawer content:
@@ -199,17 +200,20 @@ Desktop nav items:
 
 - Home
 - Latest results
+- Blog
 
 Mobile drawer nav items:
 
 - Home
 - Latest results
+- Blog
 
 Rules:
 
 - result history remains a supported public route but is intentionally secondary
 - history should be reached through page-level CTAs and direct URL access rather than primary navigation
 - the history page should not force an incorrect primary-nav active state
+- blog list and blog detail should both map to the same primary-nav active state for `Blog`
 
 ### 7.2 Admin Navigation
 
