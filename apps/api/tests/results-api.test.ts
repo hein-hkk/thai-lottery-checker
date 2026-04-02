@@ -210,6 +210,17 @@ function toDrawDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
 
+function addDays(date: string, days: number): string {
+  const target = toDrawDate(date);
+  target.setUTCDate(target.getUTCDate() + days);
+
+  return [
+    target.getUTCFullYear(),
+    String(target.getUTCMonth() + 1).padStart(2, "0"),
+    String(target.getUTCDate()).padStart(2, "0")
+  ].join("-");
+}
+
 async function createPublicDraftForToday(): Promise<string> {
   const env = getApiEnv();
   const drawDate = getBangkokTodayForTests();
@@ -683,7 +694,7 @@ describe("results api", () => {
   });
 
   it("supports admin result draft, publish, and correction workflows", async () => {
-    const draftDrawDate = "2026-04-02";
+    const draftDrawDate = addDays(getBangkokTodayForTests(), 1);
     const login = await postJson("/api/v1/admin/auth/login", {
       email: env.ADMIN_BOOTSTRAP_EMAIL,
       password: env.ADMIN_BOOTSTRAP_PASSWORD
