@@ -116,6 +116,7 @@ The admin UI includes screens for:
 - password reset
 - admin management
 - result operations
+- blog operations
 
 ---
 
