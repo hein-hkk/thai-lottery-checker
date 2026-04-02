@@ -13,6 +13,7 @@ The current shipped baseline includes:
 - admin password reset
 - super-admin account management
 - admin result draft, publish, and correction flows
+- admin blog draft, translation, publish, and unpublish flows
 
 Repo structure:
 
@@ -25,6 +26,7 @@ For deeper product and architecture details, see:
 
 - [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
 - [Slice 5 plan](docs/roadmap/slice-5-blog-public-reading.md)
+- [Slice 6 plan](docs/roadmap/slice-6-admin-blog-management.md)
 - [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
 - [System architecture](docs/architecture/system-architecture.md)
 
@@ -143,6 +145,8 @@ Main admin routes:
 - `/admin/login`
 - `/admin`
 - `/admin/admins`
+- `/admin/blogs`
+- `/admin/blogs/new`
 - `/admin/results`
 - `/admin/invitations/accept`
 - `/admin/reset-password/request`
@@ -243,9 +247,27 @@ Main admin route groups:
 - `/api/v1/admin/invitations/*`
 - `/api/v1/admin/password-resets/*`
 - `/api/v1/admin/admins`
+- `/api/v1/admin/blogs*`
 - `/api/v1/admin/results*`
 
 These endpoints are protected by the admin auth and permission model. Public result endpoints continue to expose published draws only.
+
+Admin blog endpoints:
+
+- `GET /api/v1/admin/blogs?status={all|draft|published}`
+- `GET /api/v1/admin/blogs/:id`
+- `POST /api/v1/admin/blogs`
+- `PATCH /api/v1/admin/blogs/:id`
+- `PUT /api/v1/admin/blogs/:id/translations/:locale`
+- `POST /api/v1/admin/blogs/:id/publish`
+- `POST /api/v1/admin/blogs/:id/unpublish`
+
+Admin blog behavior:
+
+- every endpoint requires admin auth and `manage_blogs`
+- drafts start with `status: "draft"` and `publishedAt: null`
+- publishing requires at least one valid translation with a title and paragraph body
+- unpublishing returns the post to draft state and removes it from public blog visibility immediately
 
 ## Verification
 
@@ -261,6 +283,8 @@ pnpm build:packages
 pnpm --filter @thai-lottery-checker/api build
 pnpm --filter @thai-lottery-checker/web build
 ```
+
+If any of the database commands fail locally, confirm that PostgreSQL is running and that `DATABASE_URL` points to a reachable database before retrying migration, seed, and tests.
 
 Manual checks:
 
@@ -284,6 +308,8 @@ Manual checks:
 - Sign in with the bootstrap admin from `.env`
 - Open `http://localhost:3000/admin/admins`
 - Open `http://localhost:3000/admin/results`
+- Open `http://localhost:3000/admin/blogs`
+- Create a draft post, save an English translation, publish it, then unpublish it again
 - Request `GET http://localhost:4000/health`
 
 ## Useful Commands

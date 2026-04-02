@@ -22,6 +22,7 @@ export default async function AdminProtectedLayout({ children }: { children: Rea
         logoHref="/admin"
         navItems={[
           { href: "/admin", label: "Home" },
+          ...(session.admin.effectivePermissions.includes("manage_blogs") ? [{ href: "/admin/blogs", label: "Blogs" }] : []),
           ...(session.admin.effectivePermissions.includes("manage_results") ? [{ href: "/admin/results", label: "Results" }] : []),
           ...(session.admin.role === "super_admin" ? [{ href: "/admin/admins", label: "Admins" }] : [])
         ]}
