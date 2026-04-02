@@ -288,3 +288,77 @@ export interface AdminResultWriteRequest {
 export interface AdminResultPublishResponse {
   result: AdminResultDetail;
 }
+
+export type AdminBlogStatusFilter = "draft" | "published" | "all";
+
+export interface AdminBlogListItem {
+  id: string;
+  slug: string;
+  displayTitle: string;
+  status: PublishStatus;
+  publishedAt: string | null;
+  updatedAt: string;
+  createdAt: string;
+  availableLocales: SupportedLocale[];
+}
+
+export interface AdminBlogListResponse {
+  items: AdminBlogListItem[];
+}
+
+export interface AdminBlogTranslationDraft {
+  locale: SupportedLocale;
+  title: string;
+  body: BlogBodyBlock[];
+  excerpt: string | null;
+  seoTitle: string | null;
+  seoDescription: string | null;
+  updatedAt: string | null;
+}
+
+export interface AdminBlogPublishReadiness {
+  isPublishable: boolean;
+  issues: string[];
+}
+
+export interface AdminBlogDetail {
+  id: string;
+  slug: string;
+  bannerImageUrl: string | null;
+  status: PublishStatus;
+  publishedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  availableLocales: SupportedLocale[];
+  translations: AdminBlogTranslationDraft[];
+  publishReadiness: AdminBlogPublishReadiness;
+}
+
+export interface AdminBlogDetailResponse {
+  post: AdminBlogDetail;
+}
+
+export interface AdminBlogListQuery {
+  status?: AdminBlogStatusFilter;
+}
+
+export interface AdminBlogMetadataRequest {
+  slug: string;
+  bannerImageUrl?: string | null;
+}
+
+export interface AdminBlogTranslationUpsertRequest {
+  title: string;
+  body: BlogBodyBlock[];
+  excerpt?: string | null;
+  seoTitle?: string | null;
+  seoDescription?: string | null;
+}
+
+export interface AdminBlogPublishResponse {
+  post: AdminBlogDetail;
+}
+
+export interface AdminBlogUnpublishResponse {
+  post: AdminBlogDetail;
+}

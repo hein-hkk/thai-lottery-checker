@@ -101,6 +101,27 @@ async function patchJson(
   };
 }
 
+async function putJson(
+  pathname: string,
+  body: unknown,
+  cookie?: string
+): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+      ...(cookie ? { cookie } : {})
+    },
+    body: JSON.stringify(body)
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
 function getCookieValue(setCookieHeader: string | null): string | null {
   if (!setCookieHeader) {
     return null;
@@ -1055,6 +1076,195 @@ describe("results api", () => {
       code: "BLOG_NOT_FOUND",
       message: "Blog post was not found"
     });
+  });
+
+  it("supports admin blog draft, translation, publish, and unpublish workflows", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+
+    const initialList = await getJsonWithCookie("/api/v1/admin/blogs?status=all", sessionCookie ?? undefined);
+    assert.equal(initialList.status, 200);
+    assert.equal(
+      (initialList.body as { items: Array<{ slug: string; displayTitle: string }> }).items.some(
+        (item) => item.slug === "thai-lottery-common-mistakes" && item.displayTitle === "ข้อผิดพลาดที่พบบ่อยในการตรวจหวย"
+      ),
+      true
+    );
+
+    const createDraft = await postJson(
+      "/api/v1/admin/blogs",
+      {
+        slug: "admin-blog-workflow",
+        bannerImageUrl: "https://example.com/blog/admin-blog-workflow.jpg"
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(createDraft.status, 201);
+    assert.equal((createDraft.body as { post: { status: string } }).post.status, "draft");
+    assert.equal((createDraft.body as { post: { publishedAt: string | null } }).post.publishedAt, null);
+    assert.deepEqual((createDraft.body as { post: { publishReadiness: { issues: string[] } } }).post.publishReadiness.issues, [
+      "At least one valid translation is required",
+      "A valid translation must include a title and at least one paragraph"
+    ]);
+
+    const createdBlogId = (createDraft.body as { post: { id: string } }).post.id;
+
+    const duplicateCreate = await postJson(
+      "/api/v1/admin/blogs",
+      {
+        slug: "admin-blog-workflow",
+        bannerImageUrl: null
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(duplicateCreate.status, 409);
+    assert.deepEqual(duplicateCreate.body, {
+      code: "ADMIN_BLOG_DUPLICATE_SLUG",
+      message: "A blog post already exists for this slug"
+    });
+
+    const duplicateSlugUpdate = await patchJson(
+      `/api/v1/admin/blogs/${createdBlogId}`,
+      {
+        slug: "how-to-check-thai-lottery",
+        bannerImageUrl: null
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(duplicateSlugUpdate.status, 409);
+
+    const metadataUpdate = await patchJson(
+      `/api/v1/admin/blogs/${createdBlogId}`,
+      {
+        slug: "admin-blog-workflow-updated",
+        bannerImageUrl: null
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(metadataUpdate.status, 200);
+    assert.equal((metadataUpdate.body as { post: { slug: string } }).post.slug, "admin-blog-workflow-updated");
+
+    const publishBeforeTranslation = await postJson(
+      `/api/v1/admin/blogs/${createdBlogId}/publish`,
+      {},
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(publishBeforeTranslation.status, 400);
+    assert.deepEqual(publishBeforeTranslation.body, {
+      code: "ADMIN_BLOG_DATA_INVALID",
+      message: "At least one valid translation is required. A valid translation must include a title and at least one paragraph"
+    });
+
+    const translationUpsert = await putJson(
+      `/api/v1/admin/blogs/${createdBlogId}/translations/en`,
+      {
+        title: "Admin blog workflow",
+        body: [
+          {
+            type: "paragraph",
+            text: "This post walks through the admin blog workflow."
+          }
+        ],
+        excerpt: "How admin blog management works.",
+        seoTitle: "Admin blog workflow",
+        seoDescription: "A walkthrough of the admin blog workflow."
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(translationUpsert.status, 200);
+    assert.equal((translationUpsert.body as { post: { availableLocales: string[] } }).post.availableLocales.includes("en"), true);
+    assert.deepEqual((translationUpsert.body as { post: { publishReadiness: { issues: string[] } } }).post.publishReadiness.issues, []);
+
+    const detail = await getJsonWithCookie(`/api/v1/admin/blogs/${createdBlogId}`, sessionCookie ?? undefined);
+    assert.equal(detail.status, 200);
+    assert.deepEqual((detail.body as { post: { translations: Array<{ locale: string }> } }).post.translations.map((item) => item.locale), [
+      "en",
+      "th",
+      "my"
+    ]);
+
+    const publish = await postJson(`/api/v1/admin/blogs/${createdBlogId}/publish`, {}, sessionCookie ?? undefined);
+    assert.equal(publish.status, 200);
+    assert.equal((publish.body as { post: { status: string } }).post.status, "published");
+
+    const publicPublished = await getJson("/api/v1/blogs/admin-blog-workflow-updated?locale=en");
+    assert.equal(publicPublished.status, 200);
+    assert.equal((publicPublished.body as { slug: string }).slug, "admin-blog-workflow-updated");
+
+    const publishedFilter = await getJsonWithCookie("/api/v1/admin/blogs?status=published", sessionCookie ?? undefined);
+    assert.equal(publishedFilter.status, 200);
+    assert.equal(
+      (publishedFilter.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdBlogId),
+      true
+    );
+
+    const unpublish = await postJson(`/api/v1/admin/blogs/${createdBlogId}/unpublish`, {}, sessionCookie ?? undefined);
+    assert.equal(unpublish.status, 200);
+    assert.equal((unpublish.body as { post: { status: string; publishedAt: string | null } }).post.status, "draft");
+    assert.equal((unpublish.body as { post: { status: string; publishedAt: string | null } }).post.publishedAt, null);
+
+    const publicDraft = await getJson("/api/v1/blogs/admin-blog-workflow-updated?locale=en");
+    assert.equal(publicDraft.status, 404);
+
+    const auditLogs = await prisma.adminAuditLog.findMany({
+      where: {
+        entityId: createdBlogId,
+        entityType: "blog_post",
+        action: {
+          in: ["create_blog", "update_blog", "publish_blog", "unpublish_blog"]
+        }
+      }
+    });
+
+    assert.equal(auditLogs.length >= 4, true);
+    assert.equal(auditLogs.every((log) => log.afterData !== null), true);
+  });
+
+  it("enforces admin blog permissions for editors", async () => {
+    await ensureEditorAdmin("editor-blogs@thai-lottery-checker.local", "EditorBlogs123!", ["manage_blogs"]);
+    await ensureEditorAdmin("editor-no-blogs@thai-lottery-checker.local", "EditorNoBlogs123!", ["manage_results"]);
+
+    const allowedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-blogs@thai-lottery-checker.local",
+      password: "EditorBlogs123!"
+    });
+    const allowedCookie = getCookieValue(allowedLogin.setCookie);
+
+    const blockedLogin = await postJson("/api/v1/admin/auth/login", {
+      email: "editor-no-blogs@thai-lottery-checker.local",
+      password: "EditorNoBlogs123!"
+    });
+    const blockedCookie = getCookieValue(blockedLogin.setCookie);
+
+    const allowedList = await getJsonWithCookie("/api/v1/admin/blogs", allowedCookie ?? undefined);
+    assert.equal(allowedList.status, 200);
+
+    const blockedList = await getJsonWithCookie("/api/v1/admin/blogs", blockedCookie ?? undefined);
+    assert.equal(blockedList.status, 403);
+    assert.deepEqual(blockedList.body, {
+      code: "ADMIN_FORBIDDEN",
+      message: "Admin does not have permission to perform this action"
+    });
+
+    const blockedCreate = await postJson(
+      "/api/v1/admin/blogs",
+      {
+        slug: "blocked-blog-post",
+        bannerImageUrl: null
+      },
+      blockedCookie ?? undefined
+    );
+
+    assert.equal(blockedCreate.status, 403);
   });
 
   it("returns checker draw options and uses the latest public draft when no draw date is supplied", async () => {

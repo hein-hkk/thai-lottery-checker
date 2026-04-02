@@ -237,6 +237,80 @@ export const blogDetailResponseSchema = z.object({
   translation: blogTranslationSchema
 });
 
+export const adminBlogStatusFilterSchema = z.enum(["draft", "published", "all"]);
+
+export const adminBlogListQuerySchema = z.object({
+  status: adminBlogStatusFilterSchema.default("all")
+});
+
+export const adminBlogListItemSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string().min(1),
+  displayTitle: z.string().min(1),
+  status: publishStatusSchema,
+  publishedAt: z.string().datetime({ offset: true }).nullable(),
+  updatedAt: z.string().datetime({ offset: true }),
+  createdAt: z.string().datetime({ offset: true }),
+  availableLocales: z.array(localeSchema)
+});
+
+export const adminBlogListResponseSchema = z.object({
+  items: z.array(adminBlogListItemSchema)
+});
+
+export const adminBlogTranslationDraftSchema = z.object({
+  locale: localeSchema,
+  title: z.string(),
+  body: z.array(blogBodyBlockSchema),
+  excerpt: z.string().nullable(),
+  seoTitle: z.string().nullable(),
+  seoDescription: z.string().nullable(),
+  updatedAt: z.string().datetime({ offset: true }).nullable()
+});
+
+export const adminBlogPublishReadinessSchema = z.object({
+  isPublishable: z.boolean(),
+  issues: z.array(z.string())
+});
+
+export const adminBlogDetailSchema = z.object({
+  id: z.string().uuid(),
+  slug: z.string().min(1),
+  bannerImageUrl: z.string().url().nullable(),
+  status: publishStatusSchema,
+  publishedAt: z.string().datetime({ offset: true }).nullable(),
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
+  availableLocales: z.array(localeSchema),
+  translations: z.array(adminBlogTranslationDraftSchema).length(3),
+  publishReadiness: adminBlogPublishReadinessSchema
+});
+
+export const adminBlogDetailResponseSchema = z.object({
+  post: adminBlogDetailSchema
+});
+
+export const adminBlogMetadataRequestSchema = z.object({
+  slug: z.string().trim().min(1),
+  bannerImageUrl: z.string().trim().url().nullable().optional()
+});
+
+export const adminBlogTranslationUpsertRequestSchema = z.object({
+  title: z.string().trim(),
+  body: z.array(blogBodyBlockSchema),
+  excerpt: z.string().trim().nullable().optional(),
+  seoTitle: z.string().trim().nullable().optional(),
+  seoDescription: z.string().trim().nullable().optional()
+});
+
+export const adminBlogPublishResponseSchema = z.object({
+  post: adminBlogDetailSchema
+});
+
+export const adminBlogUnpublishResponseSchema = z.object({
+  post: adminBlogDetailSchema
+});
+
 export const checkerMatchSchema = z.object({
   prizeType: prizeTypeSchema,
   prizeAmount: z.number().int().nonnegative(),
@@ -308,6 +382,18 @@ export type BlogListItemSchema = z.infer<typeof blogListItemSchema>;
 export type BlogListResponseSchema = z.infer<typeof blogListResponseSchema>;
 export type BlogTranslationSchema = z.infer<typeof blogTranslationSchema>;
 export type BlogDetailResponseSchema = z.infer<typeof blogDetailResponseSchema>;
+export type AdminBlogStatusFilterSchema = z.infer<typeof adminBlogStatusFilterSchema>;
+export type AdminBlogListQuerySchema = z.infer<typeof adminBlogListQuerySchema>;
+export type AdminBlogListItemSchema = z.infer<typeof adminBlogListItemSchema>;
+export type AdminBlogListResponseSchema = z.infer<typeof adminBlogListResponseSchema>;
+export type AdminBlogTranslationDraftSchema = z.infer<typeof adminBlogTranslationDraftSchema>;
+export type AdminBlogPublishReadinessSchema = z.infer<typeof adminBlogPublishReadinessSchema>;
+export type AdminBlogDetailSchema = z.infer<typeof adminBlogDetailSchema>;
+export type AdminBlogDetailResponseSchema = z.infer<typeof adminBlogDetailResponseSchema>;
+export type AdminBlogMetadataRequestSchema = z.infer<typeof adminBlogMetadataRequestSchema>;
+export type AdminBlogTranslationUpsertRequestSchema = z.infer<typeof adminBlogTranslationUpsertRequestSchema>;
+export type AdminBlogPublishResponseSchema = z.infer<typeof adminBlogPublishResponseSchema>;
+export type AdminBlogUnpublishResponseSchema = z.infer<typeof adminBlogUnpublishResponseSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
 export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
 export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;

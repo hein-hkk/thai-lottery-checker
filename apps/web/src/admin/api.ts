@@ -1,5 +1,9 @@
 import {
   adminAuthResponseSchema,
+  adminBlogDetailResponseSchema,
+  adminBlogListResponseSchema,
+  adminBlogPublishResponseSchema,
+  adminBlogUnpublishResponseSchema,
   adminInvitationAcceptResponseSchema,
   adminInvitationCreateResponseSchema,
   adminInvitationRevokeResponseSchema,
@@ -13,6 +17,13 @@ import {
 } from "@thai-lottery-checker/schemas";
 import type {
   AdminAuthResponse,
+  AdminBlogDetailResponse,
+  AdminBlogListResponse,
+  AdminBlogMetadataRequest,
+  AdminBlogPublishResponse,
+  AdminBlogStatusFilter,
+  AdminBlogTranslationUpsertRequest,
+  AdminBlogUnpublishResponse,
   AdminInvitationAcceptRequest,
   AdminInvitationCreateRequest,
   AdminInvitationCreateResponse,
@@ -350,4 +361,124 @@ export async function correctAdminResult(drawId: string, input: AdminResultWrite
   }
 
   return adminResultDetailResponseSchema.parse(await response.json());
+}
+
+export async function getAdminBlogs(status: AdminBlogStatusFilter = "all", cookieHeader?: string): Promise<AdminBlogListResponse> {
+  const search = new URLSearchParams({ status });
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs?${search.toString()}`), {
+    method: "GET",
+    cache: "no-store",
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    credentials: cookieHeader ? undefined : "include"
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to load admin blogs");
+  }
+
+  return adminBlogListResponseSchema.parse(await response.json());
+}
+
+export async function getAdminBlogDetail(blogId: string, cookieHeader?: string): Promise<AdminBlogDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}`), {
+    method: "GET",
+    cache: "no-store",
+    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+    credentials: cookieHeader ? undefined : "include"
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to load admin blog");
+  }
+
+  return adminBlogDetailResponseSchema.parse(await response.json());
+}
+
+export async function createAdminBlog(input: AdminBlogMetadataRequest): Promise<AdminBlogDetailResponse> {
+  const response = await fetch(getAdminApiUrl("/api/v1/admin/blogs"), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to create blog");
+  }
+
+  return adminBlogDetailResponseSchema.parse(await response.json());
+}
+
+export async function updateAdminBlogMetadata(blogId: string, input: AdminBlogMetadataRequest): Promise<AdminBlogDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}`), {
+    method: "PATCH",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to update blog metadata");
+  }
+
+  return adminBlogDetailResponseSchema.parse(await response.json());
+}
+
+export async function upsertAdminBlogTranslation(
+  blogId: string,
+  locale: string,
+  input: AdminBlogTranslationUpsertRequest
+): Promise<AdminBlogDetailResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/translations/${locale}`), {
+    method: "PUT",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to save blog translation");
+  }
+
+  return adminBlogDetailResponseSchema.parse(await response.json());
+}
+
+export async function publishAdminBlog(blogId: string): Promise<AdminBlogPublishResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/publish`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to publish blog");
+  }
+
+  return adminBlogPublishResponseSchema.parse(await response.json());
+}
+
+export async function unpublishAdminBlog(blogId: string): Promise<AdminBlogUnpublishResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/unpublish`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({})
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to unpublish blog");
+  }
+
+  return adminBlogUnpublishResponseSchema.parse(await response.json());
 }

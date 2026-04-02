@@ -1,6 +1,7 @@
 import express, { type Express } from "express";
 import { getApiEnv } from "./config/env.js";
 import { adminAuthRouter } from "./modules/admin-auth/admin-auth.routes.js";
+import { adminBlogsRouter } from "./modules/admin-blogs/admin-blogs.routes.js";
 import { adminGovernanceRouter } from "./modules/admin-governance/admin-governance.routes.js";
 import { adminResultsRouter } from "./modules/admin-results/admin-results.routes.js";
 import { blogRouter } from "./modules/blog/blog.routes.js";
@@ -23,7 +24,7 @@ export function createApp(): Express {
       response.header("Access-Control-Allow-Origin", allowedOrigin);
       response.header("Access-Control-Allow-Credentials", "true");
       response.header("Access-Control-Allow-Headers", "Content-Type");
-      response.header("Access-Control-Allow-Methods", "GET,POST,PATCH,OPTIONS");
+      response.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,OPTIONS");
       response.header("Vary", "Origin");
     }
 
@@ -45,6 +46,7 @@ export function createApp(): Express {
 
   app.use("/health", healthRouter);
   app.use("/api/v1/admin/auth", adminAuthRouter);
+  app.use("/api/v1/admin", adminBlogsRouter);
   app.use("/api/v1/admin", adminGovernanceRouter);
   app.use("/api/v1/admin", adminResultsRouter);
   app.use("/api/v1/blogs", blogRouter);
