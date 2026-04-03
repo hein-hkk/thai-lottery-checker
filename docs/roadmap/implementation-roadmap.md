@@ -1,16 +1,14 @@
 # Thai Lottery Checker -- Implementation Slice Roadmap
 
-This roadmap divides the project into **vertical implementation slices**.
-Each slice delivers a complete user-facing capability including schema,
-API, domain logic, and UI when needed.
+This roadmap divides the OSS project into vertical implementation slices.
+Each slice should deliver a complete user-facing capability across schema, API, shared domain logic, and UI when needed.
 
-This approach keeps tasks small enough for AI-assisted development while
-remaining aligned with the modular monolith architecture defined in the
-project spec.
+Slices 0 through 6 describe the implemented OSS baseline currently represented in this repository.
+Later slices describe planned public OSS work that has not been implemented yet.
 
-------------------------------------------------------------------------
+---
 
-# Slice 0 --- Foundation Skeleton
+# Slice 0 -- Foundation Skeleton
 
 ## Goal
 
@@ -18,7 +16,7 @@ Create the minimum project structure required for all later slices.
 
 ## Included
 
-- Monorepo structure
+- monorepo structure
 - `apps/web`
 - `apps/api`
 - shared packages:
@@ -27,22 +25,22 @@ Create the minimum project structure required for all later slices.
   - `packages/domain`
   - `packages/i18n`
   - `packages/utils`
-- Database configuration
-- Migration workflow
-- Environment configuration
-- Locale routing scaffold
+- database configuration
+- migration workflow
+- environment configuration
+- locale routing scaffold
 
 ## Acceptance Criteria
 
-- Web app runs locally
+- web app runs locally
 - API server runs
-- Database connection works
-- Migrations can run successfully
+- database connection works
+- migrations can run successfully
 - `/en`, `/th`, `/my` routes work
 
-------------------------------------------------------------------------
+---
 
-# Slice 1 --- Results Browsing Core
+# Slice 1 -- Results Browsing Core
 
 ## Goal
 
@@ -51,34 +49,38 @@ Allow anonymous users to browse published lottery results.
 ## Included
 
 Schema:
+
 - `lottery_draws`
 - `lottery_results`
 
 Public API:
+
 - `GET /api/v1/results/latest`
 - `GET /api/v1/results`
 - `GET /api/v1/results/:drawDate`
 
-Web Pages:
-- Latest results
-- Result history
-- Draw detail page
+Web pages:
+
+- latest results
+- result history
+- draw detail page
 
 Rules:
-- Public browsing is initially published-only in Slice 1
-- Lottery numbers are stored as **strings** to preserve leading zeros
-- Later staged-release behavior is intentionally deferred to Slice 3
+
+- public browsing is initially published-only in Slice 1
+- lottery numbers are stored as strings to preserve leading zeros
+- staged-release behavior is intentionally deferred to Slice 3
 
 ## Acceptance Criteria
 
-- Latest results page works
-- History page shows previous published draws
-- Draw detail page loads correctly for published draws
-- Draft results are hidden from public in Slice 1 behavior
+- latest results page works
+- history page shows previous published draws
+- draw detail page loads correctly for published draws
+- draft results are hidden from public in Slice 1 behavior
 
-------------------------------------------------------------------------
+---
 
-# Slice 2 --- Admin Platform Foundation and Result Management
+# Slice 2 -- Admin Platform Foundation and Result Management
 
 ## Goal
 
@@ -87,21 +89,24 @@ Establish the secure admin platform foundation and allow administrators to manag
 ## Included
 
 Admin features:
-- Admin login/logout/current session
-- Invitation-based onboarding
-- Password reset
-- Admin management for `super_admin`
-- Create result draft
-- Edit draft
-- Publish result
-- Correction workflow
+
+- admin login, logout, and current session
+- invitation-based onboarding
+- password reset
+- admin management for `super_admin`
+- create result draft
+- edit draft
+- publish result
+- correction workflow
 
 Authorization:
-- Roles: `super_admin`, `editor`
-- Permissions: `manage_results`, `manage_blogs`
-- Backend-enforced guards for admin governance and result management
+
+- roles: `super_admin`, `editor`
+- permissions: `manage_results`, `manage_blogs`
+- backend-enforced guards for admin governance and result management
 
 Database:
+
 - `admins`
 - `admin_permissions`
 - `admin_invitations`
@@ -110,17 +115,17 @@ Database:
 
 ## Acceptance Criteria
 
-- Seeded `super_admin` can authenticate and access protected admin routes
-- Invitation onboarding, password reset, and admin management flows work
-- Admin with `manage_results` can create and edit draft results
-- Admin can publish and correct results
-- First publish sets `published_at`
-- Sensitive governance and result actions are recorded in audit logs
-- Public APIs remain published-only until Slice 3 refinement adds staged visibility
+- seeded `super_admin` can authenticate and access protected admin routes
+- invitation onboarding, password reset, and admin management flows work
+- admin with `manage_results` can create and edit draft results
+- admin can publish and correct results
+- first publish sets `published_at`
+- sensitive governance and result actions are recorded in audit logs
+- public APIs remain published-only until Slice 3 refinement adds staged visibility
 
-------------------------------------------------------------------------
+---
 
-# Slice 3 --- Product Refinement (Results + Admin UX)
+# Slice 3 -- Product Refinement (Results + Admin UX)
 
 ## Goal
 
@@ -129,49 +134,49 @@ Refine the core product experience for public results and admin workflows before
 ## Included
 
 Results domain:
-- Prize-group staged public release for draft draws
-- Keep draw lifecycle as `draft` and `published`
-- New `lottery_result_group_releases` table for per-draw, per-prize-group visibility
+
+- prize-group staged public release for draft draws
+- draw lifecycle remains `draft` and `published`
+- `lottery_result_group_releases` table for per-draw, per-prize-group visibility
 - Bangkok-time draw-day latest-selection rule
 
 Public API behavior updates:
+
 - `GET /api/v1/results/latest` may prefer a Bangkok-today draft immediately, even before the first group release
 - `GET /api/v1/results` remains published-only history
 - `GET /api/v1/results/:drawDate` may return the Bangkok-today draft, including placeholder-only state before the first group release
 
 Public web:
-- Replace `/{locale}/` placeholder with a real landing page
-- Landing page includes latest hero preview and published-only history list
-- `/{locale}/results` remains bookmarkable and can render the current draw-day draft, including placeholder-only state before the first group release
-- `/{locale}/results/history` remains available as a secondary archive route rather than a primary navigation destination
+
+- replace `/{locale}/` placeholder with a real landing page
+- landing page includes latest hero preview and published-only history list
+- `/{locale}/results` remains bookmarkable and can render the current draw-day draft
+- `/{locale}/results/history` remains available as a secondary archive route
 - `/{locale}/results/{drawDate}` supports placeholder rendering for unreleased prize groups
-- Landing and latest-result pages use trust-focused localized titles/descriptions while primary navigation labels remain short
-- Blog teasers remain deferred to the later blog slice
+- blog teasers remain deferred until a later OSS slice
 
 Admin UX:
-- Release one prize group at a time
-- Unrelease a prize group before final publish
-- Edit a released prize group before final publish
-- Keep post-publish correction immediate and auditable
-- Refine admin-management listing with `Activated Admin`, `Deactivated Admin`, and `All`
 
-UI polish:
-- Refine public and admin UI/UX flow and presentation after the behavior changes above are in place
+- release one prize group at a time
+- unrelease a prize group before final publish
+- edit a released prize group before final publish
+- keep post-publish correction immediate and auditable
+- refine admin-management listing behavior
 
 ## Acceptance Criteria
 
-- Draw lifecycle still uses only `draft` and `published`
-- A Bangkok-today draft becomes public immediately, and placeholder-only state is valid before the first group release
-- Final publish is blocked until all canonical prize groups are complete and valid
+- draw lifecycle still uses only `draft` and `published`
+- a Bangkok-today draft becomes public immediately, and placeholder-only state is valid before the first group release
+- final publish is blocked until all canonical prize groups are complete and valid
 - `/{locale}/` works as the public landing page with latest hero plus published-only history
 - `/{locale}/results` can show the current Bangkok-time draw-day draft even before the first group release
-- `/{locale}/results/history` stays directly reachable without remaining a primary public-nav item
-- Admins with `manage_results` can release, unrelease, and edit released groups before final publish
-- Release, unrelease, publish, and correction actions remain auditable and invalidate dependent result caches
+- `/{locale}/results/history` stays directly reachable as a secondary archive route
+- admins with `manage_results` can release, unrelease, and edit released groups before final publish
+- release, unrelease, publish, and correction actions remain auditable
 
-------------------------------------------------------------------------
+---
 
-# Slice 4 --- Number Checker
+# Slice 4 -- Number Checker
 
 ## Goal
 
@@ -180,32 +185,32 @@ Allow users to check ticket numbers against results.
 ## Included
 
 API:
+
 - `GET /api/v1/checker/draws`
 - `POST /api/v1/checker/check`
 
 Features:
-- Ticket number validation
-- Prize matching logic
-- Prize-amount and total-winning calculations
-- Draft-aware partial checker status using released prize groups only
-- Embedded checker on public pages
+
+- ticket number validation
+- prize matching logic
+- prize-amount and total-winning calculations
+- draft-aware partial checker status using released prize groups only
+- embedded checker on public pages
 - URL-driven checker result overlay on `/{locale}/results/{drawDate}?checker=1&ticket=XXXXXX`
-- Valid draw-date options loaded on demand through an anchored custom dropdown rather than a free calendar picker
-- Checker-result overlay emphasizes winning summary first and keeps checked/unchecked prize-group details in a collapsed secondary disclosure
 
 ## Acceptance Criteria
 
-- Valid numbers can be checked
-- Invalid input returns validation error
-- Correct prize categories returned
-- Checker returns matched prize amounts plus `totalWinningAmount`
-- Public Bangkok-today drafts can be checked with `partial` status
-- Embedded checker can navigate to the selected draw detail page and open the checker overlay
-- Draw options include only publicly checkable draws
+- valid numbers can be checked
+- invalid input returns validation error
+- correct prize categories are returned
+- checker returns matched prize amounts plus `totalWinningAmount`
+- public Bangkok-today drafts can be checked with `partial` status
+- embedded checker can navigate to the selected draw detail page and open the checker overlay
+- draw options include only publicly checkable draws
 
-------------------------------------------------------------------------
+---
 
-# Slice 5 --- Blog Public Reading
+# Slice 5 -- Blog Public Reading
 
 ## Goal
 
@@ -214,26 +219,29 @@ Provide SEO-friendly multilingual blog content.
 ## Included
 
 Database:
+
 - `blog_posts`
 - `blog_post_translations`
 
 API:
-- Blog list endpoint
-- Blog detail endpoint
+
+- blog list endpoint
+- blog detail endpoint
 
 Web:
-- Blog listing page
-- Blog detail page
+
+- blog listing page
+- blog detail page
 
 ## Acceptance Criteria
 
-- Users can browse blog posts
-- Blog content loads based on locale
-- Only published posts are visible
+- users can browse blog posts
+- blog content loads based on locale
+- only published posts are visible
 
-------------------------------------------------------------------------
+---
 
-# Slice 6 --- Admin Blog Management
+# Slice 6 -- Admin Blog Management
 
 ## Goal
 
@@ -242,171 +250,139 @@ Allow admins to manage blog content.
 ## Included
 
 Admin features:
-- Create blog post
-- Edit post
-- Manage translations
-- Publish/unpublish posts
+
+- create blog post
+- edit post metadata
+- manage translations
+- publish and unpublish posts
 
 ## Acceptance Criteria
 
-- Admin can create drafts
-- Admin can publish blog posts
-- At least one translation required before publishing
+- admin can create drafts
+- admin can publish blog posts
+- at least one valid translation is required before publishing
 
-------------------------------------------------------------------------
+---
 
-# Slice 7 --- Mobile Public MVP
+# Slice 7 -- Blog Banner Uploads and Home-Page Teasers
 
 ## Goal
 
-Provide core public features on mobile.
+Add the remaining blog content presentation work to the OSS web product before the broader refinement pass.
 
 ## Included
 
-Mobile app pages:
-- Latest results
-- Result history
-- Result detail
-- Number checker
-- Blog reading
+Public web:
+
+- add blog teasers to the locale landing page
+- refine home-page content presentation so results and blog discovery work together cleanly
+
+Blog operations:
+
+- support blog banner uploads via object storage
+- keep `banner_image_url` as the persisted blog banner reference
+
+Architecture:
+
+- treat object storage as an optional new dependency introduced by this slice, not a requirement of earlier slices
 
 ## Acceptance Criteria
 
-- Mobile app can load results
-- Mobile checker works
-- Blog pages render correctly
+- `/{locale}` includes blog teasers without regressing the latest-result and history entry-point experience
+- admins can attach blog banners through an upload flow backed by object storage
+- public blog cards and blog detail pages can render uploaded banner assets
+- earlier OSS slices still work without requiring non-blog infrastructure changes
 
-------------------------------------------------------------------------
+---
 
-# Slice 8 --- User Accounts + Saved Tickets
+# Slice 8 -- Web Refinement and Production Readiness
 
 ## Goal
 
-Allow users to save lottery tickets.
+Finish the remaining public-web cleanup, localization refinement, and end-to-end verification work so the OSS website is ready for production use before mobile work begins.
 
 ## Included
 
-Database:
-- `users`
-- `saved_tickets`
+Localization and content polish:
 
-Features:
-- User authentication
-- Save ticket numbers
-- Edit and delete tickets
-- Add ticket notes
+- refine language translation changes across the public website and admin surfaces where needed
+- resolve copy inconsistencies introduced during earlier slices
+
+UI cleanup:
+
+- remove dead styles
+- remove unnecessary wrapper containers
+- simplify presentation structure where extra layout layers are no longer needed
+
+Readiness and verification:
+
+- test the whole website across public and admin flows
+- fix production-readiness issues discovered during the verification pass
 
 ## Acceptance Criteria
 
-- User can register/login
-- Tickets can be saved
-- Notes persist correctly
+- supported-language content is consistent across key public pages and implemented admin flows
+- dead style rules and unnecessary wrapper containers are removed without visual regressions
+- core public and admin user journeys are tested end to end
+- the OSS website is in a production-ready state before mobile implementation starts
 
-------------------------------------------------------------------------
+---
 
-# Slice 9 --- Notification Preferences
-
-## Goal
-
-Enable push notifications and reminders.
-
-## Included
-
-Database:
-- `user_devices`
-- `notification_preferences`
-
-Features:
-- Device registration
-- Notification preference settings
-- Reminder scheduling base
-
-## Acceptance Criteria
-
-- Device tokens can be registered
-- Users can configure preferences
-- Reminder settings stored per user
-
-------------------------------------------------------------------------
-
-# Slice 10 --- Analytics + Admin Dashboard
+# Slice 9 -- Mobile Public MVP
 
 ## Goal
 
-Provide basic analytics for administrators.
+Provide the core public OSS experience on mobile.
 
 ## Included
 
-Database:
-- `analytics_events`
+Mobile app surfaces:
 
-Features:
-- Event tracking
-- Admin dashboard summary
-
-Metrics:
-- Result page views
-- Checker usage
-- Blog views
-
-## Acceptance Criteria
-
-- Analytics events recorded
-- Dashboard displays summary metrics
-
-------------------------------------------------------------------------
-
-# Slice 11 --- Redis Performance Hardening
-
-## Goal
-
-Improve performance for high traffic result queries.
-
-## Included
-
-Caching:
-- Latest result
-- Result history
-- Draw detail
+- latest results
+- result history
+- result detail
+- number checker
+- blog reading
+- language switching
 
 Rules:
-- Cache invalidated when results are released, unreleased, published, or corrected
-- PostgreSQL remains source of truth
-- System falls back to DB if Redis fails
+
+- mobile is public-only in OSS scope
+- mobile consumes the shared backend and shared contracts where appropriate
+- no user accounts, saved tickets, notifications, analytics features, or monetization-specific flows are included
 
 ## Acceptance Criteria
 
-- Cached responses return correct data
-- Cache invalidation works
-- Redis outage does not break API
+- mobile app can load latest, history, and detail result data
+- mobile checker works against the shared API
+- blog list and blog detail render correctly
+- locale switching works for supported languages
 
-------------------------------------------------------------------------
+---
 
 # Recommended Execution Order
 
-1. Slice 0 --- Foundation Skeleton
-2. Slice 1 --- Results Browsing Core
-3. Slice 2 --- Admin Platform Foundation and Result Management
-4. Slice 3 --- Product Refinement (Results + Admin UX)
-5. Slice 4 --- Number Checker
-6. Slice 5 --- Blog Public Reading
-7. Slice 6 --- Admin Blog Management
-8. Slice 7 --- Mobile Public MVP
-9. Slice 8 --- User Accounts + Saved Tickets
-10. Slice 9 --- Notification Preferences
-11. Slice 10 --- Analytics + Admin Dashboard
-12. Slice 11 --- Redis Performance Hardening
+1. Slice 0 -- Foundation Skeleton
+2. Slice 1 -- Results Browsing Core
+3. Slice 2 -- Admin Platform Foundation and Result Management
+4. Slice 3 -- Product Refinement (Results + Admin UX)
+5. Slice 4 -- Number Checker
+6. Slice 5 -- Blog Public Reading
+7. Slice 6 -- Admin Blog Management
+8. Slice 7 -- Blog Banner Uploads and Home-Page Teasers
+9. Slice 8 -- Web Refinement and Production Readiness
+10. Slice 9 -- Mobile Public MVP
 
-------------------------------------------------------------------------
+---
 
 # Implementation Principle
 
 Each slice should deliver:
 
-- Database schema changes if needed
-- Domain logic
+- database schema changes if needed
+- domain logic
 - API endpoints
-- Web/mobile UI
-- Tests
+- web or mobile UI as appropriate
+- tests
 
-This ensures every slice results in a **working feature** rather than incomplete layers.
+This keeps every slice aligned to a working feature rather than an incomplete technical layer.
