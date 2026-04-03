@@ -3,26 +3,37 @@
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document defines the **functional and non-functional requirements** for the Thai Lottery Checker system.  
-It translates the project planning and product discussions into clear requirements that guide development, testing, and deployment.
+
+This document defines the functional and non-functional requirements for the open-source Thai Lottery Checker system.
+It is aligned to the current repository implementation through Slice 6 and the planned public-only Mobile MVP that will be added later.
 
 ### 1.2 System Overview
-Thai Lottery Checker is a **multilingual lottery result platform** consisting of:
 
-- Public website
-- Mobile application
-- Backend API services
-- Admin management dashboard
+Thai Lottery Checker is a multilingual full-stack product consisting of:
 
-The platform enables users to:
+- a public web application
+- a planned public-only mobile MVP for anonymous read-only use
+- a backend API
+- an admin dashboard
 
-- View Thai lottery results
-- Check their lottery ticket numbers
-- Save ticket numbers in the mobile app
-- Receive reminders and notifications
-- Read informational blog articles about Thai lottery
+The platform enables public users to:
+
+- view Thai lottery results
+- browse result history
+- open result detail pages
+- check lottery ticket numbers
+- read multilingual blog content
+- switch application language
+
+The platform enables admin users to:
+
+- authenticate into the admin dashboard
+- manage lottery results with draft, staged release, publish, and correction workflows
+- manage blog content
+- manage admin access and governance flows already implemented in the repository
 
 ### 1.3 Supported Languages
+
 The system must support:
 
 - English (`en`)
@@ -31,238 +42,143 @@ The system must support:
 
 Localization must apply to:
 
-- User interface text
-- Navigation
-- Blog content
-- System messages
+- user interface text
+- navigation
+- public result pages
+- blog content
+- admin-facing messages where implemented
 
----
+## 2. User Roles
 
-# 2. User Roles
+### 2.1 Anonymous User
 
-## 2.1 Anonymous User
-
-Users accessing the website or mobile application without authentication.
-
-Capabilities:
-
-- View latest lottery results
-- View historical results
-- Check lottery ticket numbers
-- Read blog content
-- Switch application language
-
----
-
-## 2.2 Registered User (Mobile)
-
-Mobile users who create accounts.
+Users accessing the public web application today, and the planned public-only mobile MVP later, without authentication.
 
 Capabilities:
 
-- Save lottery ticket numbers
-- Add notes for ticket storage location
-- Manage notification preferences
-- Receive push notifications
-- View saved ticket history
+- view latest lottery results
+- view historical lottery results
+- view result detail by draw date
+- check lottery ticket numbers against public results
+- read blog list and blog detail content
+- switch application language
 
----
-
-## 2.3 Admin User
+### 2.2 Admin User
 
 Internal operators responsible for managing the platform.
 
 Capabilities:
 
-- Login to admin dashboard
-- Enter lottery results
-- Edit lottery results
-- Publish results
-- Create blog posts
-- Edit blog posts
-- Publish blog posts
-- View analytics dashboard
+- login to the admin dashboard
+- maintain authenticated admin sessions
+- accept invitations and complete onboarding
+- request and complete password reset
+- manage admin access when authorized as `super_admin`
+- create and update result drafts
+- release and unrelease prize groups before final publish
+- publish results
+- correct published results
+- create, edit, publish, and unpublish blog posts
+- rely on audit logging for sensitive admin actions
 
----
+## 3. Functional Requirements
 
-# 3. Functional Requirements
+### 3.1 Lottery Results
 
-## 3.1 Lottery Results
+FR-1: The system must display the latest Thai lottery draw results.
 
-FR-1: The system must display the **latest Thai lottery draw results**.
+FR-2: The system must allow anonymous users to view historical published lottery results.
 
-FR-2: The system must allow users to view **historical lottery results**.
+FR-3: The system must display detailed results for a specific draw date.
 
-FR-3: The system must display **detailed results for a specific draw date**.
+FR-4: Lottery results must support a staged public release model where a current draw may remain in `draft` while released prize groups are visible and unreleased prize groups remain placeholder-only.
 
-FR-4: Lottery results must support a **staged public release model** where draft draws may expose released prize groups while unreleased prize groups remain placeholder-only until final publish.
+FR-5: Admin users must be able to correct previously published results.
 
-FR-5: Admin users must be able to **correct previously published results**.
+FR-6: Result pages must support multilingual labels and UI elements.
 
-FR-6: Result pages must support **multilingual labels and UI elements**.
+FR-7: The landing page at `/{locale}/` must provide a latest-result preview and published-history entry point for public users.
 
-FR-6A: The landing page at `/{locale}/` must provide a latest-result preview and published-history entry point for public users.
+FR-8: Public history browsing must remain published-only even when latest and detail pages expose the current draw-day draft.
 
----
+### 3.2 Number Checker
 
-## 3.2 Number Checker
+FR-9: The system must provide a public number-checking capability for 6-digit ticket numbers.
 
-FR-7: Users must be able to **enter their lottery ticket numbers**.
+FR-10: The system must compare entered numbers with official results for one selected public draw.
 
-FR-8: The system must **compare ticket numbers with official results**.
+FR-11: The system must validate ticket numbers before checking.
 
-FR-9: The system must display **whether the ticket matches any prize category**.
+FR-12: The system must return clear match, non-match, or partial-result states based on public result availability.
 
-FR-10: Ticket numbers must be **validated before checking**.
+FR-13: The public checking experience must align with the implemented embedded web flow and draw-detail overlay result pattern.
 
-FR-11: The system must display **clear match or non-match results**.
+### 3.3 Blog System
 
----
+FR-14: Users must be able to view a list of published blog articles.
 
-## 3.3 Blog System
+FR-15: Users must be able to read individual published blog posts.
 
-FR-12: Users must be able to **view a list of blog articles**.
+FR-16: Blog posts must support multiple languages.
 
-FR-13: Users must be able to **read individual blog posts**.
+FR-17: Admin users must be able to create blog posts.
 
-FR-14: Blog posts must support **multiple languages**.
+FR-18: Admin users must be able to edit blog posts and translations.
 
-FR-15: Admin users must be able to **create blog posts**.
+FR-19: Admin users must be able to publish and unpublish blog posts.
 
-FR-16: Admin users must be able to **edit blog posts**.
+### 3.4 Admin Platform
 
-FR-17: Admin users must be able to **publish blog posts**.
+FR-20: Admin users must authenticate to access the dashboard.
 
----
+FR-21: The system must support invitation-based admin onboarding.
 
-## 3.4 Saved Tickets (Mobile Feature)
+FR-22: The system must support admin password reset and recovery.
 
-FR-18: Users must be able to **save lottery ticket numbers**.
+FR-23: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
 
-FR-19: Users must be able to **attach notes to saved tickets**.
+FR-24: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
 
-FR-20: Users must be able to **edit saved tickets**.
+FR-25: Admin users with `manage_blogs` permission must be able to manage blog metadata and translations.
 
-FR-21: Users must be able to **delete saved tickets**.
+FR-26: Sensitive admin actions must be recorded in audit logs.
 
-FR-22: Users must be able to **view their saved ticket list**.
+## 4. Non-Functional Requirements
 
----
+### 4.1 Performance
 
-## 3.5 Notifications
+NFR-1: Public result pages and number-checking flows must remain responsive for users.
 
-FR-23: Mobile devices must be able to **register for push notifications**.
+NFR-2: The system must handle high traffic spikes during Thai lottery draw announcements.
 
-FR-24: Users must be able to **manage notification preferences**.
+NFR-3: Hot read paths may use optional caching, but correctness must not depend on a cache being present.
 
-FR-25: The system must support **buy reminder notifications**.
+### 4.2 Reliability
 
-FR-26: The system must support **draw reminder notifications**.
+NFR-4: Lottery results must remain accurate and internally consistent.
 
-FR-27: The system must support **result release notifications**.
+NFR-5: System failures must not corrupt canonical stored data.
 
----
+NFR-6: The system must degrade gracefully if optional caching infrastructure is unavailable.
 
-## 3.6 Admin Management
+### 4.3 Security
 
-FR-28: Admin users must authenticate to access the dashboard.
+NFR-7: Admin authentication must use secure password storage and secure credential handling.
 
-FR-29: Admin users must be able to **create lottery results**.
+NFR-8: Access control must restrict admin-only functionality to authorized users.
 
-FR-30: Admin users must be able to **update lottery results**.
+NFR-9: Sensitive admin flows such as invitations, password resets, and result correction must be auditable.
 
-FR-31: Admin users must be able to **publish lottery results**.
+### 4.4 Maintainability
 
-FR-31A: Admin users must be able to **release and unrelease prize groups before final publish**.
+NFR-10: The system must follow modular architecture principles within the monorepo.
 
-FR-32: Admin users must be able to **manage blog posts**.
+NFR-11: Shared business logic, schemas, and types must be reusable across the web app, API, and planned mobile client.
 
-FR-33: Admin users must be able to **view dashboard metrics**.
+NFR-12: Logging and audit trails must support debugging, operational review, and correction traceability.
 
-FR-34: Admin actions must be **recorded in audit logs**.
+### 4.5 Localization
 
-FR-34A: Staged-release actions and published-result corrections must remain auditable.
+NFR-13: The system must support multilingual user interfaces and localized public content.
 
----
-
-# 4. Non-Functional Requirements
-
-## 4.1 Performance
-
-NFR-1: Result pages must load quickly for users.
-
-NFR-2: The system must handle **high traffic spikes during lottery draw announcements**.
-
-NFR-3: Frequently accessed endpoints must support **caching mechanisms**.
-
----
-
-## 4.2 Reliability
-
-NFR-4: Lottery results must remain **accurate and consistent**.
-
-NFR-5: System failures must not **corrupt stored data**.
-
-NFR-6: The system must **degrade gracefully** if caching services fail.
-
----
-
-## 4.3 Security
-
-NFR-7: Admin authentication must use **secure password storage**.
-
-NFR-8: Sensitive user data must be **protected**.
-
-NFR-9: Access control must **restrict admin-only functionality**.
-
----
-
-## 4.4 Scalability
-
-NFR-10: The system must support **horizontal infrastructure scaling**.
-
-NFR-11: The system must remain **stable during peak lottery traffic**.
-
----
-
-## 4.5 Maintainability
-
-NFR-12: The system must follow **modular architecture principles**.
-
-NFR-13: Shared business logic must be **reusable across web and mobile applications**.
-
-NFR-14: Logging must support **debugging and monitoring**.
-
----
-
-## 4.6 Localization
-
-NFR-15: The system must support **multilingual user interfaces**.
-
-NFR-16: The website must support **language-based routing**.
-
----
-
-## 4.7 Observability
-
-NFR-17: System performance must be **monitored**.
-
-NFR-18: User events must be **tracked for analytics**.
-
----
-
-# 5. Assumptions
-
-- Lottery result data will be manually entered by administrators.
-- Web and mobile platforms will share a common backend API.
-- Initial monetization will rely on advertisement revenue.
-- Multilingual support will be implemented from the first release.
-- Draw-day business rules are evaluated in the Thailand business timezone (`Asia/Bangkok`).
-
----
-
-# 6. Constraints
-
-- No official public API currently exists for Thai lottery results.
-- Result accuracy depends on manual data entry.
-- Infrastructure must support traffic spikes during draw days.
+NFR-14: Locale-aware routing must remain consistent across public web routes and the planned mobile client contract.
