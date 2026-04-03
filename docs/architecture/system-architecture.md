@@ -2,74 +2,76 @@
 
 ## 1. Overview
 
-This document describes the **system architecture** of the Thai Lottery Checker platform.
+This document describes the system architecture of the open-source Thai Lottery Checker platform.
 
-The system is designed as a **multilingual digital ecosystem** consisting of:
+The current repository is designed as a multilingual full-stack system consisting of:
 
-- Public Website
-- Mobile Application
-- Backend API
-- Admin Dashboard
-- Supporting Infrastructure (Database, Cache, Storage)
+- a public web client
+- a planned public-only mobile client
+- a backend API
+- a protected admin dashboard inside the web app
+- a PostgreSQL database
+- shared monorepo packages
 
-The architecture follows a **modular monolith backend with shared services** to simplify development while maintaining scalability for draw-day traffic spikes.
+The backend follows a modular monolith architecture so the repository stays straightforward to operate while still supporting draw-day traffic spikes and future public mobile reuse.
 
----
-
-# 2. Architecture Goals
-
-The architecture is designed to achieve the following goals:
+## 2. Architecture Goals
 
 ### Scalability
-Support traffic spikes during Thai lottery draw announcements.
+
+Support traffic spikes during Thai lottery draw announcements without changing the core architecture shape.
 
 ### Performance
-Ensure fast response times for result pages and number checking.
+
+Keep public result pages and checker flows responsive.
 
 ### Reliability
-Ensure accurate result data and stable system behavior.
+
+Preserve result accuracy and stable operational behavior.
 
 ### Maintainability
-Use modular services and shared packages to simplify development.
 
-### Multilingual Support
+Use modular backend services and shared packages to simplify development across the monorepo.
+
+### Multilingual support
+
 Provide consistent experiences for English, Thai, and Myanmar users.
 
----
-
-# 3. High-Level System Architecture
+## 3. High-Level System Architecture
 
 ```text
 Users
-├─ Website (Next.js)
-├─ Mobile App (React Native + Expo)
-└─ Admin Dashboard (Next.js)
-```
+├─ Public Web Client (Next.js)
+├─ Planned Public Mobile Client
+└─ Admin Dashboard (protected routes in Next.js)
 
-Clients communicate with 
+Clients communicate with:
+└─ Backend API (Express + TypeScript)
+    ├─ Results Service
+    ├─ Checker Service
+    ├─ Blog Service
+    ├─ Admin Service
+    └─ PostgreSQL
 
-`Backend API (Express + TypeScript)`
-
-```text
-Backend API connects to
-├─ PostgreSQL Database
-├─ Redis Cache
-└─ Object Storage (media files)
+Shared Monorepo Packages
+├─ packages/types
+├─ packages/schemas
+├─ packages/domain
+├─ packages/i18n
+└─ packages/utils
 ```
 
 ### System Layers
 
-1. Client Layer
-2. API Layer
-3. Service Layer
-4. Data Layer
-5. Infrastructure Layer
+1. Client layer
+2. API layer
+3. Service layer
+4. Data layer
+5. Shared contract and domain layer
 
----
+## 4. Client Applications
 
-# 4. Client Applications
-
-## 4.1 Public Website
+### 4.1 Public Website
 
 Technology:
 
@@ -79,173 +81,112 @@ Technology:
 
 Responsibilities:
 
-- Render the locale landing page at `/{locale}/`
-- Display latest lottery results
-- Display historical results
-- Provide number checking interface
-- Display blog content
-- Provide SEO optimized pages
-- Support multilingual routing
-- Use Tailwind CSS 4 as the baseline styling system for public web pages
+- render the locale landing page at `/{locale}`
+- display latest lottery results
+- display published historical results
+- render result detail pages by draw date
+- provide the embedded public number-checking flow
+- display blog list and blog detail content
+- support multilingual routing
 
 Example routes:
+
 - `/{locale}`
 - `/{locale}/results`
 - `/{locale}/results/history`
 - `/{locale}/results/{drawDate}`
 - `/{locale}/blog`
 - `/{locale}/blog/{slug}`
-- `/en`
-- `/th`
-- `/my`
----
 
-## 4.1.1 Web Application Scope
+### 4.2 Web Application Scope
 
-The Next.js web application contains:
+The Next.js application contains both:
 
 - public user-facing pages
-- a protected admin area under admin routes such as `/admin`
+- a protected admin area under `/admin`
 
-Admin routes are protected and use the same backend API as the public website and mobile application.
+Admin routes use the same backend API as the public website and the planned public mobile client.
 
-The admin UI includes screens for:
+Implemented admin UI surfaces include:
 
 - admin login
 - invitation acceptance
-- password reset
+- password reset request and confirmation
 - admin management
 - result operations
 - blog operations
 
----
+### 4.3 Planned Mobile Application
 
-## 4.2 Mobile Application
+The OSS roadmap includes a public-only mobile client, but the repository does not yet contain an `apps/mobile` workspace.
 
-Technology:
+Planned responsibilities:
 
-- React Native
-- Expo
+- display latest lottery results
+- display published history
+- display result detail
+- provide public number checking
+- display blog content
+- support language switching
 
-Responsibilities:
+This mobile client is intentionally read-only for anonymous public usage.
+Accounts, saved tickets, notifications, and device registration are outside OSS scope.
 
-- Display lottery results
-- Provide number checker
-- Allow users to save tickets
-- Store ticket notes
-- Manage notification preferences
-- Receive push notifications
+## 5. Backend Architecture
 
-Key mobile features:
-
-- Saved tickets
-- Reminder notifications
-- Lightweight local caching
-
----
-
-## 4.3 Admin Dashboard
-
-Technology:
-
-- Next.js (protected routes)
-
-Responsibilities:
-
-- Admin authentication
-- Invitation acceptance
-- Password reset request and confirmation
-- Admin management
-- Result data entry
-- Result publishing and correction
-- Blog management
-- View platform analytics
-
-Admin routes example:
-
-- `/admin/login`
-- `/admin/invitations/accept`
-- `/admin/reset-password/request`
-- `/admin/reset-password/confirm`
-- `/admin/admins`
-- `/admin/results`
-- `/admin/blogs`
-- `/admin/dashboard`
-
----
-
-# 5. Backend Architecture
-
-## 5.1 Backend Technology
+### 5.1 Backend Technology
 
 - Node.js
 - Express
 - TypeScript
 - Prisma 7
 
-The backend exposes **REST API endpoints** used by:
+The backend exposes REST API endpoints used by:
 
-- Web application
-- Mobile application
-- Admin dashboard
+- the public web application
+- the planned public mobile application
+- the admin dashboard
 
 The API bootstrap handles graceful shutdown on `SIGINT` and `SIGTERM` by closing the HTTP server cleanly and disconnecting Prisma before exit.
 
----
-
-## 5.2 Backend Layers
+### 5.2 Backend Layers
 
 The backend follows a layered structure:
-- Routes
-- Controllers
-- Services
-- Repositories
-- Database
 
-### Routes
+- routes
+- controllers
+- services
+- repositories
+- database access
 
-Define API endpoints.
-
-Example:
+Example public routes:
 
 - `GET /api/v1/results/latest`
+- `GET /api/v1/results`
+- `GET /api/v1/results/:drawDate`
 - `GET /api/v1/checker/draws`
 - `POST /api/v1/checker/check`
+- `GET /api/v1/blogs`
+- `GET /api/v1/blogs/:slug`
 
-### Controllers
+Example admin route groups:
 
-Handle HTTP requests and responses.
+- `/api/v1/admin/auth`
+- `/api/v1/admin/results`
+- `/api/v1/admin/blogs`
+- `/api/v1/admin/admins`
 
-### Services
-
-Contain business logic such as:
-
-- result matching
-- number checking
-- result publishing
-- admin authentication and authorization
-- invitation and password reset handling
-
-### Repositories
-
-Handle database queries.
-
----
-
-## 5.2.1 Number Checker Flow
+### 5.3 Number Checker Flow
 
 The public checker is implemented as an embedded web capability rather than a standalone page.
 
 Web flow:
 
 - public pages render an embedded checker beside key result content
-- latest/detail result surfaces may shift to a side-by-side checker layout earlier than the history page; history remains stacked until larger desktop widths
 - the checker defaults to the current page context or latest public draw
-- valid draw options are loaded lazily from the backend
-- draw selection uses an anchored custom menu so resize behavior stays stable across supported breakpoints
+- valid draw options are loaded from the backend
 - submit navigates to the draw detail page for the selected draw
-- the draw detail page opens a checker-result overlay using URL query params
-- the overlay prioritizes winning amount and match cards, while prize-group coverage is summarized first and detailed checked/unchecked groups live behind a disclosure
+- the draw detail page uses URL query params to open a checker-result overlay
 
 Canonical checker-result URL pattern:
 
@@ -255,397 +196,201 @@ Backend behavior:
 
 - `GET /api/v1/checker/draws` returns valid public checker draw options
 - `POST /api/v1/checker/check` validates a 6-digit ticket number and checks it against one public draw
-- if `drawDate` is omitted, the checker uses the same latest-public draw rule as the result pages
+- if `drawDate` is omitted, the checker uses the same latest-public draw rule as result pages
 - published draws return a `complete` checker result
 - public drafts may return a `partial` checker result based on released prize groups only
 
----
+### 5.4 Admin Authentication and Authorization
 
-## 5.3 Admin Authentication and Authorization
-
-The backend is the single source of truth for admin authentication and authorization.
+The backend is the source of truth for admin authentication and authorization.
 
 Responsibilities include:
 
-- admin login endpoint handling
-- session or token establishment for authenticated admin access
-- current-admin session resolution for protected requests
+- admin login handling
+- current-admin session resolution
 - invitation creation and acceptance
 - password reset request and token consumption
-- admin creation or invitation flows
-- admin activation and deactivation
-- admin permission assignment
+- admin creation and deactivation flows
+- permission assignment and enforcement
 
-All admin-sensitive operations are validated and authorized in the backend before any data is changed.
-
-### Authorization model
+Authorization model:
 
 - `super_admin` has full access
 - `editor` access is limited by assigned permissions
-- Example permissions include `manage_results` and `manage_blogs`
-- Authorization is enforced per request through backend middleware or guards
-- The UI should hide unauthorized actions, but the backend must enforce security
+- current repository permissions are `manage_results` and `manage_blogs`
+- the UI may hide unauthorized actions, but the backend must enforce security on every protected request
 
-### Authentication flow
+## 6. Core Backend Services
 
-- Admin submits email and password to the backend
-- Backend validates credentials and establishes the authenticated session
-- The web app sends authenticated admin requests with the session credentials
-- The backend resolves the current admin identity for protected requests
-- The same session is reused across admin routes
-- A current-session endpoint such as `/admin/auth/me` may be used to load the active admin session
-
-### Invitation flow
-
-- `super_admin` creates an admin invitation
-- Backend generates a secure invitation token and stores only its hash
-- Backend returns the invitation link for delivery
-- In MVP, the invitation link may be shared manually instead of being emailed
-- Invited admin accepts the invitation, sets a password, and activates the account
-- Email delivery can be added later without changing the core architecture
-
-### Password reset flow
-
-- Admin requests a password reset
-- Backend generates a secure reset token and stores only its hash
-- In MVP or development, the reset link may be returned directly instead of being emailed
-- Admin submits a new password through the reset flow using the token
-
----
-
-# 6. Core Backend Services
-
-## 6.1 Results Service
+### 6.1 Results Service
 
 Responsibilities:
 
-- Retrieve latest results
-- Retrieve historical results
-- Retrieve result details
-- Resolve staged prize-group visibility for public latest/detail reads
-- Apply `Asia/Bangkok` draw-day latest-selection rules
-- Publish results
-- Release and unrelease prize groups before final publish
-- Correct published results in place
-- Trigger cache invalidation
-- Ensure history remains published-only while latest/detail may expose partially released draft draws
+- retrieve latest results
+- retrieve historical results
+- retrieve result details
+- resolve staged prize-group visibility for public latest and detail reads
+- apply `Asia/Bangkok` draw-day latest-selection rules
+- publish results
+- release and unrelease prize groups before final publish
+- correct published results in place
 
 Result workflow:
 
-- Results are created and edited in `draft`
-- Prize groups can be released or unreleased before final publish
-- Publishing changes the draw to `published`
-- Public history APIs serve only `published` draws
-- Public latest/detail APIs may serve a partially released current draw
-- Corrections modify the published data in place
-- Release, unrelease, publish, and correction trigger audit logging and cache invalidation
+- results are created and edited in `draft`
+- prize groups can be released or unreleased before final publish
+- publishing changes the draw to `published`
+- public history APIs serve only `published` draws
+- public latest and detail APIs may serve a partially released current draw
+- corrections modify published data in place while remaining auditable
 
----
-
-## 6.2 Number Checker Service
+### 6.2 Checker Service
 
 Responsibilities:
 
-- Validate ticket numbers
-- Compare numbers with official results
-- Determine prize matches
-- Return match results
+- validate ticket numbers
+- compare numbers with official results
+- determine prize matches
+- return match details and partial-state behavior when only some prize groups are public
 
----
-
-## 6.3 Blog Service
+### 6.3 Blog Service
 
 Responsibilities:
 
-- Retrieve blog posts
-- Manage multilingual blog content
-- Admin blog creation and publishing
+- retrieve published blog posts
+- retrieve localized blog detail content
+- manage blog metadata and translations through admin workflows
+- publish and unpublish blog posts
 
----
-
-## 6.4 Ticket Service
-
-Responsibilities:
-
-- Save ticket numbers
-- Update ticket notes
-- Delete saved tickets
-- Retrieve user tickets
-
----
-
-## 6.5 Notification Service
+### 6.4 Admin Service
 
 Responsibilities:
 
-- Store device tokens
-- Manage notification preferences
-- Trigger push notifications
+- admin authentication
+- invitation-based onboarding
+- password reset and recovery
+- permission-aware admin governance
+- admin management
+- result-management authorization
+- blog-management authorization
+- audit logging
 
-Notification types:
+## 7. Data Architecture
 
-- Buy reminder
-- Draw reminder
-- Result reminder
-
----
-
-## 6.6 Admin Service
-
-Responsibilities:
-
-- Admin authentication
-- Invitation-based onboarding
-- Password reset and recovery flows
-- Role and permission enforcement support
-- Admin management
-- Result management
-- Blog management
-- Audit logging
-- Dashboard metrics
-
-Examples of audited actions include:
-
-- admin login
-- admin invitation creation
-- password reset actions
-- result creation
-- result update
-- result group release
-- result group unrelease
-- result publish
-- result correction
-
----
-
-# 7. Data Architecture
-
-## 7.1 Primary Database
+### 7.1 Primary Database
 
 Technology:
 
 - PostgreSQL
 - Prisma 7 client and migration tooling
 
-PostgreSQL is the **canonical source of truth** for all system data.
+PostgreSQL is the canonical source of truth for system data.
 
 Key entities:
 
-- Lottery draws
-- Lottery results
-- Lottery result group releases
-- Blog posts
-- Blog translations
-- Users
-- Saved tickets
-- Notification preferences
-- Admin users
-- Admin permissions
-- Admin invitations
-- Admin password resets
-- Admin audit logs
+- lottery draws
+- lottery results
+- lottery result group releases
+- blog posts
+- blog translations
+- admin users
+- admin permissions
+- admin invitations
+- admin password resets
+- admin audit logs
 
 Critical admin actions are recorded in `admin_audit_logs` to support traceability and operational safety.
 
----
+### 7.2 Optional Infrastructure
 
-## 7.2 Cache Layer
+The current OSS architecture does not require Redis or any other cache layer.
+If later performance hardening adds caching, PostgreSQL must remain the source of truth and the system must continue functioning when the cache is unavailable.
 
-Technology:
+Object storage is also not required by the current implementation.
+It may be added in a future OSS slice for blog banner uploads, but today the repository stores only banner URLs in the database.
 
-- Redis
+## 8. Monorepo Structure
 
-Redis is used to improve performance for **high-traffic endpoints**.
+Current repository structure:
 
-Primary cached data:
+- `apps/web`
+- `apps/api`
+- `packages/types`
+- `packages/schemas`
+- `packages/domain`
+- `packages/i18n`
+- `packages/utils`
 
-- Latest results
-- Result details
-- Result history summaries
+Planned addition:
 
-Example Redis keys:
-
-- `results:latest:{locale}`
-- `results:draw:{drawDate}:{locale}`
-- `results:history:{locale}`
-
-Cache invalidation occurs when:
-
-- results are created
-- results are updated
-- result groups are released
-- result groups are unreleased
-- results are corrected
-- results are published
-
----
-
-## 7.3 Object Storage
-
-Used for storing:
-
-- Blog banner images
-- Media assets
-
-Possible providers:
-
-- AWS S3
-- Cloudflare R2
-- Similar object storage service
-
----
-
-# 8. Monorepo Structure
-
-The project will use a **monorepo architecture**.
-
-Example structure:
-
-- `thai-lottery-checker/`
-
-- `apps/`
-- `web/`
-- `mobile/`
-- `api/`
-
-- `packages/`
-- `ui/`
-- `types/`
-- `schemas/`
-- `domain/`
-- `utils/`
-- `i18n/`
-
-- `infrastructure/`
-- `docker/`
-- `scripts/`
+- `apps/mobile` for the public-only Mobile MVP
 
 Benefits:
 
-- Shared code between web and mobile
-- Shared domain logic
-- Easier dependency management
-- Unified development workflow
+- shared code between public clients and admin-supporting backend contracts
+- shared domain logic for results and checking
+- unified dependency management
+- consistent localization and validation behavior
 
----
-
-# 9. Localization Architecture
+## 9. Localization Architecture
 
 Localization is implemented at multiple levels.
 
-### UI Localization
+### UI localization
 
-Static translations stored in locale files.
+Shared locale message sets cover public and admin-facing text where implemented.
 
-Example:
+### Content localization
 
-- `/locales/en.json`
-- `/locales/th.json`
-- `/locales/my.json`
+Blog content is stored with explicit locale identifiers in the database.
 
-### Content Localization
+### Routing localization
 
-Blog content stored with language identifiers.
-
-### Routing Localization
-
-Example URLs:
+Public routes are locale-prefixed, for example:
 
 - `/en/results`
 - `/th/results`
 - `/my/results`
 
----
-
-# 10. Notification Architecture
-
-Push notifications are supported in the mobile application.
-
-Process:
-
-1. Device registers notification token
-2. Token stored in backend database
-3. Backend schedules reminder notifications
-4. Notification service sends push messages
-
-Supported reminders:
-
-- Buy ticket reminder
-- Draw opening reminder
-- Result availability reminder
-
----
-
-# 11. Analytics and Monitoring
-
-The system tracks events for analytics and monitoring.
-
-Tracked events:
-
-- Page views
-- Result page visits
-- Number checker usage
-- Blog views
-- Ticket saves
-- Notification interactions
-
-Monitoring includes:
-
-- system health
-- response time
-- traffic spikes
-- error tracking
-
----
-
-# 12. Deployment Architecture
+## 10. Deployment Architecture
 
 Typical deployment environment:
 
 Frontend:
 
-- Vercel or similar platform for Next.js
+- Vercel or a similar Next.js-capable platform
 
 Backend:
 
-- Node.js server deployment (container or managed host)
+- Node.js server deployment on a container or managed host
 
 Database:
 
-- Managed PostgreSQL
+- managed PostgreSQL
 
-Cache:
+Optional future infrastructure:
 
-- Managed Redis
+- object storage for blog banner uploads
+- cache layer for hot read paths if later required
 
-Storage:
+## 11. Draw-Day Performance Strategy
 
-- Cloud object storage
+Lottery draw announcements can create large traffic spikes.
 
----
+Current strategy:
 
-# 13. Draw-Day Performance Strategy
+- keep the architecture small and modular
+- optimize database queries for latest, detail, history, and checker flows
+- preserve clean separation between public reads and admin writes
+- leave room for optional caching later without making it required infrastructure
 
-Lottery draw announcements cause large traffic spikes.
-
-Performance strategy includes:
-
-- Redis caching of result endpoints
-- Optimized database queries
-- Rate limiting on heavy endpoints
-- Monitoring and alerting
-
-This ensures result pages remain responsive during peak demand.
-
----
-
-# 14. Architecture Principles
+## 12. Architecture Principles
 
 The system architecture follows these principles:
 
-- Modular backend design
-- Single shared API backend
-- Database as the source of truth
-- Cache used for performance only
-- Multilingual support from day one
-- Infrastructure designed for draw-day spikes
+- modular backend design
+- single shared API backend
+- database as the source of truth
+- optional infrastructure only when justified by implementation
+- multilingual support from day one
+- admin security and auditability as core OSS concerns
