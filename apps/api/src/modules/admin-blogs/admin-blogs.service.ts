@@ -1,5 +1,7 @@
 import { ZodError } from "zod";
 import {
+  adminBlogBannerCompleteRequestSchema,
+  adminBlogBannerUploadInitRequestSchema,
   adminBlogListQuerySchema,
   adminBlogMetadataRequestSchema,
   adminBlogTranslationUpsertRequestSchema,
@@ -7,6 +9,10 @@ import {
   localeSchema
 } from "@thai-lottery-checker/schemas";
 import type {
+  AdminBlogBannerCompleteRequest,
+  AdminBlogBannerUploadInitRequest,
+  AdminBlogBannerUploadInitResponse,
+  AdminBlogBannerUpdateResponse,
   AdminBlogDetailResponse,
   AdminBlogListQuery,
   AdminBlogListResponse,
@@ -18,12 +24,14 @@ import type {
 import { prisma } from "../../db/client.js";
 import { requireAdminPermission } from "../admin-auth/admin-auth.service.js";
 import {
+  adminBlogBannerUnavailableError,
   adminBlogDataInvalidError,
   adminBlogDuplicateSlugError,
   adminBlogInvalidStateError,
   adminBlogNotFoundError,
   invalidAdminBlogRequestError
 } from "./admin-blogs.errors.js";
+import { createBlogBannerStorage, type BlogBannerStorage } from "./admin-blog-banner-storage.js";
 import { mapAdminBlogDetailResponse, mapAdminBlogListResponse } from "./admin-blogs.mapper.js";
 import {
   prismaAdminBlogsRepository,
@@ -91,12 +99,34 @@ export interface AdminBlogsService {
   getBlogDetail(actor: AuthenticatedAdmin, blogId: string): Promise<AdminBlogDetailResponse>;
   createDraft(actor: AuthenticatedAdmin, input: unknown): Promise<AdminBlogDetailResponse>;
   updateMetadata(actor: AuthenticatedAdmin, blogId: string, input: unknown): Promise<AdminBlogDetailResponse>;
+  initBannerUpload(actor: AuthenticatedAdmin, blogId: string, input: unknown): Promise<AdminBlogBannerUploadInitResponse>;
+  completeBannerUpload(actor: AuthenticatedAdmin, blogId: string, input: unknown): Promise<AdminBlogBannerUpdateResponse>;
+  removeBanner(actor: AuthenticatedAdmin, blogId: string): Promise<AdminBlogBannerUpdateResponse>;
   upsertTranslation(actor: AuthenticatedAdmin, blogId: string, locale: unknown, input: unknown): Promise<AdminBlogDetailResponse>;
   publish(actor: AuthenticatedAdmin, blogId: string): Promise<AdminBlogDetailResponse>;
   unpublish(actor: AuthenticatedAdmin, blogId: string): Promise<AdminBlogDetailResponse>;
 }
 
-export function createAdminBlogsService(repository: AdminBlogsRepository = prismaAdminBlogsRepository): AdminBlogsService {
+async function bestEffortDeleteManagedBanner(
+  bannerStorage: BlogBannerStorage,
+  postId: string,
+  objectKey: string | null
+): Promise<void> {
+  if (!objectKey) {
+    return;
+  }
+
+  try {
+    await bannerStorage.deleteObject(objectKey);
+  } catch (error) {
+    console.error(`Failed to delete managed banner object for blog post ${postId}`, error);
+  }
+}
+
+export function createAdminBlogsService(
+  repository: AdminBlogsRepository = prismaAdminBlogsRepository,
+  bannerStorage: BlogBannerStorage = createBlogBannerStorage()
+): AdminBlogsService {
   return {
     async listBlogs(actor, query) {
       requireAdminPermission(actor, "manage_blogs");
@@ -127,7 +157,6 @@ export function createAdminBlogsService(repository: AdminBlogsRepository = prism
 
       const created = await repository.createDraftBlog({
         slug: parsed.slug,
-        bannerImageUrl: normalizeOptionalString(parsed.bannerImageUrl),
         adminId: actor.id
       });
 
@@ -159,7 +188,6 @@ export function createAdminBlogsService(repository: AdminBlogsRepository = prism
       const updated = await repository.updateBlogMetadata({
         blogId: existing.id,
         slug: parsed.slug,
-        bannerImageUrl: normalizeOptionalString(parsed.bannerImageUrl),
         adminId: actor.id
       });
 
@@ -170,6 +198,105 @@ export function createAdminBlogsService(repository: AdminBlogsRepository = prism
         beforeData: buildAuditSnapshot(existing),
         afterData: buildAuditSnapshot(updated)
       });
+
+      return mapAdminBlogDetailResponse(updated);
+    },
+
+    async initBannerUpload(actor, blogId, input) {
+      requireAdminPermission(actor, "manage_blogs");
+      const existing = await repository.findBlogById(blogId);
+
+      if (!existing) {
+        throw adminBlogNotFoundError();
+      }
+
+      if (!bannerStorage.isConfigured()) {
+        throw adminBlogBannerUnavailableError();
+      }
+
+      const parsed = parseBannerUploadInitRequest(input);
+      return bannerStorage.createUpload({
+        blogId: existing.id,
+        fileName: parsed.fileName,
+        contentType: parsed.contentType,
+        fileSize: parsed.fileSize
+      });
+    },
+
+    async completeBannerUpload(actor, blogId, input) {
+      requireAdminPermission(actor, "manage_blogs");
+      const existing = await repository.findBlogById(blogId);
+
+      if (!existing) {
+        throw adminBlogNotFoundError();
+      }
+
+      if (!bannerStorage.isConfigured()) {
+        throw adminBlogBannerUnavailableError();
+      }
+
+      const parsed = parseBannerCompleteRequest(input);
+
+      if (!bannerStorage.isBlogObjectKey(existing.id, parsed.objectKey)) {
+        throw adminBlogDataInvalidError("Uploaded banner object key is invalid");
+      }
+
+      const objectExists = await bannerStorage.objectExists(parsed.objectKey);
+
+      if (!objectExists) {
+        throw adminBlogDataInvalidError("Uploaded banner object was not found");
+      }
+
+      const previousManagedObjectKey = bannerStorage.getManagedObjectKeyFromUrl(existing.bannerImageUrl);
+      const updated = await repository.updateBlogBannerImage({
+        blogId: existing.id,
+        bannerImageUrl: bannerStorage.getPublicUrl(parsed.objectKey),
+        adminId: actor.id
+      });
+
+      await createAuditLog({
+        adminId: actor.id,
+        action: "update_blog",
+        entityId: existing.id,
+        beforeData: buildAuditSnapshot(existing),
+        afterData: buildAuditSnapshot(updated)
+      });
+
+      if (previousManagedObjectKey && previousManagedObjectKey !== parsed.objectKey) {
+        await bestEffortDeleteManagedBanner(bannerStorage, existing.id, previousManagedObjectKey);
+      }
+
+      return mapAdminBlogDetailResponse(updated);
+    },
+
+    async removeBanner(actor, blogId) {
+      requireAdminPermission(actor, "manage_blogs");
+      const existing = await repository.findBlogById(blogId);
+
+      if (!existing) {
+        throw adminBlogNotFoundError();
+      }
+
+      if (existing.bannerImageUrl === null) {
+        return mapAdminBlogDetailResponse(existing);
+      }
+
+      const previousManagedObjectKey = bannerStorage.getManagedObjectKeyFromUrl(existing.bannerImageUrl);
+      const updated = await repository.updateBlogBannerImage({
+        blogId: existing.id,
+        bannerImageUrl: null,
+        adminId: actor.id
+      });
+
+      await createAuditLog({
+        adminId: actor.id,
+        action: "update_blog",
+        entityId: existing.id,
+        beforeData: buildAuditSnapshot(existing),
+        afterData: buildAuditSnapshot(updated)
+      });
+
+      await bestEffortDeleteManagedBanner(bannerStorage, existing.id, previousManagedObjectKey);
 
       return mapAdminBlogDetailResponse(updated);
     },
@@ -303,6 +430,30 @@ function parseTranslationRequest(input: unknown): AdminBlogTranslationUpsertRequ
   } catch (error) {
     if (error instanceof ZodError) {
       throw invalidAdminBlogRequestError("Admin blog translation request is invalid");
+    }
+
+    throw error;
+  }
+}
+
+function parseBannerUploadInitRequest(input: unknown): AdminBlogBannerUploadInitRequest {
+  try {
+    return adminBlogBannerUploadInitRequestSchema.parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminBlogRequestError("Admin blog banner upload request is invalid");
+    }
+
+    throw error;
+  }
+}
+
+function parseBannerCompleteRequest(input: unknown): AdminBlogBannerCompleteRequest {
+  try {
+    return adminBlogBannerCompleteRequestSchema.parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminBlogRequestError("Admin blog banner completion request is invalid");
     }
 
     throw error;

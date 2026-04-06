@@ -5,6 +5,9 @@ import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
 import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
+import { createAdminBlogsService } from "../src/modules/admin-blogs/admin-blogs.service.js";
+import type { AdminBlogsRepository, AdminBlogRepositoryPost } from "../src/modules/admin-blogs/admin-blogs.repository.js";
+import type { BlogBannerStorage } from "../src/modules/admin-blogs/admin-blog-banner-storage.js";
 import { type BlogApiError } from "../src/modules/blog/blog.errors.js";
 import type { BlogRepository } from "../src/modules/blog/blog.repository.js";
 import { createBlogService } from "../src/modules/blog/blog.service.js";
@@ -15,6 +18,7 @@ import { createResultsService } from "../src/modules/results/results.service.js"
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
 import { prisma } from "../src/db/client.js";
+import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
 let server: Server;
 let baseUrl: string;
@@ -113,6 +117,19 @@ async function putJson(
       ...(cookie ? { cookie } : {})
     },
     body: JSON.stringify(body)
+  });
+
+  return {
+    status: response.status,
+    body: (await response.json()) as unknown,
+    setCookie: response.headers.get("set-cookie")
+  };
+}
+
+async function deleteJson(pathname: string, cookie?: string): Promise<{ status: number; body: unknown; setCookie: string | null }> {
+  const response = await fetch(`${baseUrl}${pathname}`, {
+    method: "DELETE",
+    headers: cookie ? { cookie } : undefined
   });
 
   return {
@@ -283,6 +300,38 @@ async function createPublicDraftForToday(): Promise<string> {
   });
 
   return drawDate;
+}
+
+async function createAdminActor(): Promise<AuthenticatedAdmin> {
+  const env = getApiEnv();
+  const admin = await prisma.admin.findUniqueOrThrow({
+    where: {
+      email: env.ADMIN_BOOTSTRAP_EMAIL.toLowerCase()
+    }
+  });
+
+  return {
+    id: admin.id,
+    email: admin.email,
+    name: admin.name ?? "Admin",
+    role: admin.role,
+    effectivePermissions: ["manage_results", "manage_blogs"]
+  };
+}
+
+function createRepositoryPost(overrides: Partial<AdminBlogRepositoryPost> = {}): AdminBlogRepositoryPost {
+  return {
+    id: "11111111-1111-4111-8111-111111111111",
+    slug: "admin-blog-workflow",
+    bannerImageUrl: null,
+    status: "draft",
+    publishedAt: null,
+    createdAt: new Date("2026-04-01T08:00:00.000Z"),
+    updatedAt: new Date("2026-04-01T08:00:00.000Z"),
+    updatedByAdminId: "admin-1",
+    translations: [],
+    ...overrides
+  };
 }
 
 describe("results api", () => {
@@ -1108,8 +1157,7 @@ describe("results api", () => {
     const createDraft = await postJson(
       "/api/v1/admin/blogs",
       {
-        slug: "admin-blog-workflow",
-        bannerImageUrl: "https://example.com/blog/admin-blog-workflow.jpg"
+        slug: "admin-blog-workflow"
       },
       sessionCookie ?? undefined
     );
@@ -1127,8 +1175,7 @@ describe("results api", () => {
     const duplicateCreate = await postJson(
       "/api/v1/admin/blogs",
       {
-        slug: "admin-blog-workflow",
-        bannerImageUrl: null
+        slug: "admin-blog-workflow"
       },
       sessionCookie ?? undefined
     );
@@ -1142,8 +1189,7 @@ describe("results api", () => {
     const duplicateSlugUpdate = await patchJson(
       `/api/v1/admin/blogs/${createdBlogId}`,
       {
-        slug: "how-to-check-thai-lottery",
-        bannerImageUrl: null
+        slug: "how-to-check-thai-lottery"
       },
       sessionCookie ?? undefined
     );
@@ -1153,8 +1199,7 @@ describe("results api", () => {
     const metadataUpdate = await patchJson(
       `/api/v1/admin/blogs/${createdBlogId}`,
       {
-        slug: "admin-blog-workflow-updated",
-        bannerImageUrl: null
+        slug: "admin-blog-workflow-updated"
       },
       sessionCookie ?? undefined
     );
@@ -1240,6 +1285,35 @@ describe("results api", () => {
     assert.equal(auditLogs.every((log) => log.afterData !== null), true);
   });
 
+  it("returns banner upload unavailability when object storage is not configured", async () => {
+    const login = await postJson("/api/v1/admin/auth/login", {
+      email: env.ADMIN_BOOTSTRAP_EMAIL,
+      password: env.ADMIN_BOOTSTRAP_PASSWORD
+    });
+    const sessionCookie = getCookieValue(login.setCookie);
+    const blog = await prisma.blogPost.findFirstOrThrow({
+      select: {
+        id: true
+      }
+    });
+
+    const uploadInit = await postJson(
+      `/api/v1/admin/blogs/${blog.id}/banner/upload-init`,
+      {
+        fileName: "banner.webp",
+        contentType: "image/webp",
+        fileSize: 1024
+      },
+      sessionCookie ?? undefined
+    );
+
+    assert.equal(uploadInit.status, 503);
+    assert.deepEqual(uploadInit.body, {
+      code: "ADMIN_BLOG_BANNER_UNAVAILABLE",
+      message: "Blog banner uploads are not configured"
+    });
+  });
+
   it("enforces admin blog permissions for editors", async () => {
     await ensureEditorAdmin("editor-blogs@thai-lottery-checker.local", "EditorBlogs123!", ["manage_blogs"]);
     await ensureEditorAdmin("editor-no-blogs@thai-lottery-checker.local", "EditorNoBlogs123!", ["manage_results"]);
@@ -1269,13 +1343,269 @@ describe("results api", () => {
     const blockedCreate = await postJson(
       "/api/v1/admin/blogs",
       {
-        slug: "blocked-blog-post",
-        bannerImageUrl: null
+        slug: "blocked-blog-post"
       },
       blockedCookie ?? undefined
     );
 
     assert.equal(blockedCreate.status, 403);
+
+    const blog = await prisma.blogPost.findFirstOrThrow({
+      select: {
+        id: true
+      }
+    });
+
+    const blockedUploadInit = await postJson(
+      `/api/v1/admin/blogs/${blog.id}/banner/upload-init`,
+      {
+        fileName: "banner.webp",
+        contentType: "image/webp",
+        fileSize: 1024
+      },
+      blockedCookie ?? undefined
+    );
+
+    assert.equal(blockedUploadInit.status, 403);
+
+    const blockedDelete = await deleteJson(`/api/v1/admin/blogs/${blog.id}/banner`, blockedCookie ?? undefined);
+    assert.equal(blockedDelete.status, 403);
+  });
+
+  it("completes banner uploads and deletes the previous managed object", async () => {
+    const actor = await createAdminActor();
+    let currentPost = createRepositoryPost({
+      bannerImageUrl: "https://cdn.example.com/blog-banners/11111111-1111-4111-8111-111111111111/old-banner.webp"
+    });
+    const deletedKeys: string[] = [];
+    const repository: AdminBlogsRepository = {
+      async listAdminBlogs() {
+        return [];
+      },
+      async findBlogById(blogId) {
+        return blogId === currentPost.id ? currentPost : null;
+      },
+      async findBlogBySlug() {
+        return null;
+      },
+      async createDraftBlog() {
+        throw new Error("not used");
+      },
+      async updateBlogMetadata() {
+        throw new Error("not used");
+      },
+      async updateBlogBannerImage(input) {
+        currentPost = {
+          ...currentPost,
+          bannerImageUrl: input.bannerImageUrl,
+          updatedAt: new Date("2026-04-02T08:00:00.000Z"),
+          updatedByAdminId: input.adminId
+        };
+        return currentPost;
+      },
+      async upsertBlogTranslation() {
+        throw new Error("not used");
+      },
+      async publishBlog() {
+        throw new Error("not used");
+      },
+      async unpublishBlog() {
+        throw new Error("not used");
+      }
+    };
+    const storage: BlogBannerStorage = {
+      isConfigured() {
+        return true;
+      },
+      async createUpload() {
+        throw new Error("not used");
+      },
+      async objectExists() {
+        return true;
+      },
+      async deleteObject(objectKey) {
+        deletedKeys.push(objectKey);
+      },
+      getPublicUrl(objectKey) {
+        return `https://cdn.example.com/${objectKey}`;
+      },
+      getManagedObjectKeyFromUrl(value) {
+        if (!value || !value.startsWith("https://cdn.example.com/")) {
+          return null;
+        }
+
+        return value.slice("https://cdn.example.com/".length);
+      },
+      isBlogObjectKey(blogId, objectKey) {
+        return objectKey.startsWith(`blog-banners/${blogId}/`);
+      }
+    };
+    const service = createAdminBlogsService(repository, storage);
+
+    const response = await service.completeBannerUpload(actor, currentPost.id, {
+      objectKey: "blog-banners/11111111-1111-4111-8111-111111111111/new-banner.webp"
+    });
+
+    assert.equal(response.post.bannerImageUrl, "https://cdn.example.com/blog-banners/11111111-1111-4111-8111-111111111111/new-banner.webp");
+    assert.deepEqual(deletedKeys, ["blog-banners/11111111-1111-4111-8111-111111111111/old-banner.webp"]);
+  });
+
+  it("rejects invalid or missing uploaded banner objects", async () => {
+    const actor = await createAdminActor();
+    const post = createRepositoryPost();
+    const repository: AdminBlogsRepository = {
+      async listAdminBlogs() {
+        return [];
+      },
+      async findBlogById(blogId) {
+        return blogId === post.id ? post : null;
+      },
+      async findBlogBySlug() {
+        return null;
+      },
+      async createDraftBlog() {
+        throw new Error("not used");
+      },
+      async updateBlogMetadata() {
+        throw new Error("not used");
+      },
+      async updateBlogBannerImage() {
+        throw new Error("not used");
+      },
+      async upsertBlogTranslation() {
+        throw new Error("not used");
+      },
+      async publishBlog() {
+        throw new Error("not used");
+      },
+      async unpublishBlog() {
+        throw new Error("not used");
+      }
+    };
+    const storage: BlogBannerStorage = {
+      isConfigured() {
+        return true;
+      },
+      async createUpload() {
+        throw new Error("not used");
+      },
+      async objectExists() {
+        return false;
+      },
+      async deleteObject() {
+        throw new Error("not used");
+      },
+      getPublicUrl(objectKey) {
+        return `https://cdn.example.com/${objectKey}`;
+      },
+      getManagedObjectKeyFromUrl() {
+        return null;
+      },
+      isBlogObjectKey(blogId, objectKey) {
+        return objectKey.startsWith(`blog-banners/${blogId}/`);
+      }
+    };
+    const service = createAdminBlogsService(repository, storage);
+
+    await assert.rejects(
+      () =>
+        service.completeBannerUpload(actor, post.id, {
+          objectKey: "blog-banners/22222222-2222-4222-8222-222222222222/banner.webp"
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: unknown }).code === "ADMIN_BLOG_DATA_INVALID" &&
+        error.message === "Uploaded banner object key is invalid"
+    );
+
+    await assert.rejects(
+      () =>
+        service.completeBannerUpload(actor, post.id, {
+          objectKey: "blog-banners/11111111-1111-4111-8111-111111111111/missing-banner.webp"
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: unknown }).code === "ADMIN_BLOG_DATA_INVALID" &&
+        error.message === "Uploaded banner object was not found"
+    );
+  });
+
+  it("removes banners and skips deletion for legacy external URLs", async () => {
+    const actor = await createAdminActor();
+    let currentPost = createRepositoryPost({
+      bannerImageUrl: "https://images.example.com/legacy-banner.jpg"
+    });
+    const deletedKeys: string[] = [];
+    const repository: AdminBlogsRepository = {
+      async listAdminBlogs() {
+        return [];
+      },
+      async findBlogById(blogId) {
+        return blogId === currentPost.id ? currentPost : null;
+      },
+      async findBlogBySlug() {
+        return null;
+      },
+      async createDraftBlog() {
+        throw new Error("not used");
+      },
+      async updateBlogMetadata() {
+        throw new Error("not used");
+      },
+      async updateBlogBannerImage(input) {
+        currentPost = {
+          ...currentPost,
+          bannerImageUrl: input.bannerImageUrl,
+          updatedAt: new Date("2026-04-02T09:00:00.000Z"),
+          updatedByAdminId: input.adminId
+        };
+        return currentPost;
+      },
+      async upsertBlogTranslation() {
+        throw new Error("not used");
+      },
+      async publishBlog() {
+        throw new Error("not used");
+      },
+      async unpublishBlog() {
+        throw new Error("not used");
+      }
+    };
+    const storage: BlogBannerStorage = {
+      isConfigured() {
+        return true;
+      },
+      async createUpload() {
+        throw new Error("not used");
+      },
+      async objectExists() {
+        return true;
+      },
+      async deleteObject(objectKey) {
+        deletedKeys.push(objectKey);
+      },
+      getPublicUrl(objectKey) {
+        return `https://cdn.example.com/${objectKey}`;
+      },
+      getManagedObjectKeyFromUrl(value) {
+        if (!value || !value.startsWith("https://cdn.example.com/")) {
+          return null;
+        }
+
+        return value.slice("https://cdn.example.com/".length);
+      },
+      isBlogObjectKey(blogId, objectKey) {
+        return objectKey.startsWith(`blog-banners/${blogId}/`);
+      }
+    };
+    const service = createAdminBlogsService(repository, storage);
+
+    const response = await service.removeBanner(actor, currentPost.id);
+
+    assert.equal(response.post.bannerImageUrl, null);
+    assert.deepEqual(deletedKeys, []);
   });
 
   it("returns checker draw options and uses the latest public draft when no draw date is supplied", async () => {

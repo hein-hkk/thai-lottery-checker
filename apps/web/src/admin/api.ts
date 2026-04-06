@@ -1,5 +1,7 @@
 import {
   adminAuthResponseSchema,
+  adminBlogBannerUploadInitResponseSchema,
+  adminBlogBannerUpdateResponseSchema,
   adminBlogDetailResponseSchema,
   adminBlogListResponseSchema,
   adminBlogPublishResponseSchema,
@@ -17,6 +19,10 @@ import {
 } from "@thai-lottery-checker/schemas";
 import type {
   AdminAuthResponse,
+  AdminBlogBannerCompleteRequest,
+  AdminBlogBannerUploadInitRequest,
+  AdminBlogBannerUploadInitResponse,
+  AdminBlogBannerUpdateResponse,
   AdminBlogDetailResponse,
   AdminBlogListResponse,
   AdminBlogMetadataRequest,
@@ -426,6 +432,59 @@ export async function updateAdminBlogMetadata(blogId: string, input: AdminBlogMe
   }
 
   return adminBlogDetailResponseSchema.parse(await response.json());
+}
+
+export async function initAdminBlogBannerUpload(
+  blogId: string,
+  input: AdminBlogBannerUploadInitRequest
+): Promise<AdminBlogBannerUploadInitResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/banner/upload-init`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to initialize banner upload");
+  }
+
+  return adminBlogBannerUploadInitResponseSchema.parse(await response.json());
+}
+
+export async function completeAdminBlogBannerUpload(
+  blogId: string,
+  input: AdminBlogBannerCompleteRequest
+): Promise<AdminBlogBannerUpdateResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/banner/complete`), {
+    method: "POST",
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to save uploaded banner");
+  }
+
+  return adminBlogBannerUpdateResponseSchema.parse(await response.json());
+}
+
+export async function removeAdminBlogBanner(blogId: string): Promise<AdminBlogBannerUpdateResponse> {
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs/${blogId}/banner`), {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  if (!response.ok) {
+    return readAdminApiError(response, "Failed to remove blog banner");
+  }
+
+  return adminBlogBannerUpdateResponseSchema.parse(await response.json());
 }
 
 export async function upsertAdminBlogTranslation(

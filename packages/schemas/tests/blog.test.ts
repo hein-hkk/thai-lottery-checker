@@ -1,6 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  adminBlogBannerCompleteRequestSchema,
+  adminBlogBannerUploadInitRequestSchema,
+  adminBlogBannerUploadInitResponseSchema,
+  adminBlogBannerUpdateResponseSchema,
   adminBlogDetailResponseSchema,
   adminBlogListQuerySchema,
   adminBlogListResponseSchema,
@@ -116,7 +120,103 @@ describe("blog schemas", () => {
         seoDescription: "Learn the basics"
       }
     );
-    assert.throws(() => adminBlogMetadataRequestSchema.parse({ slug: " ", bannerImageUrl: "not-a-url" }));
+    assert.throws(() => adminBlogMetadataRequestSchema.parse({ slug: " " }));
+  });
+
+  it("validates admin banner upload contracts", () => {
+    assert.deepEqual(
+      adminBlogBannerUploadInitRequestSchema.parse({
+        fileName: "  hero-banner.webp  ",
+        contentType: "image/webp",
+        fileSize: 512000
+      }),
+      {
+        fileName: "hero-banner.webp",
+        contentType: "image/webp",
+        fileSize: 512000
+      }
+    );
+
+    assert.ok(
+      adminBlogBannerUploadInitResponseSchema.parse({
+        uploadUrl: "https://uploads.example.com",
+        fields: {
+          key: "blog-banners/post-1/file.webp",
+          policy: "policy",
+          "x-amz-algorithm": "AWS4-HMAC-SHA256"
+        },
+        objectKey: "blog-banners/post-1/file.webp",
+        publicUrl: "https://cdn.example.com/blog-banners/post-1/file.webp",
+        expiresAt: "2026-04-03T10:00:00.000Z"
+      })
+    );
+
+    assert.deepEqual(adminBlogBannerCompleteRequestSchema.parse({ objectKey: "  blog-banners/post-1/file.webp  " }), {
+      objectKey: "blog-banners/post-1/file.webp"
+    });
+
+    assert.ok(
+      adminBlogBannerUpdateResponseSchema.parse({
+        post: {
+          id: "2a83b7d2-7c1d-41b9-9a9e-a8f7c68eb6f2",
+          slug: "how-to-check-thai-lottery",
+          bannerImageUrl: "https://cdn.example.com/blog-banners/post-1/file.webp",
+          status: "draft",
+          publishedAt: null,
+          createdAt: "2026-03-30T08:00:00.000Z",
+          updatedAt: "2026-03-31T08:00:00.000Z",
+          availableLocales: ["en"],
+          translations: [
+            {
+              locale: "en",
+              title: "How to Check Thai Lottery Results",
+              body: [{ type: "paragraph", text: "Thai lottery is..." }],
+              excerpt: "A simple guide",
+              seoTitle: "How to Check Thai Lottery Results",
+              seoDescription: "Learn how to check results",
+              updatedAt: "2026-03-31T08:00:00.000Z"
+            },
+            {
+              locale: "th",
+              title: "",
+              body: [],
+              excerpt: null,
+              seoTitle: null,
+              seoDescription: null,
+              updatedAt: null
+            },
+            {
+              locale: "my",
+              title: "",
+              body: [],
+              excerpt: null,
+              seoTitle: null,
+              seoDescription: null,
+              updatedAt: null
+            }
+          ],
+          publishReadiness: {
+            isPublishable: true,
+            issues: []
+          }
+        }
+      })
+    );
+
+    assert.throws(() =>
+      adminBlogBannerUploadInitRequestSchema.parse({
+        fileName: "banner.gif",
+        contentType: "image/gif",
+        fileSize: 512000
+      })
+    );
+    assert.throws(() =>
+      adminBlogBannerUploadInitRequestSchema.parse({
+        fileName: "banner.jpg",
+        contentType: "image/jpeg",
+        fileSize: 6 * 1024 * 1024
+      })
+    );
   });
 
   it("validates admin detail response payloads with stable locale slots", () => {
