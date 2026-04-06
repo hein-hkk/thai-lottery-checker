@@ -16,31 +16,31 @@ export function BlogList({ locale, messages, page, posts }: BlogListProps) {
 
   return (
     <div className="space-y-6">
-      <ul className="grid gap-6 md:grid-cols-2">
+      <ul className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         {posts.items.map((post) => (
-          <li className="ui-panel-muted overflow-hidden" key={post.slug}>
-            {post.bannerImageUrl ? (
-              <img
-                alt={post.title}
-                className="h-48 w-full object-cover"
-                loading="lazy"
-                src={post.bannerImageUrl}
-              />
-            ) : null}
-            <div className="space-y-4 p-5">
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-[var(--text-secondary)]">
-                  {messages.publishedAt}: {formatBlogPublishedAt(locale, post.publishedAt)}
-                </p>
-                <h2 className="ui-section-title text-balance">{post.title}</h2>
-                {post.excerpt ? <p className="ui-copy">{post.excerpt}</p> : null}
+          <li className="ui-panel-muted flex h-full flex-col overflow-hidden" key={post.slug}>
+            <Link className="flex h-full flex-col" href={`/${locale}/blog/${post.slug}`}>
+              {post.bannerImageUrl ? (
+                <img
+                  alt={post.title}
+                  className="h-48 w-full object-cover"
+                  loading="lazy"
+                  src={post.bannerImageUrl}
+                />
+              ) : null}
+              <div className="flex flex-1 flex-col gap-4 p-5">
+                <div className="space-y-2">
+                  <p className="text-sm font-medium text-[var(--text-secondary)]">
+                    {messages.publishedAt}: {formatBlogPublishedAt(locale, post.publishedAt)}
+                  </p>
+                  <h2 className="ui-section-title text-balance">{post.title}</h2>
+                  {post.excerpt ? <p className="ui-copy">{post.excerpt}</p> : null}
+                </div>
+                <div className="mt-auto flex justify-start">
+                  <span className="ui-button-primary">{messages.readArticle}</span>
+                </div>
               </div>
-              <div className="flex justify-start">
-                <Link className="ui-button-primary" href={`/${locale}/blog/${post.slug}`}>
-                  {messages.readArticle}
-                </Link>
-              </div>
-            </div>
+            </Link>
           </li>
         ))}
       </ul>
