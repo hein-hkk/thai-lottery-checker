@@ -25,8 +25,8 @@ async function fetchBlogJson(pathname: string): Promise<Response> {
   });
 }
 
-export async function getBlogList(locale: SupportedLocale, page: number): Promise<BlogListResponse> {
-  const response = await fetchBlogJson(`/api/v1/blogs?locale=${locale}&page=${page}`);
+export async function getBlogList(locale: SupportedLocale, page: number, limit = 12): Promise<BlogListResponse> {
+  const response = await fetchBlogJson(`/api/v1/blogs?locale=${locale}&page=${page}&limit=${limit}`);
 
   if (!response.ok) {
     throw new BlogApiError(response.status, "Failed to load blog list");

@@ -62,6 +62,51 @@ export async function updateAdminBlogMetadata(request: Request, response: Respon
   }
 }
 
+export async function initAdminBlogBannerUpload(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const blogId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const payload = await adminBlogsService.initBannerUpload(request.currentAdmin, blogId ?? "", request.body);
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminBlogsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
+export async function completeAdminBlogBannerUpload(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const blogId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const payload = await adminBlogsService.completeBannerUpload(request.currentAdmin, blogId ?? "", request.body);
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminBlogsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
+export async function removeAdminBlogBanner(request: Request, response: Response): Promise<void> {
+  try {
+    if (!request.currentAdmin) {
+      throw new Error("currentAdmin was not resolved");
+    }
+
+    const blogId = Array.isArray(request.params.id) ? request.params.id[0] : request.params.id;
+    const payload = await adminBlogsService.removeBanner(request.currentAdmin, blogId ?? "");
+    response.status(200).json(payload);
+  } catch (error) {
+    const { statusCode, body } = toAdminBlogsErrorResponse(error);
+    response.status(statusCode).json(body);
+  }
+}
+
 export async function upsertAdminBlogTranslation(request: Request, response: Response): Promise<void> {
   try {
     if (!request.currentAdmin) {

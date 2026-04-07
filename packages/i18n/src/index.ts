@@ -27,6 +27,8 @@ export interface ResultsMessages {
   officialLatestResultsTitle: string;
   officialLatestResultsDescription: string;
   resultHistory: string;
+  homeBlogTeasersTitle: string;
+  homeBlogTeasersDescription: string;
   blogListTitle: string;
   blogListDescription: string;
   blogDetailDescriptionFallback: string;
@@ -42,6 +44,7 @@ export interface ResultsMessages {
   viewDetail: string;
   backToHistory: string;
   browseLatest: string;
+  browseBlog: string;
   latestUnavailable: string;
   historyUnavailable: string;
   detailUnavailable: string;
@@ -97,6 +100,8 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     officialLatestResultsDescription:
       "View the latest official Thai lottery result with the draw date, publish time, and key prize numbers in one trusted update.",
     resultHistory: "Result history",
+    homeBlogTeasersTitle: "Latest articles",
+    homeBlogTeasersDescription: "Browse the newest guides and explainers without leaving the landing page.",
     blogListTitle: "Thai Lottery Blog",
     blogListDescription: "Read multilingual guides and explainers about Thai lottery results, draw days, and checking tips.",
     blogDetailDescriptionFallback: "Read this Thai lottery article and guide.",
@@ -112,6 +117,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     viewDetail: "View detail",
     backToHistory: "Back to history",
     browseLatest: "Browse latest results",
+    browseBlog: "Browse blog",
     latestUnavailable: "Latest results are temporarily unavailable.",
     historyUnavailable: "Result history is temporarily unavailable.",
     detailUnavailable: "This result detail is temporarily unavailable.",
@@ -180,6 +186,8 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     officialLatestResultsDescription:
       "ดูผลสลากกินแบ่งรัฐบาลงวดล่าสุดอย่างเป็นทางการ พร้อมวันที่ออกรางวัล เวลาเผยแพร่ และหมายเลขรางวัลสำคัญในหน้าเดียว",
     resultHistory: "ประวัติผลรางวัล",
+    homeBlogTeasersTitle: "บทความล่าสุด",
+    homeBlogTeasersDescription: "ดูบทความแนะนำและคำอธิบายล่าสุดได้จากหน้าแรกทันที",
     blogListTitle: "บทความเกี่ยวกับสลากกินแบ่งรัฐบาล",
     blogListDescription: "อ่านบทความหลายภาษาเกี่ยวกับการตรวจผลสลากกินแบ่งรัฐบาล วันออกรางวัล และคำแนะนำในการตรวจผล",
     blogDetailDescriptionFallback: "อ่านบทความและคู่มือเกี่ยวกับสลากกินแบ่งรัฐบาล",
@@ -195,6 +203,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     viewDetail: "ดูรายละเอียด",
     backToHistory: "กลับไปประวัติผลรางวัล",
     browseLatest: "ดูผลรางวัลล่าสุด",
+    browseBlog: "ดูบทความทั้งหมด",
     latestUnavailable: "ยังไม่สามารถแสดงผลรางวัลล่าสุดได้ในขณะนี้",
     historyUnavailable: "ยังไม่สามารถแสดงประวัติผลรางวัลได้ในขณะนี้",
     detailUnavailable: "ยังไม่สามารถแสดงรายละเอียดผลรางวัลงวดนี้ได้ในขณะนี้",
@@ -263,6 +272,8 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     officialLatestResultsDescription:
       "နောက်ဆုံး ထိုင်းထီတရားဝင်ရလဒ်ကို ထီဖွင့်သည့်နေ့၊ ထုတ်ပြန်ချိန်နှင့် အဓိကဆုနံပါတ်များအပါအဝင် တစ်နေရာတည်းတွင် ကြည့်ရှုနိုင်ပါသည်။",
     resultHistory: "ရလဒ်မှတ်တမ်း",
+    homeBlogTeasersTitle: "နောက်ဆုံး ဆောင်းပါးများ",
+    homeBlogTeasersDescription: "ပင်မစာမျက်နှာမှတစ်ဆင့် နောက်ဆုံး လမ်းညွှန်နှင့် ရှင်းလင်းချက်ဆောင်းပါးများကို ကြည့်ရှုပါ။",
     blogListTitle: "ထိုင်းထီ ဘလော့ဂ်",
     blogListDescription: "ထိုင်းထီရလဒ်များ၊ ထီဖွင့်ရက်များနှင့် စစ်ဆေးနည်းအကြံပြုချက်များအကြောင်း ဘာသာစုံဆောင်းပါးများကို ဖတ်ရှုပါ။",
     blogDetailDescriptionFallback: "ဤ ထိုင်းထီ ဆောင်းပါးနှင့် လမ်းညွှန်ချက်ကို ဖတ်ရှုပါ။",
@@ -278,6 +289,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     viewDetail: "အသေးစိတ်ကြည့်ရန်",
     backToHistory: "မှတ်တမ်းသို့ပြန်ရန်",
     browseLatest: "နောက်ဆုံးရလဒ်ကြည့်ရန်",
+    browseBlog: "ဘလော့ဂ်အားလုံးကြည့်ရန်",
     latestUnavailable: "နောက်ဆုံးရလဒ်ကို ယာယီမပြနိုင်သေးပါ",
     historyUnavailable: "ရလဒ်မှတ်တမ်းကို ယာယီမပြနိုင်သေးပါ",
     detailUnavailable: "ဤအကြိမ်ရလဒ်အသေးစိတ်ကို ယာယီမပြနိုင်သေးပါ",

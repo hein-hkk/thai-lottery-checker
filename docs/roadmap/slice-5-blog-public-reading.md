@@ -1,5 +1,7 @@
 # Slice 5 Plan — Blog Public Reading
 
+> Historical note: Slice 5 established public blog reading only. Home-page blog teasers and managed banner uploads were added later in Slice 7.
+
 ## Summary
 
 Implement the first public blog capability for the Thai Lottery Checker platform.

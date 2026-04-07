@@ -1,19 +1,27 @@
 "use client";
 
 import type {
+  AdminBlogBannerUploadContentType,
   AdminBlogDetail,
   AdminBlogMetadataRequest,
   AdminBlogTranslationUpsertRequest,
   BlogBodyBlock,
   SupportedLocale
 } from "@thai-lottery-checker/types";
+import {
+  adminBlogBannerMaxFileSizeBytes,
+  adminBlogBannerUploadContentTypes
+} from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useMemo, useState, type FormEvent } from "react";
+import { useMemo, useState, type ChangeEvent, type FormEvent } from "react";
 import {
   AdminApiError,
+  completeAdminBlogBannerUpload,
   createAdminBlog,
+  initAdminBlogBannerUpload,
   publishAdminBlog,
+  removeAdminBlogBanner,
   unpublishAdminBlog,
   updateAdminBlogMetadata,
   upsertAdminBlogTranslation
@@ -72,10 +80,13 @@ function normalizeParagraphs(paragraphs: string[]): BlogBodyBlock[] {
     .map((text) => ({ type: "paragraph" as const, text }));
 }
 
-function buildMetadataPayload(slug: string, bannerImageUrl: string): AdminBlogMetadataRequest {
+function isAllowedBannerContentType(value: string): value is AdminBlogBannerUploadContentType {
+  return adminBlogBannerUploadContentTypes.includes(value as AdminBlogBannerUploadContentType);
+}
+
+function buildMetadataPayload(slug: string): AdminBlogMetadataRequest {
   return {
-    slug,
-    bannerImageUrl: bannerImageUrl.trim().length === 0 ? null : bannerImageUrl.trim()
+    slug
   };
 }
 
@@ -116,7 +127,6 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
   const router = useRouter();
   const existingPost = initialPost ?? null;
   const [slug, setSlug] = useState(initialPost?.slug ?? "");
-  const [bannerImageUrl, setBannerImageUrl] = useState(initialPost?.bannerImageUrl ?? "");
   const [activeLocale, setActiveLocale] = useState<SupportedLocale>("en");
   const [translations, setTranslations] = useState<Record<SupportedLocale, TranslationFormState>>(() => toTranslationState(initialPost));
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -125,15 +135,16 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
   const [isSavingTranslation, setIsSavingTranslation] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUnpublishing, setIsUnpublishing] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [isRemovingBanner, setIsRemovingBanner] = useState(false);
 
   const readiness = useMemo(() => buildReadiness(slug, translations), [slug, translations]);
-  const metadataSnapshot = JSON.stringify(buildMetadataPayload(slug, bannerImageUrl));
+  const metadataSnapshot = JSON.stringify(buildMetadataPayload(slug));
   const initialMetadataSnapshot = useMemo(
     () =>
       existingPost
         ? JSON.stringify({
-            slug: existingPost.slug,
-            bannerImageUrl: existingPost.bannerImageUrl
+            slug: existingPost.slug
           })
         : null,
     [existingPost]
@@ -167,6 +178,7 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
   const hasUnsavedChanges =
     existingPost !== null &&
     (initialMetadataSnapshot !== metadataSnapshot || initialTranslationsSnapshot !== translationsSnapshot);
+  const isBannerBusy = isSavingMetadata || isSavingTranslation || isPublishing || isUnpublishing || isUploadingBanner || isRemovingBanner;
 
   const activeTranslation = translations[activeLocale];
 
@@ -184,7 +196,7 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
     setIsSavingMetadata(true);
 
     try {
-      const payload = buildMetadataPayload(slug, bannerImageUrl);
+      const payload = buildMetadataPayload(slug);
 
       if (!existingPost) {
         const response = await createAdminBlog(payload);
@@ -201,6 +213,95 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
       setErrorMessage(error instanceof AdminApiError ? error.message : "Failed to save blog metadata");
     } finally {
       setIsSavingMetadata(false);
+    }
+  }
+
+  async function handleBannerUpload(event: ChangeEvent<HTMLInputElement>) {
+    if (!existingPost) {
+      return;
+    }
+
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+
+    if (!isAllowedBannerContentType(file.type)) {
+      setErrorMessage("Banner images must be JPEG, PNG, or WebP.");
+      input.value = "";
+      return;
+    }
+
+    if (file.size > adminBlogBannerMaxFileSizeBytes) {
+      setErrorMessage("Banner images must be 5 MB or smaller.");
+      input.value = "";
+      return;
+    }
+
+    setIsUploadingBanner(true);
+
+    try {
+      const upload = await initAdminBlogBannerUpload(existingPost.id, {
+        fileName: file.name,
+        contentType: file.type,
+        fileSize: file.size
+      });
+      const formData = new FormData();
+
+      for (const [key, value] of Object.entries(upload.fields)) {
+        formData.append(key, value);
+      }
+
+      if (!("Content-Type" in upload.fields)) {
+        formData.append("Content-Type", file.type);
+      }
+
+      formData.append("file", file);
+
+      const uploadResponse = await fetch(upload.uploadUrl, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("Banner upload to object storage failed");
+      }
+
+      await completeAdminBlogBannerUpload(existingPost.id, {
+        objectKey: upload.objectKey
+      });
+      setSuccessMessage("Banner uploaded.");
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof AdminApiError ? error.message : "Failed to upload banner");
+    } finally {
+      input.value = "";
+      setIsUploadingBanner(false);
+    }
+  }
+
+  async function handleBannerRemove() {
+    if (!existingPost) {
+      return;
+    }
+
+    setErrorMessage(null);
+    setSuccessMessage(null);
+    setIsRemovingBanner(true);
+
+    try {
+      await removeAdminBlogBanner(existingPost.id);
+      setSuccessMessage(existingPost.bannerImageUrl ? "Banner removed." : "No banner to remove.");
+      router.refresh();
+    } catch (error) {
+      setErrorMessage(error instanceof AdminApiError ? error.message : "Failed to remove banner");
+    } finally {
+      setIsRemovingBanner(false);
     }
   }
 
@@ -313,19 +414,10 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
           </button>
         </div>
 
-        <div className="mt-6 grid gap-4 md:grid-cols-2">
+        <div className="mt-6 max-w-xl">
           <label className="ui-field">
             <span className="ui-field-label">Slug</span>
             <input className="ui-input" onChange={(event) => setSlug(event.target.value)} required value={slug} />
-          </label>
-          <label className="ui-field">
-            <span className="ui-field-label">Banner image URL</span>
-            <input
-              className="ui-input"
-              onChange={(event) => setBannerImageUrl(event.target.value)}
-              placeholder="https://example.com/banner.jpg"
-              value={bannerImageUrl}
-            />
           </label>
         </div>
       </form>
@@ -459,6 +551,50 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
             </article>
 
             <aside className="space-y-6">
+              <article className="ui-panel p-6">
+                <p className="ui-kicker">Banner</p>
+                <h3 className="ui-section-title mt-2">Managed upload</h3>
+                <p className="ui-copy mt-3">
+                  Upload a JPEG, PNG, or WebP banner up to 5 MB. The image is stored in managed object storage and saved back to this post automatically.
+                </p>
+
+                {existingPost.bannerImageUrl ? (
+                  <div className="mt-5 space-y-4">
+                    <img
+                      alt={`Banner preview for ${existingPost.slug}`}
+                      className="max-h-64 w-full rounded-[calc(var(--radius-xl)-0.25rem)] border border-[var(--border-default)] object-cover"
+                      src={existingPost.bannerImageUrl}
+                    />
+                    <p className="break-all text-sm text-[var(--text-secondary)]">{existingPost.bannerImageUrl}</p>
+                  </div>
+                ) : (
+                  <div className="mt-5 rounded-xl border border-dashed border-[var(--border-default)] px-4 py-6 text-sm text-[var(--text-secondary)]">
+                    No banner uploaded yet.
+                  </div>
+                )}
+
+                <div className="mt-5 flex flex-wrap gap-3">
+                  <label className={isBannerBusy ? "ui-button-primary opacity-50" : "ui-button-primary cursor-pointer"}>
+                    <span>{isUploadingBanner ? "Uploading..." : existingPost.bannerImageUrl ? "Replace banner" : "Upload banner"}</span>
+                    <input
+                      accept="image/jpeg,image/png,image/webp"
+                      className="sr-only"
+                      disabled={isBannerBusy}
+                      onChange={(event) => void handleBannerUpload(event)}
+                      type="file"
+                    />
+                  </label>
+                  <button
+                    className="ui-button-secondary"
+                    disabled={isBannerBusy || existingPost.bannerImageUrl === null}
+                    onClick={() => void handleBannerRemove()}
+                    type="button"
+                  >
+                    {isRemovingBanner ? "Removing..." : "Remove banner"}
+                  </button>
+                </div>
+              </article>
+
               <article className="ui-panel-muted p-6">
                 <p className="ui-kicker">Publish readiness</p>
                 <h3 className="ui-section-title mt-2">Checklist</h3>
@@ -467,7 +603,10 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
                     <p className="ui-inline-success">Ready to publish.</p>
                   ) : (
                     readiness.issues.map((issue) => (
-                      <div className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-primary)] px-4 py-3 text-[var(--text-primary)]" key={issue}>
+                      <div
+                        className="rounded-xl border border-[var(--border-default)] bg-[var(--surface-primary)] px-4 py-3 text-[var(--text-primary)]"
+                        key={issue}
+                      >
                         {issue}
                       </div>
                     ))
@@ -530,7 +669,15 @@ export function BlogEditorForm({ initialPost }: { initialPost?: AdminBlogDetail 
             </aside>
           </section>
         </>
-      ) : null}
+      ) : (
+        <section className="ui-panel-muted p-6">
+          <p className="ui-kicker">Next step</p>
+          <h3 className="ui-section-title mt-2">Create the draft to unlock uploads and translations</h3>
+          <p className="ui-copy mt-3">
+            Create this post draft first. Once the draft exists you can upload a managed banner, add translations, review publish readiness, and manage public visibility.
+          </p>
+        </section>
+      )}
 
       {errorMessage ? <p className="ui-inline-error">{errorMessage}</p> : null}
       {successMessage ? <p className="ui-inline-success">{successMessage}</p> : null}

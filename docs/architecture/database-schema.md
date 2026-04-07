@@ -333,8 +333,9 @@ Fields:
 Notes:
 
 - the base blog record is language-independent
-- `banner_image_url` stores optional banner metadata for rendering
-- the current OSS implementation stores banner URLs only; upload infrastructure is future work
+- `banner_image_url` stores the public banner reference used by public and admin rendering
+- managed banner uploads may back that URL with object storage, but PostgreSQL remains the canonical source of truth for the application record
+- object storage is supporting infrastructure for media bytes, not canonical content storage
 
 ### 3.10 `blog_post_translations`
 
@@ -521,7 +522,6 @@ After publish:
 The OSS schema can be extended later for private or future work such as:
 
 - richer blog editing capabilities
-- banner upload workflows backed by object storage
 - OCR-based ticket scanning
 - more advanced result types
 - personalization or user-specific features

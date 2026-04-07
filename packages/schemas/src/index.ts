@@ -291,8 +291,7 @@ export const adminBlogDetailResponseSchema = z.object({
 });
 
 export const adminBlogMetadataRequestSchema = z.object({
-  slug: z.string().trim().min(1),
-  bannerImageUrl: z.string().trim().url().nullable().optional()
+  slug: z.string().trim().min(1)
 });
 
 export const adminBlogTranslationUpsertRequestSchema = z.object({
@@ -308,6 +307,30 @@ export const adminBlogPublishResponseSchema = z.object({
 });
 
 export const adminBlogUnpublishResponseSchema = z.object({
+  post: adminBlogDetailSchema
+});
+
+export const adminBlogBannerUploadContentTypeSchema = z.enum(["image/jpeg", "image/png", "image/webp"]);
+
+export const adminBlogBannerUploadInitRequestSchema = z.object({
+  fileName: z.string().trim().min(1),
+  contentType: adminBlogBannerUploadContentTypeSchema,
+  fileSize: z.coerce.number().int().positive().max(5 * 1024 * 1024)
+});
+
+export const adminBlogBannerUploadInitResponseSchema = z.object({
+  uploadUrl: z.string().url(),
+  fields: z.record(z.string()),
+  objectKey: z.string().min(1),
+  publicUrl: z.string().url(),
+  expiresAt: z.string().datetime({ offset: true })
+});
+
+export const adminBlogBannerCompleteRequestSchema = z.object({
+  objectKey: z.string().trim().min(1)
+});
+
+export const adminBlogBannerUpdateResponseSchema = z.object({
   post: adminBlogDetailSchema
 });
 
@@ -394,6 +417,11 @@ export type AdminBlogMetadataRequestSchema = z.infer<typeof adminBlogMetadataReq
 export type AdminBlogTranslationUpsertRequestSchema = z.infer<typeof adminBlogTranslationUpsertRequestSchema>;
 export type AdminBlogPublishResponseSchema = z.infer<typeof adminBlogPublishResponseSchema>;
 export type AdminBlogUnpublishResponseSchema = z.infer<typeof adminBlogUnpublishResponseSchema>;
+export type AdminBlogBannerUploadContentTypeSchema = z.infer<typeof adminBlogBannerUploadContentTypeSchema>;
+export type AdminBlogBannerUploadInitRequestSchema = z.infer<typeof adminBlogBannerUploadInitRequestSchema>;
+export type AdminBlogBannerUploadInitResponseSchema = z.infer<typeof adminBlogBannerUploadInitResponseSchema>;
+export type AdminBlogBannerCompleteRequestSchema = z.infer<typeof adminBlogBannerCompleteRequestSchema>;
+export type AdminBlogBannerUpdateResponseSchema = z.infer<typeof adminBlogBannerUpdateResponseSchema>;
 export type DrawDateParamSchema = z.infer<typeof drawDateParamSchema>;
 export type AdminSessionPayloadSchema = z.infer<typeof adminSessionPayloadSchema>;
 export type AuthenticatedAdminSchema = z.infer<typeof authenticatedAdminSchema>;

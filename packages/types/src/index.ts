@@ -344,7 +344,6 @@ export interface AdminBlogListQuery {
 
 export interface AdminBlogMetadataRequest {
   slug: string;
-  bannerImageUrl?: string | null;
 }
 
 export interface AdminBlogTranslationUpsertRequest {
@@ -360,5 +359,31 @@ export interface AdminBlogPublishResponse {
 }
 
 export interface AdminBlogUnpublishResponse {
+  post: AdminBlogDetail;
+}
+
+export const adminBlogBannerUploadContentTypes = ["image/jpeg", "image/png", "image/webp"] as const;
+export type AdminBlogBannerUploadContentType = (typeof adminBlogBannerUploadContentTypes)[number];
+export const adminBlogBannerMaxFileSizeBytes = 5 * 1024 * 1024;
+
+export interface AdminBlogBannerUploadInitRequest {
+  fileName: string;
+  contentType: AdminBlogBannerUploadContentType;
+  fileSize: number;
+}
+
+export interface AdminBlogBannerUploadInitResponse {
+  uploadUrl: string;
+  fields: Record<string, string>;
+  objectKey: string;
+  publicUrl: string;
+  expiresAt: string;
+}
+
+export interface AdminBlogBannerCompleteRequest {
+  objectKey: string;
+}
+
+export interface AdminBlogBannerUpdateResponse {
   post: AdminBlogDetail;
 }

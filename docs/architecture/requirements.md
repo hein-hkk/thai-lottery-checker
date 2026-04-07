@@ -5,7 +5,7 @@
 ### 1.1 Purpose
 
 This document defines the functional and non-functional requirements for the open-source Thai Lottery Checker system.
-It is aligned to the current repository implementation through Slice 6 and the planned public-only Mobile MVP that will be added later.
+It is aligned to the current repository implementation through Slice 7 and the planned public-only Mobile MVP that will be added later.
 
 ### 1.2 System Overview
 
@@ -97,7 +97,7 @@ FR-5: Admin users must be able to correct previously published results.
 
 FR-6: Result pages must support multilingual labels and UI elements.
 
-FR-7: The landing page at `/{locale}/` must provide a latest-result preview and published-history entry point for public users.
+FR-7: The landing page at `/{locale}/` must provide a latest-result preview, a published-history preview, and blog teaser discovery for public users when localized published blog posts are available.
 
 FR-8: Public history browsing must remain published-only even when latest and detail pages expose the current draw-day draft.
 
@@ -127,21 +127,23 @@ FR-18: Admin users must be able to edit blog posts and translations.
 
 FR-19: Admin users must be able to publish and unpublish blog posts.
 
+FR-20: Admin users with `manage_blogs` permission must be able to attach, replace, and remove blog banners through a managed upload workflow.
+
 ### 3.4 Admin Platform
 
-FR-20: Admin users must authenticate to access the dashboard.
+FR-21: Admin users must authenticate to access the dashboard.
 
-FR-21: The system must support invitation-based admin onboarding.
+FR-22: The system must support invitation-based admin onboarding.
 
-FR-22: The system must support admin password reset and recovery.
+FR-23: The system must support admin password reset and recovery.
 
-FR-23: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
+FR-24: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
 
-FR-24: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
+FR-25: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
 
-FR-25: Admin users with `manage_blogs` permission must be able to manage blog metadata and translations.
+FR-26: Admin users with `manage_blogs` permission must be able to manage blog metadata and translations.
 
-FR-26: Sensitive admin actions must be recorded in audit logs.
+FR-27: Sensitive admin actions must be recorded in audit logs.
 
 ## 4. Non-Functional Requirements
 
@@ -159,7 +161,7 @@ NFR-4: Lottery results must remain accurate and internally consistent.
 
 NFR-5: System failures must not corrupt canonical stored data.
 
-NFR-6: The system must degrade gracefully if optional caching infrastructure is unavailable.
+NFR-6: The system must degrade gracefully if optional infrastructure such as caching or blog-banner object storage is unavailable.
 
 ### 4.3 Security
 

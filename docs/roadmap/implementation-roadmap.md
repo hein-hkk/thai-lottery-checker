@@ -3,7 +3,7 @@
 This roadmap divides the OSS project into vertical implementation slices.
 Each slice should deliver a complete user-facing capability across schema, API, shared domain logic, and UI when needed.
 
-Slices 0 through 6 describe the implemented OSS baseline currently represented in this repository.
+Slices 0 through 7 describe the implemented OSS baseline currently represented in this repository.
 Later slices describe planned public OSS work that has not been implemented yet.
 
 ---
@@ -153,7 +153,7 @@ Public web:
 - `/{locale}/results` remains bookmarkable and can render the current draw-day draft
 - `/{locale}/results/history` remains available as a secondary archive route
 - `/{locale}/results/{drawDate}` supports placeholder rendering for unreleased prize groups
-- blog teasers remain deferred until a later OSS slice
+- blog teasers were deferred in this slice and later implemented in Slice 7
 
 Admin UX:
 
@@ -269,6 +269,8 @@ Admin features:
 ## Goal
 
 Add the remaining blog content presentation work to the OSS web product before the broader refinement pass.
+
+This slice is implemented in the current repository baseline.
 
 ## Included
 

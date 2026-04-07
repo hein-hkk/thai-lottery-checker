@@ -31,6 +31,10 @@ export function adminBlogDataInvalidError(message: string): AdminBlogsApiError {
   return createAdminBlogsError(400, "ADMIN_BLOG_DATA_INVALID", message);
 }
 
+export function adminBlogBannerUnavailableError(): AdminBlogsApiError {
+  return createAdminBlogsError(503, "ADMIN_BLOG_BANNER_UNAVAILABLE", "Blog banner uploads are not configured");
+}
+
 export function toAdminBlogsErrorResponse(error: unknown): { statusCode: number; body: { code: string; message: string } } {
   if (
     error instanceof Error &&

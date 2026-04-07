@@ -29,13 +29,17 @@ export interface AdminBlogRepositoryPost {
 
 export interface CreateAdminBlogInput {
   slug: string;
-  bannerImageUrl: string | null;
   adminId: string;
 }
 
 export interface UpdateAdminBlogMetadataInput {
   blogId: string;
   slug: string;
+  adminId: string;
+}
+
+export interface UpdateAdminBlogBannerImageInput {
+  blogId: string;
   bannerImageUrl: string | null;
   adminId: string;
 }
@@ -57,6 +61,7 @@ export interface AdminBlogsRepository {
   findBlogBySlug(slug: string): Promise<Pick<AdminBlogRepositoryPost, "id"> | null>;
   createDraftBlog(input: CreateAdminBlogInput): Promise<AdminBlogRepositoryPost>;
   updateBlogMetadata(input: UpdateAdminBlogMetadataInput): Promise<AdminBlogRepositoryPost>;
+  updateBlogBannerImage(input: UpdateAdminBlogBannerImageInput): Promise<AdminBlogRepositoryPost>;
   upsertBlogTranslation(input: UpsertAdminBlogTranslationInput): Promise<AdminBlogRepositoryPost>;
   publishBlog(blogId: string, adminId: string, publishedAt: Date): Promise<AdminBlogRepositoryPost>;
   unpublishBlog(blogId: string, adminId: string): Promise<AdminBlogRepositoryPost>;
@@ -123,7 +128,6 @@ export const prismaAdminBlogsRepository: AdminBlogsRepository = {
     const created = await prisma.blogPost.create({
       data: {
         slug: input.slug,
-        bannerImageUrl: input.bannerImageUrl,
         status: "draft",
         publishedAt: null,
         createdByAdminId: input.adminId,
@@ -142,6 +146,17 @@ export const prismaAdminBlogsRepository: AdminBlogsRepository = {
       where: { id: input.blogId },
       data: {
         slug: input.slug,
+        updatedByAdminId: input.adminId
+      }
+    });
+
+    return findBlogWithTranslations(input.blogId);
+  },
+
+  async updateBlogBannerImage(input) {
+    await prisma.blogPost.update({
+      where: { id: input.blogId },
+      data: {
         bannerImageUrl: input.bannerImageUrl,
         updatedByAdminId: input.adminId
       }
