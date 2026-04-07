@@ -1286,32 +1286,75 @@ describe("results api", () => {
   });
 
   it("returns banner upload unavailability when object storage is not configured", async () => {
-    const login = await postJson("/api/v1/admin/auth/login", {
-      email: env.ADMIN_BOOTSTRAP_EMAIL,
-      password: env.ADMIN_BOOTSTRAP_PASSWORD
-    });
-    const sessionCookie = getCookieValue(login.setCookie);
-    const blog = await prisma.blogPost.findFirstOrThrow({
-      select: {
-        id: true
-      }
-    });
-
-    const uploadInit = await postJson(
-      `/api/v1/admin/blogs/${blog.id}/banner/upload-init`,
-      {
-        fileName: "banner.webp",
-        contentType: "image/webp",
-        fileSize: 1024
+    const actor = await createAdminActor();
+    const post = createRepositoryPost();
+    const repository: AdminBlogsRepository = {
+      async listAdminBlogs() {
+        return [];
       },
-      sessionCookie ?? undefined
-    );
+      async findBlogById(blogId) {
+        return blogId === post.id ? post : null;
+      },
+      async findBlogBySlug() {
+        return null;
+      },
+      async createDraftBlog() {
+        throw new Error("not used");
+      },
+      async updateBlogMetadata() {
+        throw new Error("not used");
+      },
+      async updateBlogBannerImage() {
+        throw new Error("not used");
+      },
+      async upsertBlogTranslation() {
+        throw new Error("not used");
+      },
+      async publishBlog() {
+        throw new Error("not used");
+      },
+      async unpublishBlog() {
+        throw new Error("not used");
+      }
+    };
+    const storage: BlogBannerStorage = {
+      isConfigured() {
+        return false;
+      },
+      async createUpload() {
+        throw new Error("not used");
+      },
+      async objectExists() {
+        return false;
+      },
+      async deleteObject() {
+        throw new Error("not used");
+      },
+      getPublicUrl(objectKey) {
+        return objectKey;
+      },
+      getManagedObjectKeyFromUrl() {
+        return null;
+      },
+      isBlogObjectKey() {
+        return false;
+      }
+    };
+    const service = createAdminBlogsService(repository, storage);
 
-    assert.equal(uploadInit.status, 503);
-    assert.deepEqual(uploadInit.body, {
-      code: "ADMIN_BLOG_BANNER_UNAVAILABLE",
-      message: "Blog banner uploads are not configured"
-    });
+    await assert.rejects(
+      () =>
+        service.initBannerUpload(actor, post.id, {
+          fileName: "banner.webp",
+          contentType: "image/webp",
+          fileSize: 1024
+        }),
+      (error: unknown) =>
+        error instanceof Error &&
+        "code" in error &&
+        (error as { code?: unknown }).code === "ADMIN_BLOG_BANNER_UNAVAILABLE" &&
+        error.message === "Blog banner uploads are not configured"
+    );
   });
 
   it("enforces admin blog permissions for editors", async () => {

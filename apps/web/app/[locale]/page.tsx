@@ -2,11 +2,13 @@ import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { HomeBlogTeasers } from "../../src/components/blog/home-blog-teasers";
 import { EmbeddedChecker } from "../../src/components/results/embedded-checker";
 import { HistoryResultCard } from "../../src/components/results/history-result-card";
 import { LatestSummarySection } from "../../src/components/results/latest-summary-section";
 import { StatusCard } from "../../src/components/results/status-card";
 import { PublicPageShell } from "../../src/components/ui/public-page-shell";
+import { getBlogList } from "../../src/blog/api";
 import { getResultHistory, getLatestResults, ResultsApiError } from "../../src/results/api";
 
 export const dynamic = "force-dynamic";
@@ -24,10 +26,15 @@ export default async function LocalePage({ params }: LocalePageProps) {
 
   const supportedLocale = locale as SupportedLocale;
   const messages = getResultsMessages(supportedLocale);
-  const [latestResult, historyResult] = await Promise.allSettled([getLatestResults(), getResultHistory(1)]);
+  const [latestResult, historyResult, teaserPostsResult] = await Promise.allSettled([
+    getLatestResults(),
+    getResultHistory(1),
+    getBlogList(supportedLocale, 1, 3)
+  ]);
 
   const latest = latestResult.status === "fulfilled" ? latestResult.value : null;
   const history = historyResult.status === "fulfilled" ? historyResult.value : null;
+  const teaserPosts = teaserPostsResult.status === "fulfilled" ? teaserPostsResult.value : null;
 
   return (
     <PublicPageShell
@@ -98,6 +105,10 @@ export default async function LocalePage({ params }: LocalePageProps) {
             )}
           </div>
         </section>
+
+        {teaserPosts && teaserPosts.items.length > 0 ? (
+          <HomeBlogTeasers locale={supportedLocale} messages={messages} posts={teaserPosts.items} />
+        ) : null}
       </div>
     </PublicPageShell>
   );
