@@ -1,5 +1,7 @@
 # Slice 3 Plan — Product Refinement (Results + Admin UX)
 
+> Historical note: this slice intentionally deferred home-page blog teasers. That teaser section was implemented later in Slice 7 without changing the staged-release results model defined here.
+
 ## Summary
 
 Implement Slice 3 as a refinement slice that improves the public results experience and the admin governance/result-management UX before expanding into the number checker and blog feature areas.

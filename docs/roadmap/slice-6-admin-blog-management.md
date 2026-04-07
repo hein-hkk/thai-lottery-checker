@@ -1,5 +1,7 @@
 # Slice 6 Plan — Admin Blog Management
 
+> Historical note: this plan originally modeled banner handling as manual `bannerImageUrl` entry. Slice 7 superseded that flow with dedicated banner upload endpoints and admin UI backed by optional object storage.
+
 ## Summary
 
 Complete the blog feature by adding the protected admin workflow for blog operations on top of Slice 5 public reading.
@@ -102,7 +104,7 @@ Chosen defaults for this slice:
 - Reuse the Slice 5 paragraph-body schema for translation content.
 - Metadata validation:
   - `slug` required, trimmed, unique
-  - `bannerImageUrl` optional, must be a valid URL if present
+  - at Slice 6 planning time, `bannerImageUrl` was modeled as optional URL metadata; Slice 7 replaced that with slug-only metadata writes plus managed banner upload endpoints
 - Translation validation:
   - locale must be `en|th|my`
   - `title` required and trimmed for publishable state
@@ -141,7 +143,7 @@ Chosen defaults for this slice:
 - `/admin/blogs/new` page:
   - minimum metadata form only:
     - slug
-    - optional banner image URL
+  - banner upload remains unavailable until the draft exists; Slice 7 later implemented uploads on the detail page after draft creation
   - on success, redirect to `/admin/blogs/:id`
 - `/admin/blogs/:id` page:
   - metadata section

@@ -5,7 +5,7 @@ Thai Lottery Checker is a monorepo for a multilingual lottery product with a pub
 The current shipped baseline includes:
 
 - public Thai lottery results browsing
-- public locale landing page with latest preview and history entry point
+- public locale landing page with latest preview, history preview, and blog teasers
 - public embedded number checker with draw-detail overlay results
 - public multilingual blog list and detail reading
 - admin auth/session with HTTP-only cookie handling
@@ -13,7 +13,7 @@ The current shipped baseline includes:
 - admin password reset
 - super-admin account management
 - admin result draft, publish, and correction flows
-- admin blog draft, translation, publish, and unpublish flows
+- admin blog draft, managed banner upload, translation, publish, and unpublish flows
 
 Repo structure:
 
@@ -25,9 +25,11 @@ Repo structure:
 For deeper product and architecture details, see:
 
 - [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
+- [Slice 7 plan](docs/roadmap/slice-7-blog-banner-uploads-and-home-page-teasers.md)
 - [Slice 5 plan](docs/roadmap/slice-5-blog-public-reading.md)
 - [Slice 6 plan](docs/roadmap/slice-6-admin-blog-management.md)
 - [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
+- [Blog banner storage setup](docs/architecture/blog-banner-storage.md)
 - [System architecture](docs/architecture/system-architecture.md)
 
 ## Requirements
@@ -61,6 +63,9 @@ At minimum, check:
 - `ADMIN_BOOTSTRAP_NAME`
 
 See [.env.example](.env.example) for the full local-development baseline.
+
+If you want managed blog banner uploads in admin, also configure the `BLOG_BANNER_STORAGE_*` variables.
+For AWS S3, leave `BLOG_BANNER_STORAGE_ENDPOINT` blank and set `BLOG_BANNER_STORAGE_PUBLIC_BASE_URL`.
 
 4. Generate the Prisma client:
 
@@ -128,7 +133,7 @@ Assuming the web app runs at `http://localhost:3000`:
 
 Current public route roles:
 
-- `/{locale}`: primary landing page with the official latest-result preview and a published-history preview
+- `/{locale}`: primary landing page with the official latest-result preview, a published-history preview, and localized blog teasers when available
 - `/{locale}/results`: dedicated bookmarkable latest-results page
 - `/{locale}/results/history`: secondary full archive page
 - `/{locale}/results/{drawDate}`: result detail page for a specific draw date
@@ -258,6 +263,9 @@ Admin blog endpoints:
 - `GET /api/v1/admin/blogs/:id`
 - `POST /api/v1/admin/blogs`
 - `PATCH /api/v1/admin/blogs/:id`
+- `POST /api/v1/admin/blogs/:id/banner/upload-init`
+- `POST /api/v1/admin/blogs/:id/banner/complete`
+- `DELETE /api/v1/admin/blogs/:id/banner`
 - `PUT /api/v1/admin/blogs/:id/translations/:locale`
 - `POST /api/v1/admin/blogs/:id/publish`
 - `POST /api/v1/admin/blogs/:id/unpublish`
@@ -266,8 +274,10 @@ Admin blog behavior:
 
 - every endpoint requires admin auth and `manage_blogs`
 - drafts start with `status: "draft"` and `publishedAt: null`
+- metadata writes are slug-only; banner uploads use dedicated endpoints
 - publishing requires at least one valid translation with a title and paragraph body
 - unpublishing returns the post to draft state and removes it from public blog visibility immediately
+- banner upload endpoints require blog banner storage configuration and return `503` when storage is unavailable
 
 ## Verification
 
@@ -291,6 +301,8 @@ Manual checks:
 - Open `http://localhost:3000/en`
 - Confirm the primary public header shows `Home`, `Latest results`, and `Blog`
 - Confirm the landing page latest section shows a trust-focused localized title/description with latest draw metadata below it
+- Confirm the landing page history preview appears before the blog teaser section
+- Confirm the landing page blog teaser section shows up to 3 localized published posts and links to `/{locale}/blog`
 - Open `http://localhost:3000/en/results`
 - Confirm the latest page shows the same localized trust-focused title/description plus latest draw metadata
 - Open `http://localhost:3000/en/results/history`
@@ -310,6 +322,7 @@ Manual checks:
 - Open `http://localhost:3000/admin/results`
 - Open `http://localhost:3000/admin/blogs`
 - Create a draft post, save an English translation, publish it, then unpublish it again
+- If banner storage is configured, upload a banner from `/admin/blogs/:id`, confirm it renders on the public blog card/detail pages, then remove or replace it
 - Request `GET http://localhost:4000/health`
 
 ## Useful Commands
@@ -346,7 +359,8 @@ packages/
 
 - PostgreSQL remains the source of truth.
 - Slice 2 includes a cache-invalidation abstraction for result publish/correct flows; full Redis-backed performance hardening remains a later slice.
-- Blog management, mobile features, and analytics remain outside the currently shipped baseline.
+- Blog banner storage is optional infrastructure; when it is not configured, the admin banner upload endpoints return `503` while the rest of the app continues working.
+- Mobile features and analytics remain outside the currently shipped baseline.
 - The API handles `SIGINT` and `SIGTERM` with graceful shutdown, including Prisma disconnect.
 
 ## License
