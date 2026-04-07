@@ -93,7 +93,7 @@ The current implementation still includes gradients, blur, and shadow-heavy surf
 - [apps/web/app/globals.css](/Users/hkk/Documents/Playground/thai-lottery-checker/apps/web/app/globals.css)
 - [apps/web/app/admin/(protected)/layout.tsx](/Users/hkk/Documents/Playground/thai-lottery-checker/apps/web/app/admin/(protected)/layout.tsx)
 
-This foundation supersedes that visual direction. Future Slice 3 UI refinement should move those surfaces to border-first, low-effect styling that follows the tokens and component rules below.
+This foundation supersedes that visual direction. Future UI refinement work should move those surfaces to border-first, low-effect styling that follows the tokens and component rules below.
 
 ## 4. Color System and Design Tokens
 
@@ -638,7 +638,25 @@ Use:
 
 Do not use toast notifications for critical blocking failures that need immediate local action context.
 
-### 12.9 Checker Result Overlay
+### 12.9 Home Blog Teaser Grid
+
+Contains:
+
+- section title
+- supporting description
+- secondary CTA to the localized blog index
+- 3 compact teaser cards
+
+Rules:
+
+- place the section below the home history preview so the landing page remains results-first
+- use a 1 / 2 / 3 column grid across mobile, tablet, and desktop breakpoints
+- teaser cards should reuse the blog card visual language, but with a more compact image height and tighter content block than the full blog list page
+- the entire card should be clickable, with the `Read article` treatment acting as a supporting affordance rather than the only hit target
+- CTA alignment should stay consistent across cards within the same row even when title or excerpt length differs
+- if localized teaser data is empty or unavailable, hide the section entirely instead of rendering a placeholder block
+
+### 12.10 Checker Result Overlay
 
 Contains:
 

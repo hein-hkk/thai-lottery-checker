@@ -84,6 +84,7 @@ Responsibilities:
 - render the locale landing page at `/{locale}`
 - display latest lottery results
 - display published historical results
+- display home-page blog teasers below the history preview when localized published posts are available
 - render result detail pages by draw date
 - provide the embedded public number-checking flow
 - display blog list and blog detail content
@@ -260,6 +261,7 @@ Responsibilities:
 - retrieve published blog posts
 - retrieve localized blog detail content
 - manage blog metadata and translations through admin workflows
+- issue blog banner upload initialization/completion flows through optional object storage
 - publish and unpublish blog posts
 
 ### 6.4 Admin Service
@@ -306,8 +308,9 @@ Critical admin actions are recorded in `admin_audit_logs` to support traceabilit
 The current OSS architecture does not require Redis or any other cache layer.
 If later performance hardening adds caching, PostgreSQL must remain the source of truth and the system must continue functioning when the cache is unavailable.
 
-Object storage is also not required by the current implementation.
-It may be added in a future OSS slice for blog banner uploads, but today the repository stores only banner URLs in the database.
+Object storage for blog banners is supported by the current implementation but remains optional infrastructure.
+When it is configured, admins can upload blog banners through short-lived presigned POST forms while PostgreSQL still stores the public `banner_image_url` reference as canonical application data.
+When it is not configured, the API and web app still run normally and the admin banner upload endpoints fail fast with `503`.
 
 ## 8. Monorepo Structure
 
@@ -368,7 +371,7 @@ Database:
 
 - managed PostgreSQL
 
-Optional future infrastructure:
+Optional infrastructure:
 
 - object storage for blog banner uploads
 - cache layer for hot read paths if later required

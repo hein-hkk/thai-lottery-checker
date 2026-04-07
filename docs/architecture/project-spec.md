@@ -63,7 +63,7 @@ Internal operators who manage:
 
 ### Public web application
 
-- locale landing page at `/{locale}` with latest-result preview and history entry point
+- locale landing page at `/{locale}` with latest-result preview, history preview, and blog teaser discovery
 - dedicated latest-results page at `/{locale}/results`
 - published history page at `/{locale}/results/history`
 - result detail page by draw date at `/{locale}/results/{drawDate}`
@@ -78,7 +78,7 @@ Internal operators who manage:
 - password reset and recovery
 - admin management for authorized `super_admin` users
 - result draft, staged release, publish, and correction workflows
-- blog draft, translation, publish, and unpublish workflows
+- blog draft, managed banner upload, translation, publish, and unpublish workflows
 - audit logging for sensitive admin actions
 
 The admin area is implemented inside the same Next.js application under protected `/admin` routes and uses the shared backend API.
@@ -103,6 +103,7 @@ It does not include accounts, saved tickets, notifications, or other private bus
 The current repository implementation aligns with the following shipped baseline:
 
 - locale landing page with latest preview and history entry point
+- home-page blog teaser section under the published-history preview
 - latest-result page
 - history page
 - result detail page
@@ -114,7 +115,7 @@ The current repository implementation aligns with the following shipped baseline
 - password reset request and confirmation
 - admin management for `super_admin`
 - result management with draft, publish, release, unrelease, and correction behavior
-- blog management with metadata, translations, publish, and unpublish behavior
+- blog management with slug metadata, managed banner uploads, translations, publish, and unpublish behavior
 - audit logging for admin governance, result workflows, and blog workflows
 
 ## 6. Recommended Technology Stack
@@ -141,9 +142,9 @@ The current repository implementation aligns with the following shipped baseline
   - i18n
   - utilities
 
-### Planned infrastructure additions
+### Optional infrastructure in the current baseline
 
-- optional object storage for future blog banner uploads in the OSS roadmap
+- optional object storage for managed blog banner uploads
 - optional cache layer only if later performance work requires it
 
 ## 7. High-Level Architecture
@@ -178,7 +179,7 @@ Shared monorepo packages
 - keep PostgreSQL as canonical storage
 - keep admin logically separated inside the web app under protected routes
 - reuse shared packages for cross-surface contracts and business logic
-- keep optional infrastructure such as object storage or caching out of the required OSS baseline until implemented
+- keep optional infrastructure such as object storage or caching non-blocking so the core product still works when that infrastructure is absent
 - handle API process shutdown gracefully on `SIGINT` and `SIGTERM`
 
 ## 8. Core System Components
@@ -208,6 +209,7 @@ Responsible for:
 
 - multilingual blog listing and detail retrieval
 - blog metadata and translation management for admins
+- managed blog banner uploads through optional object storage
 - publish and unpublish workflows
 
 ### Admin service
