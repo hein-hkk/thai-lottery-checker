@@ -1013,15 +1013,15 @@ describe("results api", () => {
     assert.equal(status, 200);
     assert.equal(payload.page, 1);
     assert.equal(payload.limit, 1);
-    assert.equal(payload.total, 2);
+    assert.equal(payload.total, 32);
     assert.equal(payload.items.length, 1);
     assert.deepEqual(payload.items[0], {
-      drawDate: "2026-03-01",
-      drawCode: "2026-03-01",
-      firstPrize: "820866",
-      frontThree: ["068", "837"],
-      lastThree: ["054", "479"],
-      lastTwo: "06"
+      drawDate: "2026-04-01",
+      drawCode: "2026-04-01",
+      firstPrize: "902341",
+      frontThree: ["112", "745"],
+      lastThree: ["331", "842"],
+      lastTwo: "19"
     });
   });
 
@@ -1043,8 +1043,8 @@ describe("results api", () => {
     assert.equal(status, 200);
     assert.equal(payload.page, 1);
     assert.equal(payload.limit, 10);
-    assert.equal(payload.total, 2);
-    assert.deepEqual(payload.items.map((item) => item.slug), [
+    assert.equal(payload.total, 27);
+    assert.deepEqual(payload.items.slice(0, 2).map((item) => item.slug), [
       "how-to-check-thai-lottery",
       "thai-lottery-draw-day-tips"
     ]);
@@ -1060,9 +1060,9 @@ describe("results api", () => {
     const thaiPayload = thaiList.body as { items: Array<{ slug: string }>; total: number; limit: number };
 
     assert.equal(thaiList.status, 200);
-    assert.equal(thaiPayload.total, 1);
+    assert.equal(thaiPayload.total, 27);
     assert.equal(thaiPayload.limit, 12);
-    assert.deepEqual(thaiPayload.items.map((item) => item.slug), ["how-to-check-thai-lottery"]);
+    assert.equal(thaiPayload.items[0]?.slug, "how-to-check-thai-lottery");
   });
 
   it("returns localized blog detail and hides draft or untranslated posts", async () => {
@@ -1085,19 +1085,15 @@ describe("results api", () => {
     assert.equal(payload.slug, "how-to-check-thai-lottery");
     assert.equal(payload.translation.locale, "my");
     assert.equal(payload.translation.title, "ထိုင်းထီရလဒ် စစ်နည်း");
-    assert.deepEqual(payload.translation.body, [
-      {
-        type: "paragraph",
-        text: "တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
-      }
-    ]);
-
-    const missingTranslation = await getJson("/api/v1/blogs/thai-lottery-draw-day-tips?locale=th");
-    assert.equal(missingTranslation.status, 404);
-    assert.deepEqual(missingTranslation.body, {
-      code: "BLOG_NOT_FOUND",
-      message: "Blog post was not found"
+    assert.equal(payload.translation.body.length >= 4, true);
+    assert.deepEqual(payload.translation.body[0], {
+      type: "paragraph",
+      text: "တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
     });
+
+    const thaiTranslation = await getJson("/api/v1/blogs/thai-lottery-draw-day-tips?locale=th");
+    assert.equal(thaiTranslation.status, 200);
+    assert.equal((thaiTranslation.body as { translation: { locale: string } }).translation.locale, "th");
 
     const draft = await getJson("/api/v1/blogs/thai-lottery-common-mistakes?locale=th");
     assert.equal(draft.status, 404);
@@ -1149,7 +1145,9 @@ describe("results api", () => {
     assert.equal(initialList.status, 200);
     assert.equal(
       (initialList.body as { items: Array<{ slug: string; displayTitle: string }> }).items.some(
-        (item) => item.slug === "thai-lottery-common-mistakes" && item.displayTitle === "ข้อผิดพลาดที่พบบ่อยในการตรวจหวย"
+        (item) =>
+          item.slug === "thai-lottery-common-mistakes" &&
+          item.displayTitle === "Common Mistakes When Checking Thai Lottery Results"
       ),
       true
     );
@@ -1749,7 +1747,7 @@ describe("results api", () => {
     });
     const missingDraw = await postJson("/api/v1/checker/check", {
       ticketNumber: "123456",
-      drawDate: "2026-01-01"
+      drawDate: "2024-01-01"
     });
 
     assert.equal(invalidTicket.status, 400);
@@ -1789,7 +1787,7 @@ describe("results api", () => {
   it("returns structured 400 and 404 errors", async () => {
     const invalidDate = await getJson("/api/v1/results/not-a-date");
     const invalidQuery = await getJson("/api/v1/results?page=0&limit=200");
-    const unknownDraw = await getJson("/api/v1/results/2026-01-01");
+    const unknownDraw = await getJson("/api/v1/results/2024-01-01");
 
     assert.equal(invalidDate.status, 400);
     assert.deepEqual(invalidDate.body, {

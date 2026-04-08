@@ -88,10 +88,10 @@ pnpm db:seed
 The seed creates:
 
 - 1 bootstrap `super_admin` from env
-- 2 published draws for public browsing
+- 32 published draws for public browsing and checker/history pagination
 - 1 draft draw for admin workflows
-- 2 published blog posts for public reading
-- 1 draft blog post for admin/blog workflow preparation
+- 27 published multilingual blog posts for public reading
+- 3 draft multilingual blog posts for admin/blog workflow preparation
 
 ## Run the apps
 
