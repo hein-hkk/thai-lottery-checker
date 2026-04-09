@@ -70,6 +70,9 @@ Internal operators who manage:
 - embedded number checker that navigates to the draw-detail overlay state
 - blog list and blog detail pages
 - multilingual routing and localized public content
+- refined public copy for landing, latest-results, checker, and blog entry surfaces
+- route metadata and canonical URLs for landing, latest results, result detail, blog list, and blog detail pages
+- shared public footer on public-facing routes
 
 ### Admin system
 
@@ -110,6 +113,10 @@ The current repository implementation aligns with the following shipped baseline
 - staged public visibility for current draw-day drafts
 - embedded checker plus draw-detail result overlay flow
 - blog list and blog detail pages
+- refined public copy across landing, latest-results, checker, and blog entry surfaces
+- route-level metadata for landing, latest results, result detail, blog list, and blog detail pages
+- shared public footer on public routes
+- deterministic localized public date rendering across SSR and hydration, including Myanmar locale handling
 - admin login and session handling
 - invitation acceptance
 - password reset request and confirmation

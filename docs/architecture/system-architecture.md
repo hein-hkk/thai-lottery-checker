@@ -89,6 +89,9 @@ Responsibilities:
 - provide the embedded public number-checking flow
 - display blog list and blog detail content
 - support multilingual routing
+- render a complete public shell with shared header, main content, and utility footer on public routes
+- present refined trust-focused public copy on landing, latest-results, checker, and blog entry surfaces
+- generate route metadata and canonical URLs for landing, latest results, result detail, blog list, and blog detail routes
 
 Example routes:
 
@@ -354,6 +357,12 @@ Public routes are locale-prefixed, for example:
 - `/en/results`
 - `/th/results`
 - `/my/results`
+
+### Locale-safe rendering
+
+Locale-facing public date formatting must be deterministic across SSR and hydration.
+
+This is especially important for Burmese/Myanmar output, where server and browser `Intl` implementations may produce different text for the same date unless formatting is normalized through shared rendering logic.
 
 ## 10. Deployment Architecture
 

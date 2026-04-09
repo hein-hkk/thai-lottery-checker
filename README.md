@@ -25,6 +25,7 @@ Repo structure:
 For deeper product and architecture details, see:
 
 - [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
+- [Slice 8 delivery notes](docs/roadmap/slice-8-web-refinement-and-production-readiness.md)
 - [Slice 7 plan](docs/roadmap/slice-7-blog-banner-uploads-and-home-page-teasers.md)
 - [Slice 5 plan](docs/roadmap/slice-5-blog-public-reading.md)
 - [Slice 6 plan](docs/roadmap/slice-6-admin-blog-management.md)
@@ -142,6 +143,19 @@ Current public route roles:
 - `/{locale}/blog/{slug}`: localized public blog detail page by shared slug
 
 The public checker is embedded on the public pages above and navigates to the selected draw detail page for result presentation.
+
+Current public shell behavior:
+
+- public routes render a shared header, main content shell, and footer
+- the footer appears on public pages only, not in `/admin`
+- below `768px`, the footer centers its content and stacks nav links above the copyright line
+- from `768px` upward, the footer uses a split row with legal copy on the left and links on the right
+- route-level metadata now exists for:
+  - `/{locale}`
+  - `/{locale}/results`
+  - `/{locale}/results/{drawDate}`
+  - `/{locale}/blog`
+  - `/{locale}/blog/{slug}`
 
 ## Admin Web Routes
 
@@ -300,22 +314,33 @@ Manual checks:
 
 - Open `http://localhost:3000/en`
 - Confirm the primary public header shows `Home`, `Latest results`, and `Blog`
-- Confirm the landing page latest section shows a trust-focused localized title/description with latest draw metadata below it
+- Confirm the landing page latest section shows the refined title `Check the Latest Thai Lottery Results` and description `View official results and check your ticket instantly.`
+- Confirm the landing page latest section still shows latest draw metadata below the section copy
 - Confirm the landing page history preview appears before the blog teaser section
-- Confirm the landing page blog teaser section shows up to 3 localized published posts and links to `/{locale}/blog`
+- Confirm the checker panel uses `Check Your Ticket` and `Check Ticket`
+- Confirm the landing page blog teaser section shows the refined helper copy `Learn how Thai lottery works and how to check results`, uses `View more` for the section CTA, and links to `/{locale}/blog`
+- Confirm the public footer appears below the main content on public pages and does not appear on `/admin`
+- Confirm on narrow screens the footer centers its content, shows nav links above the copyright line, and keeps desktop split layout from `768px` upward
+- Inspect the page source or browser metadata for `/{locale}` and confirm it has explicit localized title, description, and canonical URL
 - Open `http://localhost:3000/en/results`
 - Confirm the latest page shows the same localized trust-focused title/description plus latest draw metadata
+- Inspect the page source or browser metadata for `/{locale}/results` and confirm it has explicit localized title, description, and canonical URL
 - Open `http://localhost:3000/en/results/history`
 - Confirm history remains directly reachable but is no longer a primary nav item
 - Open `http://localhost:3000/en/blog`
+- Confirm the blog list page title reads `Thai Lottery Guides & Tips`
+- Confirm the blog list page description reads `Learn how Thai lottery results work, how to check your ticket, and what each prize means.`
 - Confirm the blog list page renders published English posts with localized metadata and pagination controls
 - Open `http://localhost:3000/th/blog`
 - Confirm locale-specific filtering hides English-only posts from the Thai blog list
 - Open `http://localhost:3000/en/blog/how-to-check-thai-lottery`
 - Confirm the blog detail page renders paragraph content, banner image, and localized metadata fallback behavior
 - Open `http://localhost:3000/en/results/2026-03-01`
+- Inspect the page source or browser metadata for `/{locale}/results/{drawDate}` and confirm it has a draw-specific title, description, and canonical URL
 - Use the embedded checker on a public page and confirm it navigates to the selected draw detail page with `checker` and `ticket` query params
 - Confirm the draw detail page opens the checker overlay and keeps the official draw numbers visible behind it
+- Open `http://localhost:3000/my`
+- Confirm the page renders without a hydration mismatch and that localized dates stay stable between server render and client hydration
 - Open `http://localhost:3000/admin/login`
 - Sign in with the bootstrap admin from `.env`
 - Open `http://localhost:3000/admin/admins`
