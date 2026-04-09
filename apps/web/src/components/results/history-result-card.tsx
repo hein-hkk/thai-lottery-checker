@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { ResultHistoryResponse, SupportedLocale } from "@thai-lottery-checker/types";
 import { ArrowRight } from "lucide-react";
+import { formatHistoryDayLabel, formatHistoryMonthLabel } from "../../lib/locale-date";
 
 interface HistoryResultCardProps {
   item: ResultHistoryResponse["items"][number];
@@ -13,14 +14,14 @@ export function HistoryResultCard({ item, locale, messages }: HistoryResultCardP
   return (
     <Link
       aria-label={`${messages.drawDate}: ${item.drawDate}`}
-      className="ui-history-link-card ui-panel"
-      href={`/${locale}/results/${item.drawDate}`}
-      title={item.drawDate}
+        className="ui-history-link-card ui-panel"
+        href={`/${locale}/results/${item.drawDate}`}
+        title={item.drawDate}
     >
       <div className="ui-history-row">
         <div className="ui-history-date-badge" aria-hidden="true">
-          <span className="ui-history-date-day">{getDayLabel(item.drawDate)}</span>
-          <span className="ui-history-date-month">{getMonthLabel(locale, item.drawDate)}</span>
+          <span className="ui-history-date-day">{formatHistoryDayLabel(locale, item.drawDate)}</span>
+          <span className="ui-history-date-month">{formatHistoryMonthLabel(locale, item.drawDate)}</span>
         </div>
 
         <div className="ui-history-content">
@@ -89,26 +90,4 @@ function HistoryValueBlock({
       </div>
     </div>
   );
-}
-
-function getDayLabel(drawDate: string) {
-  return new Intl.DateTimeFormat("en-GB", { day: "2-digit", timeZone: "UTC" }).format(new Date(`${drawDate}T00:00:00.000Z`));
-}
-
-function getMonthLabel(locale: SupportedLocale, drawDate: string) {
-  return new Intl.DateTimeFormat(toIntlLocale(locale), { month: "short", timeZone: "UTC" })
-    .format(new Date(`${drawDate}T00:00:00.000Z`))
-    .replace(".", "");
-}
-
-function toIntlLocale(locale: SupportedLocale) {
-  switch (locale) {
-    case "th":
-      return "th-TH";
-    case "my":
-      return "my-MM";
-    case "en":
-    default:
-      return "en-GB";
-  }
 }

@@ -10,6 +10,7 @@ import { Check, ChevronDown } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState, type FormEvent } from "react";
 import { getCheckerDrawOptions, ResultsApiError } from "../../results/api";
+import { formatLongDate } from "../../lib/locale-date";
 
 interface EmbeddedCheckerProps {
   defaultDrawDate: string;
@@ -202,24 +203,4 @@ export function EmbeddedChecker({
       </div>
     </aside>
   );
-}
-
-function formatLongDate(locale: SupportedLocale, value: string) {
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(new Date(`${value}T12:00:00Z`));
-}
-
-function toIntlLocale(locale: SupportedLocale) {
-  switch (locale) {
-    case "th":
-      return "th-TH";
-    case "my":
-      return "my-MM";
-    case "en":
-    default:
-      return "en-GB";
-  }
 }
