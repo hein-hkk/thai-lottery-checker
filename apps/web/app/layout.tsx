@@ -3,8 +3,8 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Thai Lottery Checker",
-  description: "Foundation skeleton for the Thai Lottery Checker web app."
+  title: "LottoKai",
+  description: "Thai lottery results and number checker."
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
