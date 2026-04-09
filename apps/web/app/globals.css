@@ -192,6 +192,47 @@
     line-height: 1.6;
   }
 
+  .ui-public-footer {
+    margin-top: auto;
+    border-top: 1px solid var(--border-default);
+    background: var(--bg-secondary);
+  }
+
+  .ui-public-footer-inner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+    align-items: center;
+    padding-block: 1rem 1.5rem;
+    text-align: center;
+  }
+
+  .ui-public-footer-copy {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    line-height: 1.5;
+  }
+
+  .ui-public-footer-nav {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.875rem 1.25rem;
+  }
+
+  .ui-public-footer-link {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 1.5;
+    transition: color 150ms ease-out;
+  }
+
+  .ui-public-footer-link:hover {
+    color: var(--text-primary);
+  }
+
   .ui-button-primary,
   .ui-button-secondary {
     display: inline-flex;
@@ -1367,6 +1408,23 @@
   @layer components {
     .ui-container {
       padding-inline: 1.5rem;
+    }
+
+    .ui-public-footer-inner {
+      flex-direction: row;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1.5rem;
+      text-align: left;
+    }
+
+    .ui-public-footer-nav {
+      order: 2;
+      justify-content: flex-end;
+    }
+
+    .ui-public-footer-copy {
+      order: 1;
     }
 
     .ui-brand-link {

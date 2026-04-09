@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { PublicMessages } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
+import { PublicFooter } from "./public-footer";
 import { PublicHeader } from "./public-header";
 
 interface PublicPageShellProps {
@@ -38,6 +39,7 @@ export function PublicPageShell({
           )}
         </section>
       </main>
+      <PublicFooter locale={locale} messages={messages} />
     </div>
   );
 }

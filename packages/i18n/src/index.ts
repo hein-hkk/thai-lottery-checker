@@ -24,6 +24,7 @@ export interface ResultsMessages {
   home: string;
   latestResults: string;
   blog: string;
+  footerCopyright: string;
   officialLatestResultsTitle: string;
   officialLatestResultsDescription: string;
   resultHistory: string;
@@ -95,7 +96,8 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
   en: {
     home: "Home",
     latestResults: "Latest results",
-    blog: "Blog",
+    blog: "Blogs",
+    footerCopyright: "© {year} LottoKai. All rights reserved.",
     officialLatestResultsTitle: "Check the Latest Thai Lottery Results",
     officialLatestResultsDescription:
       "View official results and check your ticket instantly.",
@@ -182,6 +184,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     home: "หน้าหลัก",
     latestResults: "ผลรางวัลล่าสุด",
     blog: "บทความ",
+    footerCopyright: "© {year} LottoKai สงวนลิขสิทธิ์",
     officialLatestResultsTitle: "ตรวจผลสลากกินแบ่งรัฐบาล",
     officialLatestResultsDescription: "ดูผลสลากกินแบ่งรัฐบาลอย่างเป็นทางการ และตรวจรางวัลได้ทันที",
     resultHistory: "สถิติหวยย้อนหลัง",
@@ -267,6 +270,7 @@ const resultsMessagesByLocale: Record<SupportedLocale, ResultsMessages> = {
     home: "ပင်မ",
     latestResults: "နောက်ဆုံးထွက်ဂဏန်းများ",
     blog: "ဆောင်းပါးများ",
+    footerCopyright: "© {year} LottoKai မူပိုင်ခွင့်အားလုံး လက်ဝယ်ရှိသည်။",
     officialLatestResultsTitle: "ထိုင်းထီ နောက်ဆုံးရလဒ် စစ်ဆေးရန်",
     officialLatestResultsDescription: "တရားဝင် ထိုင်းထီရလဒ်များကို ကြည့်ရှုပြီး မိမိထီလက်မှတ်ကို ချက်ချင်းစစ်ဆေးပါ။",
     resultHistory: "ထီထွက်စဉ်မှတ်တမ်း",
