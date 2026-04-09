@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
@@ -10,11 +11,22 @@ import { StatusCard } from "../../src/components/results/status-card";
 import { PublicPageShell } from "../../src/components/ui/public-page-shell";
 import { getBlogList } from "../../src/blog/api";
 import { getResultHistory, getLatestResults, ResultsApiError } from "../../src/results/api";
+import { getLandingMetadata } from "../../src/results/metadata";
 
 export const dynamic = "force-dynamic";
 
 interface LocalePageProps {
   params: Promise<{ locale: string }>;
+}
+
+export async function generateMetadata({ params }: { params: Promise<{ locale: string }> }): Promise<Metadata> {
+  const { locale } = await params;
+
+  if (!isSupportedLocale(locale)) {
+    return {};
+  }
+
+  return getLandingMetadata(locale as SupportedLocale, getResultsMessages(locale as SupportedLocale));
 }
 
 export default async function LocalePage({ params }: LocalePageProps) {
