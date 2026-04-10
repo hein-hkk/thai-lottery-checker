@@ -922,10 +922,21 @@ describe("results api", () => {
 
     const adminResults = await getJsonWithCookie("/api/v1/admin/results", sessionCookie ?? undefined);
     assert.equal(adminResults.status, 200);
+    assert.equal((adminResults.body as { page: number }).page, 1);
+    assert.equal((adminResults.body as { limit: number }).limit, 5);
+    assert.equal((adminResults.body as { total: number }).total >= 1, true);
+    assert.equal((adminResults.body as { items: unknown[] }).items.length <= 5, true);
     assert.equal(
       (adminResults.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdDrawId),
       true
     );
+
+    const invalidAdminResultsQuery = await getJsonWithCookie("/api/v1/admin/results?limit=51", sessionCookie ?? undefined);
+    assert.equal(invalidAdminResultsQuery.status, 400);
+    assert.deepEqual(invalidAdminResultsQuery.body, {
+      code: "INVALID_ADMIN_RESULT_REQUEST",
+      message: "Admin result list query is invalid"
+    });
 
     const correctionAuditLog = await prisma.adminAuditLog.findFirst({
       where: {
@@ -1254,12 +1265,32 @@ describe("results api", () => {
     assert.equal(publicPublished.status, 200);
     assert.equal((publicPublished.body as { slug: string }).slug, "admin-blog-workflow-updated");
 
-    const publishedFilter = await getJsonWithCookie("/api/v1/admin/blogs?status=published", sessionCookie ?? undefined);
+    const publishedFilter = await getJsonWithCookie(
+      "/api/v1/admin/blogs?status=published&page=1&limit=5",
+      sessionCookie ?? undefined
+    );
     assert.equal(publishedFilter.status, 200);
+    assert.equal((publishedFilter.body as { page: number }).page, 1);
+    assert.equal((publishedFilter.body as { limit: number }).limit, 5);
+    assert.equal((publishedFilter.body as { total: number }).total >= 1, true);
+    assert.equal(
+      (publishedFilter.body as { items: Array<{ status: string }> }).items.every((item) => item.status === "published"),
+      true
+    );
     assert.equal(
       (publishedFilter.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdBlogId),
       true
     );
+
+    const invalidAdminBlogsQuery = await getJsonWithCookie(
+      "/api/v1/admin/blogs?status=published&limit=51",
+      sessionCookie ?? undefined
+    );
+    assert.equal(invalidAdminBlogsQuery.status, 400);
+    assert.deepEqual(invalidAdminBlogsQuery.body, {
+      code: "INVALID_ADMIN_BLOG_REQUEST",
+      message: "Admin blog list query is invalid"
+    });
 
     const unpublish = await postJson(`/api/v1/admin/blogs/${createdBlogId}/unpublish`, {}, sessionCookie ?? undefined);
     assert.equal(unpublish.status, 200);
@@ -1288,7 +1319,10 @@ describe("results api", () => {
     const post = createRepositoryPost();
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === post.id ? post : null;
@@ -1421,7 +1455,10 @@ describe("results api", () => {
     const deletedKeys: string[] = [];
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === currentPost.id ? currentPost : null;
@@ -1496,7 +1533,10 @@ describe("results api", () => {
     const post = createRepositoryPost();
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === post.id ? post : null;
@@ -1581,7 +1621,10 @@ describe("results api", () => {
     const deletedKeys: string[] = [];
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === currentPost.id ? currentPost : null;

@@ -58,6 +58,12 @@ export class AdminApiError extends Error {
   }
 }
 
+interface AdminListRequestOptions {
+  cookieHeader?: string;
+  page?: number;
+  limit?: number;
+}
+
 function getAdminApiUrl(pathname: string): string {
   return `${getPublicEnv().apiBaseUrl}${pathname}`;
 }
@@ -237,12 +243,24 @@ export async function updateAdminAccount(adminId: string, input: AdminUpdateRequ
   return adminUpdateResponseSchema.parse(await response.json());
 }
 
-export async function getAdminResults(cookieHeader?: string): Promise<AdminResultListResponse> {
-  const response = await fetch(getAdminApiUrl("/api/v1/admin/results"), {
+export async function getAdminResults(options: AdminListRequestOptions = {}): Promise<AdminResultListResponse> {
+  const search = new URLSearchParams();
+
+  if (options.page !== undefined) {
+    search.set("page", String(options.page));
+  }
+
+  if (options.limit !== undefined) {
+    search.set("limit", String(options.limit));
+  }
+
+  const serializedSearch = search.toString();
+  const query = serializedSearch ? `?${serializedSearch}` : "";
+  const response = await fetch(getAdminApiUrl(`/api/v1/admin/results${query}`), {
     method: "GET",
     cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-    credentials: cookieHeader ? undefined : "include"
+    headers: options.cookieHeader ? { cookie: options.cookieHeader } : undefined,
+    credentials: options.cookieHeader ? undefined : "include"
   });
 
   if (!response.ok) {
@@ -369,13 +387,25 @@ export async function correctAdminResult(drawId: string, input: AdminResultWrite
   return adminResultDetailResponseSchema.parse(await response.json());
 }
 
-export async function getAdminBlogs(status: AdminBlogStatusFilter = "all", cookieHeader?: string): Promise<AdminBlogListResponse> {
+export async function getAdminBlogs(
+  status: AdminBlogStatusFilter = "all",
+  options: AdminListRequestOptions = {}
+): Promise<AdminBlogListResponse> {
   const search = new URLSearchParams({ status });
+
+  if (options.page !== undefined) {
+    search.set("page", String(options.page));
+  }
+
+  if (options.limit !== undefined) {
+    search.set("limit", String(options.limit));
+  }
+
   const response = await fetch(getAdminApiUrl(`/api/v1/admin/blogs?${search.toString()}`), {
     method: "GET",
     cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-    credentials: cookieHeader ? undefined : "include"
+    headers: options.cookieHeader ? { cookie: options.cookieHeader } : undefined,
+    credentials: options.cookieHeader ? undefined : "include"
   });
 
   if (!response.ok) {

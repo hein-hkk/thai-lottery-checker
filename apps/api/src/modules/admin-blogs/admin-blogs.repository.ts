@@ -70,8 +70,13 @@ export interface UpsertAdminBlogTranslationInput {
   adminId: string;
 }
 
+export interface AdminBlogListPayload {
+  items: AdminBlogRepositoryListPost[];
+  total: number;
+}
+
 export interface AdminBlogsRepository {
-  listAdminBlogs(status: AdminBlogStatusFilter): Promise<AdminBlogRepositoryListPost[]>;
+  listAdminBlogs(status: AdminBlogStatusFilter, page: number, limit: number): Promise<AdminBlogListPayload>;
   findBlogById(blogId: string): Promise<AdminBlogRepositoryPost | null>;
   findBlogBySlug(slug: string): Promise<Pick<AdminBlogRepositoryPost, "id"> | null>;
   createDraftBlog(input: CreateAdminBlogInput): Promise<AdminBlogRepositoryPost>;
@@ -133,12 +138,26 @@ async function findBlogWithTranslations(blogId: string): Promise<AdminBlogReposi
 }
 
 export const prismaAdminBlogsRepository: AdminBlogsRepository = {
-  async listAdminBlogs(status) {
-    return prisma.blogPost.findMany({
-      where: status === "all" ? undefined : { status },
-      orderBy: [{ updatedAt: "desc" }],
-      select: listPostSelect()
-    });
+  async listAdminBlogs(status, page, limit) {
+    const skip = (page - 1) * limit;
+    const where = status === "all" ? undefined : { status };
+    const [items, total] = await prisma.$transaction([
+      prisma.blogPost.findMany({
+        where,
+        orderBy: [{ updatedAt: "desc" }, { id: "desc" }],
+        skip,
+        take: limit,
+        select: listPostSelect()
+      }),
+      prisma.blogPost.count({
+        where
+      })
+    ]);
+
+    return {
+      items,
+      total
+    };
   },
 
   async findBlogById(blogId) {

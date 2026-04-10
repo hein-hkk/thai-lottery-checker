@@ -279,9 +279,25 @@ Main admin route groups:
 
 These endpoints are protected by the admin auth and permission model. Public result endpoints continue to expose published draws only.
 
+Admin result endpoints:
+
+- `GET /api/v1/admin/results?page={page}&limit={limit}`
+- `GET /api/v1/admin/results/:id`
+- `POST /api/v1/admin/results`
+- `PATCH /api/v1/admin/results/:id`
+- `POST /api/v1/admin/results/:id/prize-groups/:prizeType/release`
+- `POST /api/v1/admin/results/:id/prize-groups/:prizeType/unrelease`
+- `POST /api/v1/admin/results/:id/publish`
+- `PATCH /api/v1/admin/results/:id/correct`
+
+Admin result behavior:
+
+- every endpoint requires admin auth and `manage_results`
+- list pagination defaults to `page=1` and `limit=5`, with `limit` capped at `50`
+
 Admin blog endpoints:
 
-- `GET /api/v1/admin/blogs?status={all|draft|published}`
+- `GET /api/v1/admin/blogs?status={all|draft|published}&page={page}&limit={limit}`
 - `GET /api/v1/admin/blogs/:id`
 - `POST /api/v1/admin/blogs`
 - `PATCH /api/v1/admin/blogs/:id`
@@ -295,6 +311,7 @@ Admin blog endpoints:
 Admin blog behavior:
 
 - every endpoint requires admin auth and `manage_blogs`
+- list pagination defaults to `page=1` and `limit=5`, with `limit` capped at `50`
 - drafts start with `status: "draft"` and `publishedAt: null`
 - metadata writes are slug-only; banner uploads use dedicated endpoints
 - publishing requires at least one valid translation with a title and paragraph body

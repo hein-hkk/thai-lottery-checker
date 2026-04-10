@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { AdminBlogListItem, AdminBlogStatusFilter } from "@thai-lottery-checker/types";
+import type { AdminBlogListResponse, AdminBlogStatusFilter } from "@thai-lottery-checker/types";
 
 function formatTimestamp(value: string | null): string {
   if (!value) {
@@ -13,16 +13,67 @@ function getFilterHref(status: AdminBlogStatusFilter): string {
   return status === "all" ? "/admin/blogs" : `/admin/blogs?status=${status}`;
 }
 
-export function BlogsListPanel({
+function getPageHref(status: AdminBlogStatusFilter, page: number): string {
+  const search = new URLSearchParams();
+
+  if (status !== "all") {
+    search.set("status", status);
+  }
+
+  search.set("page", String(page));
+
+  return `/admin/blogs?${search.toString()}`;
+}
+
+function BlogsPagination({
   activeStatus,
-  items
+  blogs
 }: {
   activeStatus: AdminBlogStatusFilter;
-  items: AdminBlogListItem[];
+  blogs: AdminBlogListResponse;
+}) {
+  const hasPrevious = blogs.page > 1;
+  const hasNext = blogs.page * blogs.limit < blogs.total;
+
+  if (!hasPrevious && !hasNext) {
+    return null;
+  }
+
+  return (
+    <div className="ui-panel-muted flex flex-col gap-4 p-4 md:flex-row md:items-center md:justify-between">
+      <div className="text-sm font-medium text-[var(--text-secondary)]">
+        Page {blogs.page}
+      </div>
+      <div className="flex gap-3">
+        {hasPrevious ? (
+          <Link className="ui-button-secondary" href={getPageHref(activeStatus, blogs.page - 1)}>
+            Previous
+          </Link>
+        ) : (
+          <span className="ui-button-secondary opacity-50">Previous</span>
+        )}
+        {hasNext ? (
+          <Link className="ui-button-primary" href={getPageHref(activeStatus, blogs.page + 1)}>
+            Next
+          </Link>
+        ) : (
+          <span className="ui-button-primary opacity-50">Next</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export function BlogsListPanel({
+  activeStatus,
+  blogs
+}: {
+  activeStatus: AdminBlogStatusFilter;
+  blogs: AdminBlogListResponse;
 }) {
   const filters: AdminBlogStatusFilter[] = ["all", "draft", "published"];
 
-  if (items.length === 0) {
+  if (blogs.items.length === 0) {
     return (
       <section className="space-y-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -49,9 +100,17 @@ export function BlogsListPanel({
 
         <section className="ui-panel-dashed p-10 text-center">
           <p className="ui-kicker">Blog management</p>
-          <h2 className="ui-section-title mt-3">No posts match this filter</h2>
-          <p className="ui-copy mt-3">Create a draft post to start writing and publishing blog content.</p>
+          <h2 className="ui-section-title mt-3">
+            {blogs.total > 0 ? "No posts on this page" : "No posts match this filter"}
+          </h2>
+          <p className="ui-copy mt-3">
+            {blogs.total > 0
+              ? "Go back to the previous page to continue reviewing blog posts."
+              : "Create a draft post to start writing and publishing blog content."}
+          </p>
         </section>
+
+        <BlogsPagination activeStatus={activeStatus} blogs={blogs} />
       </section>
     );
   }
@@ -94,7 +153,7 @@ export function BlogsListPanel({
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
+            {blogs.items.map((item) => (
               <tr key={item.id}>
                 <td className="font-medium text-[var(--text-primary)]">{item.displayTitle}</td>
                 <td className="text-[var(--text-secondary)]">{item.slug}</td>
@@ -114,6 +173,8 @@ export function BlogsListPanel({
           </tbody>
         </table>
       </div>
+
+      <BlogsPagination activeStatus={activeStatus} blogs={blogs} />
     </section>
   );
 }

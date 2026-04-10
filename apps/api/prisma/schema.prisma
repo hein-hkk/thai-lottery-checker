@@ -200,6 +200,8 @@ model BlogPost {
   translations     BlogPostTranslation[]
 
   @@index([status], map: "blog_posts_status_idx")
+  @@index([updatedAt, id], map: "blog_posts_updated_at_id_idx")
+  @@index([status, updatedAt, id], map: "blog_posts_status_updated_at_id_idx")
   @@index([publishedAt], map: "blog_posts_published_at_idx")
   @@map("blog_posts")
 }

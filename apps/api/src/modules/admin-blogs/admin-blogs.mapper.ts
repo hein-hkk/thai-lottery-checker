@@ -75,9 +75,17 @@ export function mapAdminBlogListItem(post: AdminBlogRepositoryListPost): AdminBl
   };
 }
 
-export function mapAdminBlogListResponse(posts: readonly AdminBlogRepositoryListPost[]): AdminBlogListResponse {
+export function mapAdminBlogListResponse(
+  posts: readonly AdminBlogRepositoryListPost[],
+  page: number,
+  limit: number,
+  total: number
+): AdminBlogListResponse {
   return {
-    items: posts.map(mapAdminBlogListItem)
+    items: posts.map(mapAdminBlogListItem),
+    page,
+    limit,
+    total
   };
 }
 

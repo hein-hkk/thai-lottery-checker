@@ -48,8 +48,13 @@ export interface CorrectAdminResultInput {
   rows: AdminResultRepositoryRow[];
 }
 
+export interface AdminResultListPayload {
+  items: AdminResultRepositoryDraw[];
+  total: number;
+}
+
 export interface AdminResultsRepository {
-  listAdminResults(): Promise<AdminResultRepositoryDraw[]>;
+  listAdminResults(page: number, limit: number): Promise<AdminResultListPayload>;
   findDrawById(drawId: string): Promise<AdminResultRepositoryDraw | null>;
   findDrawByDate(drawDate: Date): Promise<AdminResultRepositoryDraw | null>;
   findRowsByDrawId(drawId: string): Promise<AdminResultRepositoryRow[]>;
@@ -74,11 +79,22 @@ function drawSelect() {
 }
 
 export const prismaAdminResultsRepository: AdminResultsRepository = {
-  async listAdminResults() {
-    return prisma.lotteryDraw.findMany({
-      orderBy: [{ drawDate: "desc" }],
-      select: drawSelect()
-    });
+  async listAdminResults(page, limit) {
+    const skip = (page - 1) * limit;
+    const [items, total] = await prisma.$transaction([
+      prisma.lotteryDraw.findMany({
+        orderBy: [{ drawDate: "desc" }],
+        skip,
+        take: limit,
+        select: drawSelect()
+      }),
+      prisma.lotteryDraw.count()
+    ]);
+
+    return {
+      items,
+      total
+    };
   },
 
   async findDrawById(drawId) {

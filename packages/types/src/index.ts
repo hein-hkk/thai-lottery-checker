@@ -263,6 +263,14 @@ export interface AdminResultListItem {
 
 export interface AdminResultListResponse {
   items: AdminResultListItem[];
+  page: number;
+  limit: number;
+  total: number;
+}
+
+export interface AdminResultListQuery {
+  page?: number;
+  limit?: number;
 }
 
 export interface AdminResultDetail {
@@ -304,6 +312,9 @@ export interface AdminBlogListItem {
 
 export interface AdminBlogListResponse {
   items: AdminBlogListItem[];
+  page: number;
+  limit: number;
+  total: number;
 }
 
 export interface AdminBlogTranslationDraft {
@@ -340,6 +351,8 @@ export interface AdminBlogDetailResponse {
 
 export interface AdminBlogListQuery {
   status?: AdminBlogStatusFilter;
+  page?: number;
+  limit?: number;
 }
 
 export interface AdminBlogMetadataRequest {

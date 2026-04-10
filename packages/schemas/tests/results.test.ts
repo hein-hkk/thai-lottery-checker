@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+  adminResultListQuerySchema,
+  adminResultListResponseSchema,
   checkerCheckRequestSchema,
   checkerCheckResponseSchema,
   checkerDrawOptionsResponseSchema,
@@ -20,6 +22,12 @@ describe("result schemas", () => {
     assert.deepEqual(historyQuerySchema.parse({}), { page: 1, limit: 20 });
     assert.deepEqual(historyQuerySchema.parse({ page: "2", limit: "50" }), { page: 2, limit: 50 });
     assert.throws(() => historyQuerySchema.parse({ limit: "51" }));
+  });
+
+  it("applies defaults and caps for admin result list query params", () => {
+    assert.deepEqual(adminResultListQuerySchema.parse({}), { page: 1, limit: 5 });
+    assert.deepEqual(adminResultListQuerySchema.parse({ page: "2", limit: "50" }), { page: 2, limit: 50 });
+    assert.throws(() => adminResultListQuerySchema.parse({ limit: "51" }));
   });
 
   it("validates result detail and history payload shapes", () => {
@@ -47,6 +55,24 @@ describe("result schemas", () => {
         page: 1,
         limit: 20,
         total: 2
+      })
+    );
+
+    assert.ok(
+      adminResultListResponseSchema.parse({
+        items: [
+          {
+            id: "2a83b7d2-7c1d-41b9-9a9e-a8f7c68eb6f2",
+            drawDate: "2026-03-01",
+            drawCode: "2026-03-01",
+            status: "published",
+            publishedAt: "2026-03-01T09:30:00.000Z",
+            updatedAt: "2026-03-01T09:30:00.000Z"
+          }
+        ],
+        page: 1,
+        limit: 5,
+        total: 1
       })
     );
   });

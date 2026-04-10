@@ -131,8 +131,8 @@ export function createAdminBlogsService(
     async listBlogs(actor, query) {
       requireAdminPermission(actor, "manage_blogs");
       const parsed = parseListQuery(query);
-      const posts = await repository.listAdminBlogs(parsed.status ?? "all");
-      return mapAdminBlogListResponse(posts);
+      const payload = await repository.listAdminBlogs(parsed.status, parsed.page, parsed.limit);
+      return mapAdminBlogListResponse(payload.items, parsed.page, parsed.limit, payload.total);
     },
 
     async getBlogDetail(actor, blogId) {
@@ -400,7 +400,7 @@ export function createAdminBlogsService(
   };
 }
 
-function parseListQuery(input: unknown): AdminBlogListQuery {
+function parseListQuery(input: unknown): Required<AdminBlogListQuery> {
   try {
     return adminBlogListQuerySchema.parse(input);
   } catch (error) {

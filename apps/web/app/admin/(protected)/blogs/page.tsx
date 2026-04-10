@@ -7,11 +7,18 @@ import { BlogsListPanel } from "../../../../src/components/admin/blogs-list-pane
 export const dynamic = "force-dynamic";
 
 interface AdminBlogsPageProps {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; page?: string | string[] }>;
 }
 
 function parseStatusFilter(input: string | undefined): AdminBlogStatusFilter {
   return input === "draft" || input === "published" || input === "all" ? input : "all";
+}
+
+function parseAdminPage(input: string | string[] | undefined): number {
+  const value = Array.isArray(input) ? input[0] : input;
+  const parsed = Number(value);
+
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : 1;
 }
 
 export default async function AdminBlogsPage({ searchParams }: AdminBlogsPageProps) {
@@ -28,7 +35,8 @@ export default async function AdminBlogsPage({ searchParams }: AdminBlogsPagePro
   }
 
   const activeStatus = parseStatusFilter(resolvedSearchParams.status);
-  const blogs = await getAdminBlogs(activeStatus, cookieHeader);
+  const currentPage = parseAdminPage(resolvedSearchParams.page);
+  const blogs = await getAdminBlogs(activeStatus, { cookieHeader, page: currentPage });
 
-  return <BlogsListPanel activeStatus={activeStatus} items={blogs.items} />;
+  return <BlogsListPanel activeStatus={activeStatus} blogs={blogs} />;
 }
