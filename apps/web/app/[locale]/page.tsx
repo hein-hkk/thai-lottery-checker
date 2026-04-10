@@ -118,8 +118,14 @@ export default async function LocalePage({ params }: LocalePageProps) {
           </div>
         </section>
 
-        {teaserPosts && teaserPosts.items.length > 0 ? (
-          <HomeBlogTeasers locale={supportedLocale} messages={messages} posts={teaserPosts.items} />
+        {teaserPosts ? (
+          teaserPosts.items.length > 0 ? (
+            <HomeBlogTeasers locale={supportedLocale} messages={messages} posts={teaserPosts.items} />
+          ) : (
+            <HomeBlogTeasers locale={supportedLocale} messages={messages} statusMessage={messages.noBlogPosts} />
+          )
+        ) : teaserPostsResult.status === "rejected" ? (
+          <HomeBlogTeasers locale={supportedLocale} messages={messages} statusMessage={messages.blogListUnavailable} />
         ) : null}
       </div>
     </PublicPageShell>

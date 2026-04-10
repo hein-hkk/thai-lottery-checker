@@ -747,6 +747,7 @@ Both surfaces must reuse the same token and component system. Density is the pri
 - build shared primitives before duplicating per-screen styles
 - use the same structural classes for public and admin when behavior is shared
 - prefer semantic class naming through utility composition rather than visually descriptive one-off patterns
+- prefer custom anchored menu controls for important cross-browser dropdowns, such as admin role selection, when the native select popup cannot match the shared language-switcher interaction pattern
 
 ### 16.4 Migration Priorities
 

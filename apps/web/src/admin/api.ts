@@ -82,11 +82,17 @@ async function readAdminApiError(response: Response, fallbackMessage: string): P
 }
 
 export async function getAdminMe(cookieHeader?: string): Promise<AdminAuthResponse | null> {
-  const response = await fetch(getAdminApiUrl("/api/v1/admin/auth/me"), {
-    method: "GET",
-    cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(getAdminApiUrl("/api/v1/admin/auth/me"), {
+      method: "GET",
+      cache: "no-store",
+      headers: cookieHeader ? { cookie: cookieHeader } : undefined
+    });
+  } catch {
+    return null;
+  }
 
   if (response.status === 401) {
     return null;
@@ -100,14 +106,20 @@ export async function getAdminMe(cookieHeader?: string): Promise<AdminAuthRespon
 }
 
 export async function loginAdmin(input: AdminLoginRequest): Promise<AdminAuthResponse> {
-  const response = await fetch(getAdminApiUrl("/api/v1/admin/auth/login"), {
-    method: "POST",
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json"
-    },
-    body: JSON.stringify(input)
-  });
+  let response: Response;
+
+  try {
+    response = await fetch(getAdminApiUrl("/api/v1/admin/auth/login"), {
+      method: "POST",
+      credentials: "include",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(input)
+    });
+  } catch {
+    throw new AdminApiError(503, "Admin service is temporarily unavailable");
+  }
 
   if (!response.ok) {
     return readAdminApiError(response, "Failed to log in");

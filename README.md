@@ -94,6 +94,14 @@ The seed creates:
 - 27 published multilingual blog posts for public reading
 - 3 draft multilingual blog posts for admin/blog workflow preparation
 
+For a production-like empty database with only the bootstrap `super_admin`, use:
+
+```bash
+pnpm db:seed:admin
+```
+
+This removes lottery results, blog posts, admin audit/reset/invitation records, and non-bootstrap admins, then upserts the bootstrap `super_admin` from `.env`.
+
 ## Run the apps
 
 Start both apps together from the repo root:
@@ -388,6 +396,7 @@ pnpm db:generate
 pnpm db:migrate:dev
 pnpm db:migrate:deploy
 pnpm db:seed
+pnpm db:seed:admin
 pnpm db:studio
 ```
 
