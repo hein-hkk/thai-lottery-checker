@@ -15,6 +15,11 @@ export interface AdminBlogRepositoryTranslation {
   updatedAt: Date;
 }
 
+export interface AdminBlogRepositoryListTranslation {
+  locale: SupportedLocale;
+  title: string;
+}
+
 export interface AdminBlogRepositoryPost {
   id: string;
   slug: string;
@@ -25,6 +30,16 @@ export interface AdminBlogRepositoryPost {
   updatedAt: Date;
   updatedByAdminId: string;
   translations: AdminBlogRepositoryTranslation[];
+}
+
+export interface AdminBlogRepositoryListPost {
+  id: string;
+  slug: string;
+  status: PublishStatus;
+  publishedAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  translations: AdminBlogRepositoryListTranslation[];
 }
 
 export interface CreateAdminBlogInput {
@@ -56,7 +71,7 @@ export interface UpsertAdminBlogTranslationInput {
 }
 
 export interface AdminBlogsRepository {
-  listAdminBlogs(status: AdminBlogStatusFilter): Promise<AdminBlogRepositoryPost[]>;
+  listAdminBlogs(status: AdminBlogStatusFilter): Promise<AdminBlogRepositoryListPost[]>;
   findBlogById(blogId: string): Promise<AdminBlogRepositoryPost | null>;
   findBlogBySlug(slug: string): Promise<Pick<AdminBlogRepositoryPost, "id"> | null>;
   createDraftBlog(input: CreateAdminBlogInput): Promise<AdminBlogRepositoryPost>;
@@ -65,6 +80,24 @@ export interface AdminBlogsRepository {
   upsertBlogTranslation(input: UpsertAdminBlogTranslationInput): Promise<AdminBlogRepositoryPost>;
   publishBlog(blogId: string, adminId: string, publishedAt: Date): Promise<AdminBlogRepositoryPost>;
   unpublishBlog(blogId: string, adminId: string): Promise<AdminBlogRepositoryPost>;
+}
+
+function listPostSelect(): Prisma.BlogPostSelect {
+  return {
+    id: true,
+    slug: true,
+    status: true,
+    publishedAt: true,
+    createdAt: true,
+    updatedAt: true,
+    translations: {
+      orderBy: [{ locale: "asc" }],
+      select: {
+        locale: true,
+        title: true
+      }
+    }
+  };
 }
 
 function postSelect(): Prisma.BlogPostSelect {
@@ -104,7 +137,7 @@ export const prismaAdminBlogsRepository: AdminBlogsRepository = {
     return prisma.blogPost.findMany({
       where: status === "all" ? undefined : { status },
       orderBy: [{ updatedAt: "desc" }],
-      select: postSelect()
+      select: listPostSelect()
     });
   },
 

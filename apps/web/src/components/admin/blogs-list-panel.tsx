@@ -30,7 +30,7 @@ export function BlogsListPanel({
             <p className="ui-kicker">Blog management</p>
             <h2 className="ui-title mt-2 text-[clamp(1.75rem,4vw,2.5rem)]">Blog posts</h2>
           </div>
-          <Link className="ui-button-primary" href="/admin/blogs/new">
+          <Link className="ui-button-primary" href="/admin/blogs/new" prefetch={false}>
             Create post
           </Link>
         </div>
@@ -63,7 +63,7 @@ export function BlogsListPanel({
           <p className="ui-kicker">Blog management</p>
           <h2 className="ui-title mt-2 text-[clamp(1.75rem,4vw,2.5rem)]">Blog posts</h2>
         </div>
-        <Link className="ui-button-primary" href="/admin/blogs/new">
+        <Link className="ui-button-primary" href="/admin/blogs/new" prefetch={false}>
           Create post
         </Link>
       </div>
@@ -105,7 +105,7 @@ export function BlogsListPanel({
                 <td className="text-[var(--text-secondary)]">{formatTimestamp(item.publishedAt)}</td>
                 <td className="text-[var(--text-secondary)]">{formatTimestamp(item.updatedAt)}</td>
                 <td>
-                  <Link className="ui-button-secondary" href={`/admin/blogs/${item.id}`}>
+                  <Link className="ui-button-secondary" href={`/admin/blogs/${item.id}`} prefetch={false}>
                     {item.status === "draft" ? "Edit draft" : "Edit post"}
                   </Link>
                 </td>

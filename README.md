@@ -115,6 +115,14 @@ Default local URLs:
 - Web: `http://localhost:3000`
 - API: `http://localhost:4000`
 
+Development compiler note:
+
+- The web app intentionally runs `next dev --webpack` in local development.
+- Next 16's Turbopack dev server was observed to get stuck showing `Compiling...` on `/admin/blogs`, with the `next-server` Node process CPU and memory growing over time.
+- The same admin blog workflow was stable under `next start`, so this was treated as a dev-compiler/HMR issue rather than an API or production runtime leak.
+- The admin blog list also disables prefetching to editor routes and keeps its list API query limited to table fields to reduce unnecessary dev compile pressure.
+- Re-test Turbopack explicitly with `pnpm --filter @thai-lottery-checker/web exec dotenv -e ../../.env -- next dev` before removing `--webpack`.
+
 ## Public Web Routes
 
 Assuming the web app runs at `http://localhost:3000`:
