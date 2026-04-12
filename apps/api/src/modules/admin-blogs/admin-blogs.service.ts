@@ -1,4 +1,4 @@
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import {
   adminBlogBannerCompleteRequestSchema,
   adminBlogBannerUploadInitRequestSchema,
@@ -137,7 +137,8 @@ export function createAdminBlogsService(
 
     async getBlogDetail(actor, blogId) {
       requireAdminPermission(actor, "manage_blogs");
-      const post = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const post = await repository.findBlogById(parsedBlogId);
 
       if (!post) {
         throw adminBlogNotFoundError();
@@ -172,7 +173,8 @@ export function createAdminBlogsService(
 
     async updateMetadata(actor, blogId, input) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -204,7 +206,8 @@ export function createAdminBlogsService(
 
     async initBannerUpload(actor, blogId, input) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -225,7 +228,8 @@ export function createAdminBlogsService(
 
     async completeBannerUpload(actor, blogId, input) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -271,7 +275,8 @@ export function createAdminBlogsService(
 
     async removeBanner(actor, blogId) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -303,7 +308,8 @@ export function createAdminBlogsService(
 
     async upsertTranslation(actor, blogId, locale, input) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -335,7 +341,8 @@ export function createAdminBlogsService(
 
     async publish(actor, blogId) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -375,7 +382,8 @@ export function createAdminBlogsService(
 
     async unpublish(actor, blogId) {
       requireAdminPermission(actor, "manage_blogs");
-      const existing = await repository.findBlogById(blogId);
+      const parsedBlogId = parseUuidParam(blogId, "Blog id");
+      const existing = await repository.findBlogById(parsedBlogId);
 
       if (!existing) {
         throw adminBlogNotFoundError();
@@ -406,6 +414,18 @@ function parseListQuery(input: unknown): Required<AdminBlogListQuery> {
   } catch (error) {
     if (error instanceof ZodError) {
       throw invalidAdminBlogRequestError("Admin blog list query is invalid");
+    }
+
+    throw error;
+  }
+}
+
+function parseUuidParam(input: string, label: string): string {
+  try {
+    return z.string().uuid().parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminBlogRequestError(`${label} is invalid`);
     }
 
     throw error;

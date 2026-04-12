@@ -398,7 +398,26 @@ pnpm db:migrate:deploy
 pnpm db:seed
 pnpm db:seed:admin
 pnpm db:studio
+pnpm test:security
 ```
+
+## Security Checks
+
+Run the practical MVP security suite before production-like verification:
+
+```bash
+pnpm test:security
+```
+
+The suite covers admin authentication, session cookies, permission boundaries, public/admin data visibility, validation errors, CORS headers, and blog banner upload safety.
+
+Before a release, also run a dependency audit and review production secrets/configuration:
+
+```bash
+pnpm audit --prod
+```
+
+Confirm committed files do not contain real secrets, `ADMIN_SESSION_SECRET` and `ADMIN_BOOTSTRAP_PASSWORD` are not using development defaults, `APP_URL` matches the deployed web origin, and any configured blog banner bucket has the expected CORS policy.
 
 ## Workspace Layout
 

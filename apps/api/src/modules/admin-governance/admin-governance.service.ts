@@ -1,4 +1,4 @@
-import { ZodError } from "zod";
+import { z, ZodError } from "zod";
 import {
   adminInvitationAcceptRequestSchema,
   adminInvitationCreateRequestSchema,
@@ -372,6 +372,7 @@ export function createAdminGovernanceService(
 
     async updateAdmin(actor, adminId, input) {
       requireSuperAdmin(actor);
+      const parsedAdminId = parseUuidParam(adminId, "Admin id");
 
       let parsed;
       try {
@@ -384,7 +385,7 @@ export function createAdminGovernanceService(
         throw error;
       }
 
-      const existingAdmin = await repository.findAdminById(adminId);
+      const existingAdmin = await repository.findAdminById(parsedAdminId);
 
       if (!existingAdmin) {
         throw adminNotFoundError();
@@ -400,7 +401,7 @@ export function createAdminGovernanceService(
       await ensureSuperAdminProtection(actor, existingAdmin, nextRole, nextIsActive, repository);
 
       const updatedAdmin = await repository.updateAdmin({
-        adminId,
+        adminId: parsedAdminId,
         role: nextRole,
         isActive: nextIsActive,
         deactivatedAt: nextIsActive ? null : new Date(),
@@ -424,6 +425,18 @@ export function createAdminGovernanceService(
       return mapAdminUpdateResponse(updatedAdmin);
     }
   };
+}
+
+function parseUuidParam(input: string, label: string): string {
+  try {
+    return z.string().uuid().parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidGovernanceRequestError(`${label} is invalid`);
+    }
+
+    throw error;
+  }
 }
 
 async function ensureSuperAdminProtection(
