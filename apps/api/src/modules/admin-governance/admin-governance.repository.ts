@@ -74,6 +74,7 @@ export interface ConfirmPasswordResetInput {
   adminId: string;
   passwordHash: string;
   passwordUpdatedAt: Date;
+  sessionsRevokedAt: Date;
   usedAt: Date;
 }
 
@@ -258,6 +259,16 @@ export const prismaAdminGovernanceRepository: AdminGovernanceRepository = {
       prisma.adminPasswordReset.update({
         where: { id: input.resetId },
         data: { usedAt: input.usedAt }
+      }),
+      prisma.adminSession.updateMany({
+        where: {
+          adminId: input.adminId,
+          revokedAt: null
+        },
+        data: {
+          revokedAt: input.sessionsRevokedAt,
+          revokeReason: "password_reset"
+        }
       })
     ]);
   },
@@ -283,6 +294,19 @@ export const prismaAdminGovernanceRepository: AdminGovernanceRepository = {
             adminId: input.adminId,
             permission
           }))
+        });
+      }
+
+      if (!input.isActive) {
+        await tx.adminSession.updateMany({
+          where: {
+            adminId: input.adminId,
+            revokedAt: null
+          },
+          data: {
+            revokedAt: new Date(),
+            revokeReason: "admin_deactivated"
+          }
         });
       }
 

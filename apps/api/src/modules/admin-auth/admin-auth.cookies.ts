@@ -1,13 +1,19 @@
 import type { Response } from "express";
+import { getApiEnv } from "../../config/env.js";
 import { ADMIN_SESSION_COOKIE_NAME } from "./admin-auth.constants.js";
 
 function isSecureCookie(): boolean {
   return process.env.NODE_ENV === "production";
 }
 
+function getSessionMaxAgeMs(): number {
+  return getApiEnv().ADMIN_SESSION_TTL_HOURS * 60 * 60 * 1000;
+}
+
 export function setAdminSessionCookie(response: Response, sessionToken: string): void {
   response.cookie(ADMIN_SESSION_COOKIE_NAME, sessionToken, {
     httpOnly: true,
+    maxAge: getSessionMaxAgeMs(),
     sameSite: "lax",
     secure: isSecureCookie(),
     path: "/"

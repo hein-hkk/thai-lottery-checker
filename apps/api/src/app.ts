@@ -8,33 +8,35 @@ import { blogRouter } from "./modules/blog/blog.routes.js";
 import { checkerRouter } from "./modules/checker/checker.routes.js";
 import { resultsRouter } from "./modules/results/results.routes.js";
 import { healthRouter } from "./routes/health.js";
+import { applyCors, applyRequestContext, applySecurityHeaders } from "./security/http.js";
 
-function getAllowedOrigin(): string | null {
-  const env = getApiEnv();
-  return env.APP_URL ?? env.NEXT_PUBLIC_APP_URL ?? null;
+function resolveTrustProxySetting(rawValue: string): boolean | number | string {
+  const trimmed = rawValue.trim().toLowerCase();
+
+  if (trimmed === "true") {
+    return true;
+  }
+
+  if (trimmed === "false") {
+    return false;
+  }
+
+  if (/^\d+$/.test(trimmed)) {
+    return Number(trimmed);
+  }
+
+  return rawValue;
 }
 
 export function createApp(): Express {
   const app = express();
-  const allowedOrigin = getAllowedOrigin();
+  const env = getApiEnv();
 
+  app.set("trust proxy", resolveTrustProxySetting(env.API_TRUST_PROXY));
   app.disable("x-powered-by");
-  app.use((request, response, next) => {
-    if (allowedOrigin && request.headers.origin === allowedOrigin) {
-      response.header("Access-Control-Allow-Origin", allowedOrigin);
-      response.header("Access-Control-Allow-Credentials", "true");
-      response.header("Access-Control-Allow-Headers", "Content-Type");
-      response.header("Access-Control-Allow-Methods", "GET,POST,PUT,PATCH,DELETE,OPTIONS");
-      response.header("Vary", "Origin");
-    }
-
-    if (request.method === "OPTIONS") {
-      response.status(204).end();
-      return;
-    }
-
-    next();
-  });
+  app.use(applyRequestContext);
+  app.use(applySecurityHeaders);
+  app.use(applyCors);
   app.use(express.json());
 
   app.get("/", (_request, response) => {

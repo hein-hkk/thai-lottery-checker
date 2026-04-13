@@ -25,10 +25,12 @@ const prizeTypes = [
 export const prizeTypeSchema = z.enum(prizeTypes);
 
 export const adminSessionPayloadSchema = z.object({
+  sessionId: z.string().uuid(),
   adminId: z.string().uuid(),
   email: z.string().email(),
   role: adminRoleSchema,
-  passwordUpdatedAt: z.string().datetime({ offset: true }).nullable()
+  passwordUpdatedAt: z.string().datetime({ offset: true }).nullable(),
+  expiresAt: z.string().datetime({ offset: true })
 });
 
 export const authenticatedAdminSchema = z.object({

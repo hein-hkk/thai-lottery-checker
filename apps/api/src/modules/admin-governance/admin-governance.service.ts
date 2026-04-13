@@ -348,6 +348,7 @@ export function createAdminGovernanceService(
         adminId: reset.adminId,
         passwordHash,
         passwordUpdatedAt: now,
+        sessionsRevokedAt: now,
         usedAt: now
       });
 

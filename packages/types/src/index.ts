@@ -12,10 +12,12 @@ export interface ServiceStatus {
 }
 
 export interface AdminSessionPayload {
+  sessionId: string;
   adminId: string;
   email: string;
   role: AdminRole;
   passwordUpdatedAt: string | null;
+  expiresAt: string;
 }
 
 export interface AuthenticatedAdmin {

@@ -12,6 +12,7 @@ export async function seedAdminOnly(): Promise<void> {
     await tx.blogPostTranslation.deleteMany();
     await tx.blogPost.deleteMany();
     await tx.adminAuditLog.deleteMany();
+    await tx.adminSession.deleteMany();
     await tx.adminPasswordReset.deleteMany();
     await tx.adminInvitation.deleteMany();
     await tx.adminPermissionGrant.deleteMany();

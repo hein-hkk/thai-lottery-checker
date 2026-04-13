@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
@@ -18,10 +18,12 @@ import { createResultsService } from "../src/modules/results/results.service.js"
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
 import { prisma } from "../src/db/client.js";
+import { resetRateLimiters } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
 let server: Server;
 let baseUrl: string;
+const adminOrigin = getApiEnv().APP_URL ?? getApiEnv().NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 async function startServer(): Promise<string> {
   const app = createApp();
@@ -41,6 +43,21 @@ async function startServer(): Promise<string> {
   }
 
   return `http://127.0.0.1:${address.port}`;
+}
+
+function withAdminOrigin(pathname: string, method: string, headers: HeadersInit = {}): HeadersInit {
+  if (!pathname.startsWith("/api/v1/admin")) {
+    return headers;
+  }
+
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return headers;
+  }
+
+  return {
+    origin: adminOrigin,
+    ...headers
+  };
 }
 
 async function getJson(pathname: string): Promise<{ status: number; body: unknown }> {
@@ -70,10 +87,10 @@ async function postJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
-    headers: {
+    headers: withAdminOrigin(pathname, "POST", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -91,10 +108,10 @@ async function patchJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "PATCH",
-    headers: {
+    headers: withAdminOrigin(pathname, "PATCH", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -112,10 +129,10 @@ async function putJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "PUT",
-    headers: {
+    headers: withAdminOrigin(pathname, "PUT", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -129,7 +146,7 @@ async function putJson(
 async function deleteJson(pathname: string, cookie?: string): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "DELETE",
-    headers: cookie ? { cookie } : undefined
+    headers: withAdminOrigin(pathname, "DELETE", cookie ? { cookie } : {})
   });
 
   return {
@@ -340,6 +357,10 @@ describe("results api", () => {
   before(async () => {
     await seed();
     baseUrl = await startServer();
+  });
+
+  beforeEach(() => {
+    resetRateLimiters();
   });
 
   after(async () => {

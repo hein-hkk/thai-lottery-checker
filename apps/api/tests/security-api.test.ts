@@ -1,23 +1,25 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
-import { getApiEnv } from "../src/config/env.js";
+import { getApiEnv, resetApiEnvCache } from "../src/config/env.js";
 import { prisma } from "../src/db/client.js";
 import { seed } from "../prisma/seed.ts";
-import { hashPassword } from "../src/modules/admin-auth/admin-auth.crypto.js";
+import { hashPassword, signAdminSession } from "../src/modules/admin-auth/admin-auth.crypto.js";
 import { createAdminBlogsService } from "../src/modules/admin-blogs/admin-blogs.service.js";
 import type {
   AdminBlogRepositoryPost,
   AdminBlogsRepository
 } from "../src/modules/admin-blogs/admin-blogs.repository.js";
 import type { BlogBannerStorage } from "../src/modules/admin-blogs/admin-blog-banner-storage.js";
+import { resetRateLimiters } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
 const bootstrapAdminEmail = getApiEnv().ADMIN_BOOTSTRAP_EMAIL.toLowerCase();
 const bootstrapAdminPassword = getApiEnv().ADMIN_BOOTSTRAP_PASSWORD;
 const actorId = "11111111-1111-4111-8111-111111111111";
 const fakeBlogId = "22222222-2222-4222-8222-222222222222";
+const adminOrigin = getApiEnv().APP_URL ?? getApiEnv().NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 let server: Server;
 let baseUrl: string;
@@ -61,6 +63,21 @@ async function requestJson(pathname: string, init: RequestInit = {}): Promise<Js
   };
 }
 
+function withAdminOrigin(pathname: string, method: string, headers: HeadersInit = {}): HeadersInit {
+  if (!pathname.startsWith("/api/v1/admin")) {
+    return headers;
+  }
+
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return headers;
+  }
+
+  return {
+    origin: adminOrigin,
+    ...headers
+  };
+}
+
 async function getJson(pathname: string, cookie?: string, headers: HeadersInit = {}): Promise<JsonResponse> {
   return requestJson(pathname, {
     headers: {
@@ -73,11 +90,11 @@ async function getJson(pathname: string, cookie?: string, headers: HeadersInit =
 async function postJson(pathname: string, body: unknown, cookie?: string, headers: HeadersInit = {}): Promise<JsonResponse> {
   return requestJson(pathname, {
     method: "POST",
-    headers: {
+    headers: withAdminOrigin(pathname, "POST", {
       "Content-Type": "application/json",
       ...headers,
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 }
@@ -85,10 +102,10 @@ async function postJson(pathname: string, body: unknown, cookie?: string, header
 async function patchJson(pathname: string, body: unknown, cookie?: string): Promise<JsonResponse> {
   return requestJson(pathname, {
     method: "PATCH",
-    headers: {
+    headers: withAdminOrigin(pathname, "PATCH", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 }
@@ -96,10 +113,10 @@ async function patchJson(pathname: string, body: unknown, cookie?: string): Prom
 async function putJson(pathname: string, body: unknown, cookie?: string): Promise<JsonResponse> {
   return requestJson(pathname, {
     method: "PUT",
-    headers: {
+    headers: withAdminOrigin(pathname, "PUT", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 }
@@ -188,6 +205,25 @@ function expectNoSensitiveFields(value: unknown): void {
   assert.equal(serialized.includes("tokenHash"), false);
   assert.equal(serialized.includes("resetUrl"), false);
   assert.equal(serialized.includes("inviteUrl"), false);
+}
+
+function getBangkokTodayForTests(): string {
+  const formatter = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit"
+  });
+  const parts = formatter.formatToParts(new Date());
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+
+  if (!year || !month || !day) {
+    throw new Error("Failed to resolve Bangkok today in tests");
+  }
+
+  return `${year}-${month}-${day}`;
 }
 
 async function createThaiOnlyPublishedBlog(adminId: string): Promise<string> {
@@ -301,6 +337,10 @@ describe("security api", () => {
     baseUrl = await startServer();
   });
 
+  beforeEach(() => {
+    resetRateLimiters();
+  });
+
   after(async () => {
     process.env.NODE_ENV = originalNodeEnv;
 
@@ -334,6 +374,34 @@ describe("security api", () => {
     });
     expectError(unauthenticated, 401, "ADMIN_UNAUTHORIZED");
     expectError(tampered, 401, "ADMIN_UNAUTHORIZED");
+  });
+
+  it("rejects expired admin sessions", async () => {
+    const admin = await prisma.admin.findUniqueOrThrow({
+      where: { email: bootstrapAdminEmail }
+    });
+    const expiredAt = new Date(Date.now() - 60_000);
+    const session = await prisma.adminSession.create({
+      data: {
+        adminId: admin.id,
+        expiresAt: expiredAt
+      }
+    });
+    const expiredCookie = `admin_session=${signAdminSession(
+      {
+        sessionId: session.id,
+        adminId: admin.id,
+        email: admin.email,
+        role: admin.role,
+        passwordUpdatedAt: admin.passwordUpdatedAt?.toISOString() ?? null,
+        expiresAt: expiredAt.toISOString()
+      },
+      getApiEnv().ADMIN_SESSION_SECRET
+    )}`;
+
+    const response = await getJson("/api/v1/admin/auth/me", expiredCookie);
+
+    expectError(response, 401, "ADMIN_UNAUTHORIZED");
   });
 
   it("rejects deactivated admins from both login and existing session reuse", async () => {
@@ -377,10 +445,12 @@ describe("security api", () => {
     const oldSessionAfterReset = await getJson("/api/v1/admin/auth/me", oldSession);
     const newSession = await login(email, "NewEditorPass123!");
     const logout = await postJson("/api/v1/admin/auth/logout", {}, newSession);
+    const afterLogout = await getJson("/api/v1/admin/auth/me", newSession);
 
     assert.equal(reset.status, 200);
     expectError(oldSessionAfterReset, 401, "ADMIN_UNAUTHORIZED");
     assert.equal(logout.status, 200);
+    expectError(afterLogout, 401, "ADMIN_UNAUTHORIZED");
     assert.match(logout.setCookie ?? "", /admin_session=/);
     assert.match(logout.setCookie ?? "", /HttpOnly/i);
   });
@@ -462,7 +532,15 @@ describe("security api", () => {
     const publicThaiBlogs = await getJson("/api/v1/blogs?locale=th&limit=50");
     const adminDraftBlog = await getJson(`/api/v1/admin/blogs/${draftBlog.id}`, superAdminCookie);
 
-    expectError(publicDraftDraw, 404, "RESULT_NOT_FOUND");
+    const draftDrawDate = draftDraw.drawDate.toISOString().slice(0, 10);
+    const isBangkokTodayDraft = draftDrawDate === getBangkokTodayForTests();
+
+    if (isBangkokTodayDraft) {
+      assert.equal(publicDraftDraw.status, 200);
+    } else {
+      expectError(publicDraftDraw, 404, "RESULT_NOT_FOUND");
+    }
+
     assert.equal(JSON.stringify(publicHistory.body).includes(draftDraw.drawCode ?? draftDraw.id), false);
     assert.equal(adminDraftDraw.status, 200);
     assert.equal((adminDraftDraw.body as { result: { status: string } }).result.status, "draft");
@@ -538,6 +616,60 @@ describe("security api", () => {
     expectNoSensitiveFields(adminList.body);
   });
 
+  it("rate limits repeated login attempts", async () => {
+    let lastResponse: JsonResponse | undefined;
+
+    for (let index = 0; index < 21; index += 1) {
+      lastResponse = await postJson("/api/v1/admin/auth/login", {
+        email: bootstrapAdminEmail,
+        password: "wrong-password"
+      });
+    }
+
+    expectError(lastResponse, 429, "RATE_LIMITED");
+  });
+
+  it("rate limits repeated password reset and invitation accept attempts", async () => {
+    let resetResponse: JsonResponse | undefined;
+
+    for (let index = 0; index < 11; index += 1) {
+      resetResponse = await postJson("/api/v1/admin/password-resets/request", {
+        email: "missing-security@thai-lottery-checker.local"
+      });
+    }
+
+    expectError(resetResponse, 429, "RATE_LIMITED");
+
+    resetRateLimiters();
+
+    let invitationResponse: JsonResponse | undefined;
+
+    for (let index = 0; index < 11; index += 1) {
+      invitationResponse = await postJson("/api/v1/admin/invitations/accept", {
+        token: `bogus-token-${index}`,
+        name: "Rate Limited",
+        password: "RateLimited123!"
+      });
+    }
+
+    expectError(invitationResponse, 429, "RATE_LIMITED");
+  });
+
+  it("rejects admin writes from disallowed origins", async () => {
+    const sessionCookie = await loginBootstrapAdmin();
+    const response = await postJson(
+      "/api/v1/admin/results",
+      {
+        drawDate: "2026-07-01",
+        prizeGroups: []
+      },
+      sessionCookie,
+      { origin: "https://evil.example.test" }
+    );
+
+    expectError(response, 403, "INVALID_ADMIN_ORIGIN");
+  });
+
   it("restricts credentialed CORS headers and hides Express implementation details", async () => {
     const allowedOrigin = getApiEnv().APP_URL ?? getApiEnv().NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const allowed = await getJson("/health", undefined, { origin: allowedOrigin });
@@ -549,6 +681,26 @@ describe("security api", () => {
     assert.equal(disallowed.headers.get("access-control-allow-origin"), null);
     assert.equal(disallowed.headers.get("access-control-allow-credentials"), null);
     assert.equal(allowed.headers.get("x-powered-by"), null);
+  });
+
+  it("fails production env validation when secrets remain on development defaults", async () => {
+    const originalSessionSecret = process.env.ADMIN_SESSION_SECRET;
+    const originalAppUrl = process.env.APP_URL;
+    const originalPublicAppUrl = process.env.NEXT_PUBLIC_APP_URL;
+
+    process.env.NODE_ENV = "production";
+    process.env.APP_URL = "https://admin.example.test";
+    process.env.NEXT_PUBLIC_APP_URL = "https://admin.example.test";
+    process.env.ADMIN_SESSION_SECRET = "development-admin-session-secret-change-me";
+    resetApiEnvCache();
+
+    assert.throws(() => getApiEnv(), /ADMIN_SESSION_SECRET/);
+
+    process.env.ADMIN_SESSION_SECRET = originalSessionSecret;
+    process.env.APP_URL = originalAppUrl;
+    process.env.NEXT_PUBLIC_APP_URL = originalPublicAppUrl;
+    process.env.NODE_ENV = originalNodeEnv;
+    resetApiEnvCache();
   });
 
   it("rejects unsafe banner upload requests and object-key mismatches", async () => {

@@ -795,6 +795,7 @@ export async function seed(): Promise<void> {
   await prisma.blogPostTranslation.deleteMany();
   await prisma.blogPost.deleteMany();
   await prisma.adminAuditLog.deleteMany();
+  await prisma.adminSession.deleteMany();
   await prisma.adminPasswordReset.deleteMany();
   await prisma.adminInvitation.deleteMany();
   await prisma.adminPermissionGrant.deleteMany();

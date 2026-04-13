@@ -13,10 +13,20 @@ export interface AdminRepositoryRecord {
   permissions: Array<{ permission: AdminPermission }>;
 }
 
+export interface AdminSessionRecord {
+  id: string;
+  adminId: string;
+  expiresAt: Date;
+  revokedAt: Date | null;
+}
+
 export interface AdminAuthRepository {
   findAdminByEmail(email: string): Promise<AdminRepositoryRecord | null>;
   findAdminById(adminId: string): Promise<AdminRepositoryRecord | null>;
-  recordLogin(adminId: string, loggedInAt: Date): Promise<void>;
+  rotateLoginSession(adminId: string, loggedInAt: Date, expiresAt: Date): Promise<AdminSessionRecord>;
+  findSessionById(sessionId: string): Promise<AdminSessionRecord | null>;
+  revokeSession(sessionId: string, revokedAt: Date, reason: string): Promise<void>;
+  revokeSessionsForAdmin(adminId: string, revokedAt: Date, reason: string): Promise<void>;
 }
 
 function adminSelect() {
@@ -52,15 +62,16 @@ export const prismaAdminAuthRepository: AdminAuthRepository = {
     });
   },
 
-  async recordLogin(adminId: string, loggedInAt: Date) {
-    await prisma.$transaction([
-      prisma.admin.update({
+  async rotateLoginSession(adminId: string, loggedInAt: Date, expiresAt: Date) {
+    return prisma.$transaction(async (tx) => {
+      await tx.admin.update({
         where: { id: adminId },
         data: {
           lastLoginAt: loggedInAt
         }
-      }),
-      prisma.adminAuditLog.create({
+      });
+
+      await tx.adminAuditLog.create({
         data: {
           adminId,
           action: "login_admin",
@@ -70,7 +81,69 @@ export const prismaAdminAuthRepository: AdminAuthRepository = {
             loggedInAt: loggedInAt.toISOString()
           }
         }
-      })
-    ]);
+      });
+
+      await tx.adminSession.updateMany({
+        where: {
+          adminId,
+          revokedAt: null
+        },
+        data: {
+          revokedAt: loggedInAt,
+          revokeReason: "login_rotated"
+        }
+      });
+
+      return tx.adminSession.create({
+        data: {
+          adminId,
+          expiresAt
+        },
+        select: {
+          id: true,
+          adminId: true,
+          expiresAt: true,
+          revokedAt: true
+        }
+      });
+    });
+  },
+
+  async findSessionById(sessionId: string) {
+    return prisma.adminSession.findUnique({
+      where: { id: sessionId },
+      select: {
+        id: true,
+        adminId: true,
+        expiresAt: true,
+        revokedAt: true
+      }
+    });
+  },
+
+  async revokeSession(sessionId: string, revokedAt: Date, reason: string) {
+    await prisma.adminSession.updateMany({
+      where: {
+        id: sessionId,
+        revokedAt: null
+      },
+      data: {
+        revokedAt,
+        revokeReason: reason
+      }
+    });
+  },
+
+  async revokeSessionsForAdmin(adminId: string, revokedAt: Date, reason: string) {
+    await prisma.adminSession.updateMany({
+      where: {
+        adminId,
+        revokedAt: null
+      },
+      data: {
+        revokedAt,
+        revokeReason: reason
+      }
+    });
   }
 };

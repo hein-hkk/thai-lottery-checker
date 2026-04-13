@@ -31,6 +31,7 @@ For deeper product and architecture details, see:
 - [Slice 6 plan](docs/roadmap/slice-6-admin-blog-management.md)
 - [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
 - [Blog banner storage setup](docs/architecture/blog-banner-storage.md)
+- [Production security runbook](docs/operations/production-security-runbook.md)
 - [System architecture](docs/architecture/system-architecture.md)
 
 ## Requirements
@@ -59,9 +60,11 @@ At minimum, check:
 
 - `DATABASE_URL`
 - `ADMIN_SESSION_SECRET`
+- `ADMIN_SESSION_TTL_HOURS`
 - `ADMIN_BOOTSTRAP_EMAIL`
 - `ADMIN_BOOTSTRAP_PASSWORD`
 - `ADMIN_BOOTSTRAP_NAME`
+- `API_TRUST_PROXY`
 
 See [.env.example](.env.example) for the full local-development baseline.
 
@@ -418,6 +421,22 @@ pnpm audit --prod
 ```
 
 Confirm committed files do not contain real secrets, `ADMIN_SESSION_SECRET` and `ADMIN_BOOTSTRAP_PASSWORD` are not using development defaults, `APP_URL` matches the deployed web origin, and any configured blog banner bucket has the expected CORS policy.
+
+The API now also enforces:
+
+- signed admin sessions with explicit server-checked expiry and logout revocation
+- rate limits for login, password reset, invitation acceptance, and authenticated admin writes
+- origin validation for admin `POST`/`PUT`/`PATCH`/`DELETE` routes
+- stricter HTTP response headers and request IDs in security logs
+- production env validation that rejects development-default admin secrets
+
+Production configuration should set:
+
+- `APP_URL` and/or `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin
+- `API_TRUST_PROXY` for the production reverse proxy/load balancer
+- session and rate-limit env values appropriate for your threat model and traffic
+
+For the non-code operational checklist, use the [production security runbook](docs/operations/production-security-runbook.md).
 
 ## Workspace Layout
 
