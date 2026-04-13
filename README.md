@@ -412,7 +412,7 @@ Run the practical MVP security suite before production-like verification:
 pnpm test:security
 ```
 
-The suite covers admin authentication, session expiry and revocation, permission boundaries, public/admin data visibility, validation errors, CORS/origin behavior, rate limiting, production secret validation, and blog banner upload safety.
+The suite covers admin authentication, session expiry and revocation, permission boundaries, public/admin data visibility, validation errors, CORS/origin behavior, admin and public-route rate limiting, production secret validation, and blog banner upload safety.
 
 Before a release, also run a dependency audit and review production secrets/configuration:
 
@@ -426,6 +426,7 @@ The API now also enforces:
 
 - signed admin sessions with explicit server-checked expiry and logout revocation
 - rate limits for login, password reset, invitation acceptance, and authenticated admin writes
+- rate limits for public result/blog reads and checker submissions
 - origin validation for admin `POST`/`PUT`/`PATCH`/`DELETE` routes
 - stricter HTTP response headers and request IDs in security logs
 - production env validation that rejects development-default admin secrets
@@ -434,7 +435,7 @@ Production configuration should set:
 
 - `APP_URL` and/or `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin
 - `API_TRUST_PROXY` for the production reverse proxy/load balancer
-- session and rate-limit env values appropriate for your threat model and traffic
+- session, admin rate-limit, and public/checker rate-limit env values appropriate for your threat model and traffic
 
 For the non-code operational checklist, use the [production security runbook](docs/operations/production-security-runbook.md).
 

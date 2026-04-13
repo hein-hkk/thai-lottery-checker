@@ -1,4 +1,5 @@
 import { Router, type Router as ExpressRouter } from "express";
+import { createPublicReadRateLimit } from "../../security/http.js";
 import {
   getLatestResults,
   getResultsByDrawDate,
@@ -6,7 +7,8 @@ import {
 } from "./results.controller.js";
 
 export const resultsRouter: ExpressRouter = Router();
+const publicReadRateLimit = createPublicReadRateLimit();
 
-resultsRouter.get("/latest", getLatestResults);
-resultsRouter.get("/", getResultsHistory);
-resultsRouter.get("/:drawDate", getResultsByDrawDate);
+resultsRouter.get("/latest", publicReadRateLimit, getLatestResults);
+resultsRouter.get("/", publicReadRateLimit, getResultsHistory);
+resultsRouter.get("/:drawDate", publicReadRateLimit, getResultsByDrawDate);

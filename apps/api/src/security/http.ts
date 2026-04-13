@@ -367,3 +367,35 @@ export function createAdminWriteRateLimit(): RequestHandler {
     ]
   });
 }
+
+export function createPublicReadRateLimit(): RequestHandler {
+  const env = getApiEnv();
+
+  return createRateLimitMiddleware({
+    bucket: "public-read",
+    windowMs: env.PUBLIC_READ_RATE_LIMIT_WINDOW_MINUTES * 60 * 1000,
+    maxRequests: env.PUBLIC_READ_RATE_LIMIT_MAX_REQUESTS,
+    keySelectors: [
+      {
+        name: "ip",
+        resolve: (request) => getRequestIp(request)
+      }
+    ]
+  });
+}
+
+export function createCheckerCheckRateLimit(): RequestHandler {
+  const env = getApiEnv();
+
+  return createRateLimitMiddleware({
+    bucket: "checker-check",
+    windowMs: env.CHECKER_CHECK_RATE_LIMIT_WINDOW_MINUTES * 60 * 1000,
+    maxRequests: env.CHECKER_CHECK_RATE_LIMIT_MAX_REQUESTS,
+    keySelectors: [
+      {
+        name: "ip",
+        resolve: (request) => getRequestIp(request)
+      }
+    ]
+  });
+}

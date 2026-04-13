@@ -19,6 +19,7 @@ Use this checklist before exposing the API publicly.
 
 - Set `ADMIN_SESSION_TTL_HOURS` to a value appropriate for your admin team and risk tolerance.
 - Review the login, invitation, password-reset, and admin-write rate-limit env values before launch.
+- Review the public-read and checker-check rate-limit env values before launch so public traffic and abuse resistance are balanced for your deployment.
 - Expect logout and password reset to revoke active sessions server-side; verify that behavior in staging before go-live.
 
 ## Database and storage

@@ -655,6 +655,28 @@ describe("security api", () => {
     expectError(invitationResponse, 429, "RATE_LIMITED");
   });
 
+  it("rate limits repeated public read and checker check requests", async () => {
+    let publicReadResponse: JsonResponse | undefined;
+
+    for (let index = 0; index < 121; index += 1) {
+      publicReadResponse = await getJson("/api/v1/results/latest");
+    }
+
+    expectError(publicReadResponse, 429, "RATE_LIMITED");
+
+    resetRateLimiters();
+
+    let checkerResponse: JsonResponse | undefined;
+
+    for (let index = 0; index < 31; index += 1) {
+      checkerResponse = await postJson("/api/v1/checker/check", {
+        ticketNumber: "123456"
+      });
+    }
+
+    expectError(checkerResponse, 429, "RATE_LIMITED");
+  });
+
   it("rejects admin writes from disallowed origins", async () => {
     const sessionCookie = await loginBootstrapAdmin();
     const response = await postJson(
