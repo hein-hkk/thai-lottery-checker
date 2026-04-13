@@ -212,6 +212,7 @@ Responsibilities include:
 
 - admin login handling
 - current-admin session resolution
+- server-enforced admin session expiry and revocation
 - invitation creation and acceptance
 - password reset request and token consumption
 - admin creation and deactivation flows
@@ -223,6 +224,17 @@ Authorization model:
 - `editor` access is limited by assigned permissions
 - current repository permissions are `manage_results` and `manage_blogs`
 - the UI may hide unauthorized actions, but the backend must enforce security on every protected request
+
+Current security controls in the API:
+
+- signed HTTP-only admin session cookie
+- database-backed admin session records with explicit expiry
+- session rotation on login
+- logout revocation and password-reset revocation of active sessions
+- exact-origin validation for admin `POST`, `PUT`, `PATCH`, and `DELETE` requests
+- rate limiting on login, invitation acceptance, password-reset flows, and authenticated admin writes
+- structured security logging with request IDs and resolved admin identity when available
+- production startup validation that rejects development-default admin secrets
 
 ## 6. Core Backend Services
 
@@ -272,6 +284,7 @@ Responsibilities:
 Responsibilities:
 
 - admin authentication
+- admin session issuance, rotation, expiry checks, and revocation
 - invitation-based onboarding
 - password reset and recovery
 - permission-aware admin governance
@@ -299,12 +312,14 @@ Key entities:
 - blog posts
 - blog translations
 - admin users
+- admin sessions
 - admin permissions
 - admin invitations
 - admin password resets
 - admin audit logs
 
 Critical admin actions are recorded in `admin_audit_logs` to support traceability and operational safety.
+Active and revoked dashboard sessions are tracked in `admin_sessions` so expiry and logout behavior are enforced server-side instead of relying on browser cookie lifetime alone.
 
 ### 7.2 Optional Infrastructure
 
@@ -384,6 +399,15 @@ Optional infrastructure:
 
 - object storage for blog banner uploads
 - cache layer for hot read paths if later required
+
+Production deployment expectations:
+
+- the API is served behind HTTPS
+- a reverse proxy or load balancer forwards client IP information
+- `APP_URL` and/or `NEXT_PUBLIC_APP_URL` are set to the deployed HTTPS origin
+- `API_TRUST_PROXY` is configured to match the proxy chain so request IPs and secure-cookie behavior are correct
+- production secrets are injected from a secret manager rather than committed files
+- database backups and restore procedures are operated outside the application runtime
 
 ## 11. Draw-Day Performance Strategy
 

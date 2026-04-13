@@ -13,6 +13,13 @@ Use this checklist before exposing the API publicly.
 - Terminate TLS at the reverse proxy or load balancer and serve the app over HTTPS only.
 - Set `APP_URL` and/or `NEXT_PUBLIC_APP_URL` to the exact deployed HTTPS origin.
 - Set `API_TRUST_PROXY` to match the production proxy chain so request IPs and secure-cookie behavior reflect the real client.
+- Keep the admin UI on the same trusted origin set used by the API, because admin write routes reject untrusted `Origin` headers.
+
+## Session and abuse controls
+
+- Set `ADMIN_SESSION_TTL_HOURS` to a value appropriate for your admin team and risk tolerance.
+- Review the login, invitation, password-reset, and admin-write rate-limit env values before launch.
+- Expect logout and password reset to revoke active sessions server-side; verify that behavior in staging before go-live.
 
 ## Database and storage
 

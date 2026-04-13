@@ -108,6 +108,7 @@ Authorization:
 Database:
 
 - `admins`
+- `admin_sessions`
 - `admin_permissions`
 - `admin_invitations`
 - `admin_password_resets`
@@ -320,6 +321,7 @@ Readiness and verification:
 
 - test the whole website across public and admin flows
 - fix production-readiness issues discovered during the verification pass
+- harden the API with explicit admin session expiry/revocation, admin-write origin validation, rate limiting, security headers, and production secret validation
 
 ## Acceptance Criteria
 
@@ -327,6 +329,7 @@ Readiness and verification:
 - dead style rules and unnecessary wrapper containers are removed without visual regressions
 - core public and admin user journeys are tested end to end
 - the OSS website is in a production-ready state before mobile implementation starts
+- production API security controls are documented and verified with the security suite
 
 ---
 

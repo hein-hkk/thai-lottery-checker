@@ -8,7 +8,7 @@ The current shipped baseline includes:
 - public locale landing page with latest preview, history preview, and blog teasers
 - public embedded number checker with draw-detail overlay results
 - public multilingual blog list and detail reading
-- admin auth/session with HTTP-only cookie handling
+- admin auth/session with signed HTTP-only cookies plus server-side expiry and revocation
 - invitation-based admin onboarding
 - admin password reset
 - super-admin account management
@@ -412,7 +412,7 @@ Run the practical MVP security suite before production-like verification:
 pnpm test:security
 ```
 
-The suite covers admin authentication, session cookies, permission boundaries, public/admin data visibility, validation errors, CORS headers, and blog banner upload safety.
+The suite covers admin authentication, session expiry and revocation, permission boundaries, public/admin data visibility, validation errors, CORS/origin behavior, rate limiting, production secret validation, and blog banner upload safety.
 
 Before a release, also run a dependency audit and review production secrets/configuration:
 

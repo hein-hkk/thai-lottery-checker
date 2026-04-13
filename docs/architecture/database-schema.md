@@ -119,7 +119,30 @@ Notes:
 - `manage_results` authorizes result workflows
 - `manage_blogs` authorizes blog workflows
 
-### 3.3 `admin_invitations`
+### 3.3 `admin_sessions`
+
+Stores server-side admin session records for expiry and revocation control.
+
+Fields:
+
+- `id` UUID, primary key
+- `admin_id` UUID, foreign key to `admins.id`, not null
+- `expires_at` TIMESTAMPTZ, not null
+- `revoked_at` TIMESTAMPTZ, null
+- `revoke_reason` TEXT, null
+- `created_at` TIMESTAMPTZ, not null
+- `updated_at` TIMESTAMPTZ, not null
+
+Notes:
+
+- each authenticated admin cookie corresponds to one `admin_sessions` row
+- the signed cookie payload includes the session id plus an expiry timestamp
+- login rotates prior active sessions for that admin by revoking them
+- logout revokes the current session server-side before clearing the cookie
+- password reset and admin deactivation revoke active sessions so older cookies cannot be reused
+- the browser cookie lifetime is not treated as the only source of truth for session validity
+
+### 3.4 `admin_invitations`
 
 Stores invitation records for admin onboarding.
 
@@ -144,7 +167,7 @@ Notes:
 - development flows may return the invitation link for manual sharing
 - accepting an invitation creates the admin account and any required permission rows
 
-### 3.4 `admin_password_resets`
+### 3.5 `admin_password_resets`
 
 Stores password reset requests for admin accounts.
 
@@ -163,7 +186,7 @@ Notes:
 - reset tokens are single-use and expiring
 - development flows may expose reset-link output before any email delivery integration exists
 
-### 3.5 `admin_audit_logs`
+### 3.6 `admin_audit_logs`
 
 Tracks sensitive admin operations for traceability.
 
@@ -205,7 +228,7 @@ Notes:
 - especially important because lottery results are manually entered
 - before and after snapshots support correction review and governance traceability
 
-### 3.6 `lottery_draws`
+### 3.7 `lottery_draws`
 
 Represents one lottery draw event.
 
@@ -230,7 +253,7 @@ Notes:
 - `published_at` is set on first publish and keeps the original publish timestamp
 - later corrections update the published draw in place and remain auditable through `admin_audit_logs`
 
-### 3.7 `lottery_results`
+### 3.8 `lottery_results`
 
 Stores prize numbers belonging to a draw.
 
@@ -287,7 +310,7 @@ Draw completeness rule:
 - draft draws may be incomplete
 - published draws should be treated as complete
 
-### 3.8 `lottery_result_group_releases`
+### 3.9 `lottery_result_group_releases`
 
 Stores public release state for each prize group within a draw.
 
@@ -314,7 +337,7 @@ Notes:
 - unreleased prize groups render as placeholders in public latest and detail payloads
 - history remains published-only
 
-### 3.9 `blog_posts`
+### 3.10 `blog_posts`
 
 Stores blog post metadata.
 
@@ -337,7 +360,7 @@ Notes:
 - managed banner uploads may back that URL with object storage, but PostgreSQL remains the canonical source of truth for the application record
 - object storage is supporting infrastructure for media bytes, not canonical content storage
 
-### 3.10 `blog_post_translations`
+### 3.11 `blog_post_translations`
 
 Stores multilingual blog content.
 
@@ -376,6 +399,7 @@ Constraints:
 
 Main relationships:
 
+- one `admin` has many `admin_sessions`
 - one `admin` has many `admin_permissions`
 - one `admin` has many `admin_invitations`
 - one `admin` has many `admin_password_resets`
@@ -389,6 +413,12 @@ Main relationships:
 ### `admins`
 
 - unique index on `email`
+
+### `admin_sessions`
+
+- index on `admin_id`
+- index on `expires_at`
+- index on `revoked_at`
 
 ### `admin_permissions`
 
@@ -447,6 +477,13 @@ Main relationships:
 - result numbers must preserve leading zeros
 - public history exposes only published draws
 - public latest and detail may expose draft draws only when prize-group release state allows it
+
+### Admin security data
+
+- admin emails are normalized to lowercase before lookup and persistence-sensitive comparisons
+- session records must be revoked or expired before a previously issued cookie is considered invalid
+- invitation and password-reset tokens are stored as hashes, not plaintext tokens
+- development-only invitation/reset link exposure must remain disabled in production responses
 
 ### Prize digit rules
 

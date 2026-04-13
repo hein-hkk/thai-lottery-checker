@@ -133,17 +133,23 @@ FR-20: Admin users with `manage_blogs` permission must be able to attach, replac
 
 FR-21: Admin users must authenticate to access the dashboard.
 
-FR-22: The system must support invitation-based admin onboarding.
+FR-22: Admin authentication must use server-validated sessions with explicit expiry and revocation.
 
-FR-23: The system must support admin password reset and recovery.
+FR-23: The system must support invitation-based admin onboarding.
 
-FR-24: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
+FR-24: The system must support admin password reset and recovery.
 
-FR-25: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
+FR-25: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
 
-FR-26: Admin users with `manage_blogs` permission must be able to manage blog metadata and translations.
+FR-26: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
 
-FR-27: Sensitive admin actions must be recorded in audit logs.
+FR-27: Admin users with `manage_blogs` permission must be able to manage blog metadata and translations.
+
+FR-28: Admin write requests using cookie-based auth must reject untrusted request origins.
+
+FR-29: Sensitive admin actions must be recorded in audit logs.
+
+FR-30: The API must rate limit high-risk admin authentication and mutation flows to reduce brute-force and abuse risk.
 
 ## 4. Non-Functional Requirements
 
@@ -171,16 +177,20 @@ NFR-8: Access control must restrict admin-only functionality to authorized users
 
 NFR-9: Sensitive admin flows such as invitations, password resets, and result correction must be auditable.
 
+NFR-10: Production configuration must reject development-default admin secrets and bootstrap credentials.
+
+NFR-11: Admin authentication and security events must be observable through structured logs and request identifiers.
+
 ### 4.4 Maintainability
 
-NFR-10: The system must follow modular architecture principles within the monorepo.
+NFR-12: The system must follow modular architecture principles within the monorepo.
 
-NFR-11: Shared business logic, schemas, and types must be reusable across the web app, API, and planned mobile client.
+NFR-13: Shared business logic, schemas, and types must be reusable across the web app, API, and planned mobile client.
 
-NFR-12: Logging and audit trails must support debugging, operational review, and correction traceability.
+NFR-14: Logging and audit trails must support debugging, operational review, and correction traceability.
 
 ### 4.5 Localization
 
-NFR-13: The system must support multilingual user interfaces and localized public content.
+NFR-15: The system must support multilingual user interfaces and localized public content.
 
-NFR-14: Locale-aware routing must remain consistent across public web routes and the planned mobile client contract.
+NFR-16: Locale-aware routing must remain consistent across public web routes and the planned mobile client contract.

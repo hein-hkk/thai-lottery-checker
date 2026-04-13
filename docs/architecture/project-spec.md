@@ -77,6 +77,7 @@ Internal operators who manage:
 ### Admin system
 
 - admin authentication
+- server-validated admin session expiry and revocation
 - invitation-based onboarding
 - password reset and recovery
 - admin management for authorized `super_admin` users
@@ -117,13 +118,15 @@ The current repository implementation aligns with the following shipped baseline
 - route-level metadata for landing, latest results, result detail, blog list, and blog detail pages
 - shared public footer on public routes
 - deterministic localized public date rendering across SSR and hydration, including Myanmar locale handling
-- admin login and session handling
+- admin login and server-validated session handling
 - invitation acceptance
 - password reset request and confirmation
 - admin management for `super_admin`
 - result management with draft, publish, release, unrelease, and correction behavior
 - blog management with slug metadata, managed banner uploads, translations, publish, and unpublish behavior
 - audit logging for admin governance, result workflows, and blog workflows
+- trusted-origin enforcement and rate limiting for sensitive admin API routes
+- production env validation for admin secrets and bootstrap credentials
 
 ## 6. Recommended Technology Stack
 
@@ -224,6 +227,7 @@ Responsible for:
 Responsible for:
 
 - admin authentication
+- admin session issuance, expiry checks, rotation, and revocation
 - invitation and onboarding support
 - password recovery support
 - permission-aware admin governance

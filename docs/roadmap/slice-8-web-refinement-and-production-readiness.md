@@ -14,6 +14,7 @@ This slice delivers:
 - controlled admin access behavior when session checks cannot reach the API
 - admin governance UI polish for role selection controls
 - larger seeded result/blog content for realistic manual and automated verification
+- API security hardening for production deployment
 
 ## Delivered Scope
 
@@ -79,6 +80,17 @@ This slice delivers:
 - treat unreachable current-session checks as no resolved admin session so protected admin routes redirect to `/admin/login`
 - show a clear admin-service unavailable message if login submission cannot reach the API
 
+### API security hardening
+
+- replace browser-session-only admin logout behavior with database-backed session revocation
+- add explicit admin session expiry checks instead of relying only on cookie lifetime
+- rotate prior admin sessions on login and revoke active sessions after password reset
+- validate trusted `Origin` on admin `POST`, `PUT`, `PATCH`, and `DELETE` requests because admin auth is cookie-based
+- add rate limits for admin login, invitation acceptance, password-reset flows, and authenticated admin writes
+- add stronger HTTP security headers plus production HSTS behavior
+- add request IDs and structured security logging for sensitive routes
+- fail production startup if admin secrets or bootstrap credentials still use development defaults
+
 ### Admin governance UI polish
 
 - replace native admin role select popups with custom anchored role menus on:
@@ -125,6 +137,14 @@ This slice delivers:
 
 - public date formatting now relies on shared deterministic locale formatting instead of mixed SSR/client `Intl` output for critical user-facing strings
 
+### API interfaces and config behavior
+
+- add environment configuration for:
+  - trusted proxy handling
+  - admin session TTL
+  - login, reset, invitation, and admin-write rate limits
+- add server-side `admin_sessions` persistence so current-session resolution can enforce expiry and revocation against PostgreSQL
+
 ## Acceptance Criteria Covered
 
 - supported-language public content is more consistent across core routes
@@ -136,13 +156,16 @@ This slice delivers:
 - admin routes do not expose a broken render when the API is unavailable
 - admin invite and admin-management role selection use the same custom anchored menu pattern
 - larger seeded data supports realistic verification across history, blog, checker, and admin flows
+- admin sessions now expire and revoke server-side, and risky admin routes are origin-checked and rate-limited
 
 ## Verification Covered
 
 Implementation verification included:
 
 - `pnpm db:seed`
+- `pnpm db:migrate:deploy`
 - `pnpm test`
+- `pnpm test:security`
 - `pnpm typecheck`
 - `pnpm --filter @thai-lottery-checker/web typecheck`
 
@@ -157,6 +180,7 @@ Behavioral checks covered:
 - Myanmar locale rendering stability
 - admin invitation and admin-management role selection controls
 - admin result and blog workflows against realistic seeded data
+- expired-session, logout-revocation, origin-validation, production-secret, and rate-limit behavior in the API security suite
 
 ## Operational Notes
 
@@ -164,3 +188,4 @@ Behavioral checks covered:
 - deterministic locale formatting is especially important for Burmese/Myanmar output
 - route metadata now exists across all primary public SEO surfaces, not only blog pages
 - admin role menus intentionally avoid native select popup styling because browsers render those popups inconsistently
+- the production-readiness work now spans API controls as well as web UX refinement
