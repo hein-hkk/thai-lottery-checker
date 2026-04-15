@@ -6,6 +6,8 @@ import type { AdminListItem, AdminPermission, AdminRole } from "@thai-lottery-ch
 import { Check, ChevronDown } from "lucide-react";
 import { AdminApiError, createAdminInvitation, updateAdminAccount } from "../../admin/api";
 
+const shouldShowManualAdminLinks = process.env.NODE_ENV !== "production";
+
 interface AdminManagementPanelProps {
   initialAdmins: AdminListItem[];
 }
@@ -128,7 +130,7 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
     try {
       const response = await createAdminInvitation(inviteForm);
       setInviteMessage(`Invitation created for ${response.email}.`);
-      setInviteUrl(response.inviteUrl ?? null);
+      setInviteUrl(shouldShowManualAdminLinks ? response.inviteUrl ?? null : null);
       setInviteForm(defaultInvitationState);
     } catch (error) {
       setInviteError(error instanceof AdminApiError ? error.message : "Failed to create invitation");
