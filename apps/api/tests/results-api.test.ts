@@ -18,6 +18,11 @@ import { createResultsService } from "../src/modules/results/results.service.js"
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
 import { prisma } from "../src/db/client.js";
+import {
+  resetAdminEmailServiceCache,
+  setAdminEmailServiceForTests,
+  type AdminEmailService
+} from "../src/modules/email/admin-email.service.js";
 import { resetRateLimiters } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
@@ -240,6 +245,19 @@ function getBangkokTodayForTests(): string {
   return `${year}-${month}-${day}`;
 }
 
+function createDisabledAdminEmailService(): AdminEmailService {
+  return {
+    provider: "disabled",
+    isAutomatedDeliveryEnabled: () => false,
+    async sendAdminInvitationEmail() {
+      throw new Error("Disabled email service should not send invitations");
+    },
+    async sendAdminPasswordResetEmail() {
+      throw new Error("Disabled email service should not send password resets");
+    }
+  };
+}
+
 function toDrawDate(value: string): Date {
   return new Date(`${value}T00:00:00.000Z`);
 }
@@ -361,9 +379,14 @@ describe("results api", () => {
 
   beforeEach(() => {
     resetRateLimiters();
+    setAdminEmailServiceForTests(createDisabledAdminEmailService());
+    resetAdminEmailServiceCache();
   });
 
   after(async () => {
+    setAdminEmailServiceForTests(undefined);
+    resetAdminEmailServiceCache();
+
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
         if (error) {

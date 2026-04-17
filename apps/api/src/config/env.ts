@@ -17,6 +17,11 @@ const apiEnvSchema = z.object({
   APP_URL: optionalStringField(z.string().url()),
   NEXT_PUBLIC_APP_URL: optionalStringField(z.string().url()),
   API_TRUST_PROXY: z.string().trim().min(1).default("false"),
+  EMAIL_PROVIDER: z.enum(["disabled", "resend"]).default("disabled"),
+  RESEND_API_KEY: optionalStringField(z.string().min(1)),
+  EMAIL_FROM_ADDRESS: optionalStringField(z.string().email()),
+  EMAIL_FROM_NAME: optionalStringField(z.string().min(1)),
+  EMAIL_REPLY_TO_ADDRESS: optionalStringField(z.string().email()),
   ADMIN_SESSION_SECRET: z.string().min(32).default("development-admin-session-secret-change-me"),
   ADMIN_SESSION_TTL_HOURS: z.coerce.number().int().positive().max(24 * 30).default(12),
   ADMIN_BOOTSTRAP_EMAIL: z.string().email().default("admin@thai-lottery-checker.local"),
@@ -67,11 +72,29 @@ function isHttpsUrl(value: string): boolean {
 }
 
 function assertProductionSafeEnv(env: ApiEnv): void {
+  const appUrls = [env.APP_URL, env.NEXT_PUBLIC_APP_URL].filter((value): value is string => Boolean(value));
+
+  if (env.EMAIL_PROVIDER === "resend") {
+    if (!env.RESEND_API_KEY) {
+      throw new Error("EMAIL_PROVIDER=resend requires RESEND_API_KEY");
+    }
+
+    if (!env.EMAIL_FROM_ADDRESS) {
+      throw new Error("EMAIL_PROVIDER=resend requires EMAIL_FROM_ADDRESS");
+    }
+
+    if (!env.EMAIL_FROM_NAME) {
+      throw new Error("EMAIL_PROVIDER=resend requires EMAIL_FROM_NAME");
+    }
+
+    if (appUrls.length === 0) {
+      throw new Error("EMAIL_PROVIDER=resend requires APP_URL or NEXT_PUBLIC_APP_URL");
+    }
+  }
+
   if (!isProductionRuntime()) {
     return;
   }
-
-  const appUrls = [env.APP_URL, env.NEXT_PUBLIC_APP_URL].filter((value): value is string => Boolean(value));
 
   if (appUrls.length === 0) {
     throw new Error("Production configuration must include APP_URL or NEXT_PUBLIC_APP_URL");
@@ -95,6 +118,16 @@ function assertProductionSafeEnv(env: ApiEnv): void {
 
   if (env.BLOG_BANNER_STORAGE_PUBLIC_BASE_URL && !isHttpsUrl(env.BLOG_BANNER_STORAGE_PUBLIC_BASE_URL)) {
     throw new Error("Production BLOG_BANNER_STORAGE_PUBLIC_BASE_URL must use https");
+  }
+
+  if (env.EMAIL_PROVIDER === "resend") {
+    if (!env.APP_URL) {
+      throw new Error("Production EMAIL_PROVIDER=resend requires APP_URL");
+    }
+
+    if (!isHttpsUrl(env.APP_URL)) {
+      throw new Error("Production APP_URL must use https when EMAIL_PROVIDER=resend");
+    }
   }
 }
 

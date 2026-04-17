@@ -12,6 +12,14 @@ import type {
   AdminBlogsRepository
 } from "../src/modules/admin-blogs/admin-blogs.repository.js";
 import type { BlogBannerStorage } from "../src/modules/admin-blogs/admin-blog-banner-storage.js";
+import {
+  resetAdminEmailServiceCache,
+  setAdminEmailServiceForTests,
+  type AdminEmailRequestContext,
+  type AdminEmailService,
+  type SendAdminInvitationEmailInput,
+  type SendAdminPasswordResetEmailInput
+} from "../src/modules/email/admin-email.service.js";
 import { resetRateLimiters } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
@@ -329,6 +337,59 @@ function createActor(permissions: Array<"manage_results" | "manage_blogs"> = ["m
   };
 }
 
+function createDisabledAdminEmailService(): AdminEmailService {
+  return {
+    provider: "disabled",
+    isAutomatedDeliveryEnabled: () => false,
+    async sendAdminInvitationEmail() {
+      throw new Error("Disabled email service should not send invitations");
+    },
+    async sendAdminPasswordResetEmail() {
+      throw new Error("Disabled email service should not send password resets");
+    }
+  };
+}
+
+function createFakeResendEmailService(options: {
+  failInvitation?: boolean;
+  failPasswordReset?: boolean;
+} = {}): AdminEmailService & {
+  sentInvitations: Array<SendAdminInvitationEmailInput & { context?: AdminEmailRequestContext }>;
+  sentPasswordResets: Array<SendAdminPasswordResetEmailInput & { context?: AdminEmailRequestContext }>;
+} {
+  const sentInvitations: Array<SendAdminInvitationEmailInput & { context?: AdminEmailRequestContext }> = [];
+  const sentPasswordResets: Array<SendAdminPasswordResetEmailInput & { context?: AdminEmailRequestContext }> = [];
+
+  return {
+    provider: "resend",
+    isAutomatedDeliveryEnabled: () => true,
+    sentInvitations,
+    sentPasswordResets,
+    async sendAdminInvitationEmail(input, context) {
+      if (options.failInvitation) {
+        throw new Error("Simulated invitation delivery failure");
+      }
+
+      sentInvitations.push({ ...input, context });
+      return {
+        provider: "resend",
+        messageId: `invite-${sentInvitations.length}`
+      };
+    },
+    async sendAdminPasswordResetEmail(input, context) {
+      if (options.failPasswordReset) {
+        throw new Error("Simulated password reset delivery failure");
+      }
+
+      sentPasswordResets.push({ ...input, context });
+      return {
+        provider: "resend",
+        messageId: `reset-${sentPasswordResets.length}`
+      };
+    }
+  };
+}
+
 describe("security api", () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
@@ -339,10 +400,14 @@ describe("security api", () => {
 
   beforeEach(() => {
     resetRateLimiters();
+    setAdminEmailServiceForTests(createDisabledAdminEmailService());
+    resetAdminEmailServiceCache();
   });
 
   after(async () => {
     process.env.NODE_ENV = originalNodeEnv;
+    setAdminEmailServiceForTests(undefined);
+    resetAdminEmailServiceCache();
 
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
@@ -587,6 +652,8 @@ describe("security api", () => {
 
   it("does not leak account existence or secret material in production responses", async () => {
     const superAdminCookie = await loginBootstrapAdmin();
+    const fakeEmailService = createFakeResendEmailService();
+    setAdminEmailServiceForTests(fakeEmailService);
     process.env.NODE_ENV = "production";
 
     const existingReset = await postJson("/api/v1/admin/password-resets/request", { email: bootstrapAdminEmail });
@@ -610,6 +677,7 @@ describe("security api", () => {
     assert.deepEqual(missingReset.body, { success: true });
     assert.equal(invite.status, 201);
     assert.equal(adminList.status, 200);
+    assert.equal(fakeEmailService.sentInvitations.length, 1);
     expectNoSensitiveFields(existingReset.body);
     expectNoSensitiveFields(missingReset.body);
     expectNoSensitiveFields(invite.body);
@@ -723,6 +791,116 @@ describe("security api", () => {
     process.env.NEXT_PUBLIC_APP_URL = originalPublicAppUrl;
     process.env.NODE_ENV = originalNodeEnv;
     resetApiEnvCache();
+  });
+
+  it("sends automated invitation and reset emails without exposing raw links in responses", async () => {
+    const fakeEmailService = createFakeResendEmailService();
+    setAdminEmailServiceForTests(fakeEmailService);
+    const superAdminCookie = await loginBootstrapAdmin();
+    const inviteEmail = `emailed-invite-${Date.now()}@thai-lottery-checker.local`;
+
+    const invite = await postJson(
+      "/api/v1/admin/invitations",
+      {
+        email: inviteEmail,
+        role: "editor",
+        permissions: ["manage_results"]
+      },
+      superAdminCookie
+    );
+
+    assert.equal(invite.status, 201);
+    assert.equal((invite.body as { inviteUrl?: string }).inviteUrl, undefined);
+    assert.equal(fakeEmailService.sentInvitations.length, 1);
+    assert.equal(fakeEmailService.sentInvitations[0]?.to, inviteEmail);
+    assert.match(fakeEmailService.sentInvitations[0]?.acceptUrl ?? "", /\/admin\/invitations\/accept\?token=/);
+
+    const invitationToken = new URL(fakeEmailService.sentInvitations[0]!.acceptUrl).searchParams.get("token");
+    assert.ok(invitationToken);
+
+    const accept = await postJson("/api/v1/admin/invitations/accept", {
+      token: invitationToken,
+      name: "Email Invite Admin",
+      password: "EmailInvite123!"
+    });
+
+    assert.equal(accept.status, 200);
+
+    const resetEmail = "emailed-reset@thai-lottery-checker.local";
+    const resetPassword = await ensureEditorAdmin(resetEmail, ["manage_results"]);
+    await login(resetEmail, resetPassword);
+
+    const reset = await postJson("/api/v1/admin/password-resets/request", { email: resetEmail });
+
+    assert.equal(reset.status, 200);
+    assert.deepEqual(reset.body, { success: true });
+    assert.equal(fakeEmailService.sentPasswordResets.length, 1);
+    assert.equal(fakeEmailService.sentPasswordResets[0]?.to, resetEmail);
+    assert.match(fakeEmailService.sentPasswordResets[0]?.resetUrl ?? "", /\/admin\/reset-password\/confirm\?token=/);
+  });
+
+  it("revokes invitations when automated email delivery fails", async () => {
+    const failingEmailService = createFakeResendEmailService({ failInvitation: true });
+    setAdminEmailServiceForTests(failingEmailService);
+    const superAdminCookie = await loginBootstrapAdmin();
+    const email = `invite-fail-${Date.now()}@thai-lottery-checker.local`;
+
+    const invite = await postJson(
+      "/api/v1/admin/invitations",
+      {
+        email,
+        role: "editor",
+        permissions: ["manage_results"]
+      },
+      superAdminCookie
+    );
+
+    expectError(invite, 503, "ADMIN_EMAIL_DELIVERY_FAILED");
+
+    const invitation = await prisma.adminInvitation.findFirstOrThrow({
+      where: { email },
+      orderBy: { createdAt: "desc" }
+    });
+
+    assert.ok(invitation.revokedAt);
+  });
+
+  it("deletes password reset tokens when automated email delivery fails", async () => {
+    const failingEmailService = createFakeResendEmailService({ failPasswordReset: true });
+    setAdminEmailServiceForTests(failingEmailService);
+    const email = "reset-failure@thai-lottery-checker.local";
+    const password = await ensureEditorAdmin(email, ["manage_results"]);
+    await login(email, password);
+    const beforeCount = await prisma.adminPasswordReset.count();
+
+    const reset = await postJson("/api/v1/admin/password-resets/request", { email });
+
+    assert.equal(reset.status, 200);
+    assert.deepEqual(reset.body, { success: true });
+    assert.equal(await prisma.adminPasswordReset.count(), beforeCount);
+  });
+
+  it("fails env validation when resend is enabled without required mail config", async () => {
+    const originalEmailProvider = process.env.EMAIL_PROVIDER;
+    const originalResendApiKey = process.env.RESEND_API_KEY;
+    const originalFromAddress = process.env.EMAIL_FROM_ADDRESS;
+    const originalFromName = process.env.EMAIL_FROM_NAME;
+
+    process.env.EMAIL_PROVIDER = "resend";
+    process.env.RESEND_API_KEY = "";
+    process.env.EMAIL_FROM_ADDRESS = "";
+    process.env.EMAIL_FROM_NAME = "";
+    resetApiEnvCache();
+    resetAdminEmailServiceCache();
+
+    assert.throws(() => getApiEnv(), /RESEND_API_KEY/);
+
+    process.env.EMAIL_PROVIDER = originalEmailProvider;
+    process.env.RESEND_API_KEY = originalResendApiKey;
+    process.env.EMAIL_FROM_ADDRESS = originalFromAddress;
+    process.env.EMAIL_FROM_NAME = originalFromName;
+    resetApiEnvCache();
+    resetAdminEmailServiceCache();
   });
 
   it("rejects unsafe banner upload requests and object-key mismatches", async () => {

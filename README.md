@@ -59,6 +59,7 @@ cp .env.example .env
 At minimum, check:
 
 - `DATABASE_URL`
+- `APP_URL`
 - `ADMIN_SESSION_SECRET`
 - `ADMIN_SESSION_TTL_HOURS`
 - `ADMIN_BOOTSTRAP_EMAIL`
@@ -70,6 +71,20 @@ See [.env.example](.env.example) for the full local-development baseline.
 
 If you want managed blog banner uploads in admin, also configure the `BLOG_BANNER_STORAGE_*` variables.
 For AWS S3, leave `BLOG_BANNER_STORAGE_ENDPOINT` blank and set `BLOG_BANNER_STORAGE_PUBLIC_BASE_URL`.
+
+If you want production invitation and password-reset emails, also configure:
+
+- `EMAIL_PROVIDER=resend`
+- `RESEND_API_KEY`
+- `EMAIL_FROM_ADDRESS`
+- `EMAIL_FROM_NAME`
+- optional `EMAIL_REPLY_TO_ADDRESS`
+
+Behavior notes:
+
+- `EMAIL_PROVIDER=disabled` keeps local/dev manual-link behavior for admin invitations and password resets.
+- In production, the API does not expose live invitation/reset URLs in responses.
+- With `EMAIL_PROVIDER=resend`, the API sends invitation and password-reset links by email and requires `APP_URL` to point at the deployed HTTPS web origin.
 
 4. Generate the Prisma client:
 
@@ -191,6 +206,11 @@ Main admin routes:
 - `/admin/reset-password/confirm`
 
 Use the seeded bootstrap admin credentials from `.env` to sign in at `/admin/login`.
+
+Admin onboarding and recovery delivery:
+
+- local/dev with `EMAIL_PROVIDER=disabled`: the API may return manual invitation/reset URLs
+- staging/production with `EMAIL_PROVIDER=resend`: invitations and password resets are delivered by email instead
 
 ## Public API
 

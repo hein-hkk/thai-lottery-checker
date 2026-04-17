@@ -23,9 +23,16 @@ import { getApiEnv } from "../../config/env.js";
 import { createOpaqueToken, hashOpaqueToken, hashPassword } from "../admin-auth/admin-auth.crypto.js";
 import { requireSuperAdmin } from "../admin-auth/admin-auth.service.js";
 import {
+  getAdminEmailService,
+  type AdminEmailRequestContext,
+  type AdminEmailService
+} from "../email/admin-email.service.js";
+import {
   activeInvitationExistsError,
   adminAlreadyExistsError,
   adminNotFoundError,
+  emailDeliveryFailedError,
+  emailDeliveryUnavailableError,
   invalidGovernanceRequestError,
   invitationRevokeNotAllowedError,
   invitationTokenInvalidError,
@@ -91,21 +98,64 @@ async function createAuditLog(input: {
   });
 }
 
+function logGovernanceEmailFallback(
+  context: AdminEmailRequestContext | undefined,
+  event: {
+    emailType: "admin_invitation" | "admin_password_reset";
+    email: string;
+    outcome: "delivery_unavailable" | "delivery_failed";
+    provider: string;
+    error?: string;
+  }
+): void {
+  const payload = JSON.stringify({
+    category: "email",
+    timestamp: new Date().toISOString(),
+    requestId: context?.requestId ?? null,
+    entityId: context?.entityId ?? null,
+    provider: event.provider,
+    emailType: event.emailType,
+    recipient: event.email,
+    outcome: event.outcome,
+    error: event.error ?? null
+  });
+
+  if (event.outcome === "delivery_failed") {
+    console.error(payload);
+    return;
+  }
+
+  console.warn(payload);
+}
+
+function canExposeManualLinks(emailService: AdminEmailService): boolean {
+  return !emailService.isAutomatedDeliveryEnabled() && shouldExposeManualLinks();
+}
+
+function hasAnyDeliveryPath(emailService: AdminEmailService): boolean {
+  return emailService.isAutomatedDeliveryEnabled() || canExposeManualLinks(emailService);
+}
+
 export interface AdminGovernanceService {
-  createInvitation(actor: AuthenticatedAdmin, input: unknown): Promise<AdminInvitationCreateResponse>;
+  createInvitation(
+    actor: AuthenticatedAdmin,
+    input: unknown,
+    context?: AdminEmailRequestContext
+  ): Promise<AdminInvitationCreateResponse>;
   acceptInvitation(input: unknown): Promise<AdminInvitationAcceptResponse>;
   revokeInvitation(actor: AuthenticatedAdmin, input: unknown): Promise<AdminInvitationRevokeResponse>;
-  requestPasswordReset(input: unknown): Promise<AdminPasswordResetRequestResponse>;
+  requestPasswordReset(input: unknown, context?: AdminEmailRequestContext): Promise<AdminPasswordResetRequestResponse>;
   confirmPasswordReset(input: unknown): Promise<AdminPasswordResetConfirmResponse>;
   listAdmins(actor: AuthenticatedAdmin): Promise<AdminListResponse>;
   updateAdmin(actor: AuthenticatedAdmin, adminId: string, input: unknown): Promise<AdminUpdateResponse>;
 }
 
 export function createAdminGovernanceService(
-  repository: AdminGovernanceRepository = prismaAdminGovernanceRepository
+  repository: AdminGovernanceRepository = prismaAdminGovernanceRepository,
+  emailService?: AdminEmailService
 ): AdminGovernanceService {
   return {
-    async createInvitation(actor, input) {
+    async createInvitation(actor, input, context) {
       requireSuperAdmin(actor);
 
       let parsed;
@@ -132,8 +182,21 @@ export function createAdminGovernanceService(
         throw activeInvitationExistsError();
       }
 
+      const currentEmailService = emailService ?? getAdminEmailService();
+
+      if (!hasAnyDeliveryPath(currentEmailService)) {
+        logGovernanceEmailFallback(context, {
+          emailType: "admin_invitation",
+          email,
+          outcome: "delivery_unavailable",
+          provider: currentEmailService.provider
+        });
+        throw emailDeliveryUnavailableError();
+      }
+
       const permissions = sanitizePermissions(parsed.role, parsed.permissions);
       const token = createOpaqueToken();
+      const inviteUrl = `${getAppUrl()}/admin/invitations/accept?token=${encodeURIComponent(token)}`;
       const tokenHash = hashOpaqueToken(token, getApiEnv().ADMIN_SESSION_SECRET);
       const expiresAt = new Date(Date.now() + getApiEnv().ADMIN_INVITATION_EXPIRY_HOURS * 60 * 60 * 1000);
       const invitation = await repository.createInvitation({
@@ -145,6 +208,34 @@ export function createAdminGovernanceService(
         invitedByAdminId: actor.id
       });
 
+      if (currentEmailService.isAutomatedDeliveryEnabled()) {
+        try {
+          await currentEmailService.sendAdminInvitationEmail(
+            {
+              to: email,
+              acceptUrl: inviteUrl,
+              expiresAt: expiresAt.toISOString(),
+              invitedByName: actor.name ?? actor.email
+            },
+            {
+              requestId: context?.requestId,
+              entityId: invitation.id
+            }
+          );
+        } catch (error) {
+          const revokedAt = new Date();
+          await repository.revokeInvitation(invitation.id, revokedAt);
+          logGovernanceEmailFallback(context, {
+            emailType: "admin_invitation",
+            email,
+            outcome: "delivery_failed",
+            provider: currentEmailService.provider,
+            error: error instanceof Error ? error.message : "Unknown email delivery error"
+          });
+          throw emailDeliveryFailedError();
+        }
+      }
+
       await createAuditLog({
         adminId: actor.id,
         action: "invite_admin",
@@ -154,7 +245,13 @@ export function createAdminGovernanceService(
           email,
           role: parsed.role,
           permissions,
-          expiresAt: expiresAt.toISOString()
+          expiresAt: expiresAt.toISOString(),
+          delivery:
+            currentEmailService.isAutomatedDeliveryEnabled()
+              ? "email"
+              : canExposeManualLinks(currentEmailService)
+                ? "manual_link"
+                : "suppressed"
         }
       });
 
@@ -164,8 +261,8 @@ export function createAdminGovernanceService(
         role: parsed.role,
         permissions,
         expiresAt: expiresAt.toISOString(),
-        ...(shouldExposeManualLinks()
-          ? { inviteUrl: `${getAppUrl()}/admin/invitations/accept?token=${encodeURIComponent(token)}` }
+        ...(canExposeManualLinks(currentEmailService)
+          ? { inviteUrl }
           : {})
       };
     },
@@ -275,7 +372,7 @@ export function createAdminGovernanceService(
       return { success: true };
     },
 
-    async requestPasswordReset(input) {
+    async requestPasswordReset(input, context) {
       let parsed;
       try {
         parsed = adminPasswordResetRequestSchema.parse(input);
@@ -289,20 +386,58 @@ export function createAdminGovernanceService(
 
       const email = normalizeEmail(parsed.email);
       const admin = await repository.findAdminByEmail(email);
+      const currentEmailService = emailService ?? getAdminEmailService();
 
       if (!admin || !admin.isActive || admin.deactivatedAt) {
         return { success: true };
       }
 
+      if (!hasAnyDeliveryPath(currentEmailService)) {
+        logGovernanceEmailFallback(context, {
+          emailType: "admin_password_reset",
+          email,
+          outcome: "delivery_unavailable",
+          provider: currentEmailService.provider
+        });
+        return { success: true };
+      }
+
       const token = createOpaqueToken();
+      const resetUrl = `${getAppUrl()}/admin/reset-password/confirm?token=${encodeURIComponent(token)}`;
       const tokenHash = hashOpaqueToken(token, getApiEnv().ADMIN_SESSION_SECRET);
       const expiresAt = new Date(Date.now() + getApiEnv().ADMIN_PASSWORD_RESET_EXPIRY_HOURS * 60 * 60 * 1000);
 
-      await repository.createPasswordReset({
+      const reset = await repository.createPasswordReset({
         adminId: admin.id,
         tokenHash,
         expiresAt
       });
+
+      if (currentEmailService.isAutomatedDeliveryEnabled()) {
+        try {
+          await currentEmailService.sendAdminPasswordResetEmail(
+            {
+              to: email,
+              resetUrl,
+              expiresAt: expiresAt.toISOString()
+            },
+            {
+              requestId: context?.requestId,
+              entityId: reset.id
+            }
+          );
+        } catch (error) {
+          await repository.deletePasswordReset(reset.id);
+          logGovernanceEmailFallback(context, {
+            emailType: "admin_password_reset",
+            email,
+            outcome: "delivery_failed",
+            provider: currentEmailService.provider,
+            error: error instanceof Error ? error.message : "Unknown email delivery error"
+          });
+          return { success: true };
+        }
+      }
 
       await createAuditLog({
         adminId: admin.id,
@@ -310,14 +445,20 @@ export function createAdminGovernanceService(
         entityType: PASSWORD_RESET_ENTITY_TYPE,
         entityId: admin.id,
         afterData: {
-          expiresAt: expiresAt.toISOString()
+          expiresAt: expiresAt.toISOString(),
+          delivery:
+            currentEmailService.isAutomatedDeliveryEnabled()
+              ? "email"
+              : canExposeManualLinks(currentEmailService)
+                ? "manual_link"
+                : "suppressed"
         }
       });
 
       return {
         success: true,
-        ...(shouldExposeManualLinks()
-          ? { resetUrl: `${getAppUrl()}/admin/reset-password/confirm?token=${encodeURIComponent(token)}` }
+        ...(canExposeManualLinks(currentEmailService)
+          ? { resetUrl }
           : {})
       };
     },

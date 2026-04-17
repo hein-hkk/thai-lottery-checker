@@ -5,6 +5,7 @@ Use this checklist before exposing the API publicly.
 ## Secrets and bootstrap access
 
 - Store `DATABASE_URL`, `ADMIN_SESSION_SECRET`, bootstrap admin credentials, and any `BLOG_BANNER_STORAGE_*` keys in a real secret manager.
+- If you enable email delivery, store `RESEND_API_KEY` and the sender/reply-to addresses in the same secret manager.
 - Do not deploy with the `.env.example` defaults. The API now fails startup in production if the admin secret, bootstrap password, or bootstrap email still use development defaults.
 - Sign in with the bootstrap super admin once, rotate the password immediately, and treat that account as break-glass access only.
 
@@ -21,6 +22,18 @@ Use this checklist before exposing the API publicly.
 - Review the login, invitation, password-reset, and admin-write rate-limit env values before launch.
 - Review the public-read and checker-check rate-limit env values before launch so public traffic and abuse resistance are balanced for your deployment.
 - Expect logout and password reset to revoke active sessions server-side; verify that behavior in staging before go-live.
+- For production invitation/reset flows, prefer `EMAIL_PROVIDER=resend` and verify that the sender domain is configured before launch.
+
+## Email delivery
+
+- Set `APP_URL` to the real HTTPS web origin used in invitation and password-reset links.
+- Configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`, and optional `EMAIL_REPLY_TO_ADDRESS`.
+- Verify the sender domain in Resend and publish the required DNS records:
+  - SPF
+  - DKIM
+  - DMARC recommended
+- Send a real invitation and password-reset email from staging before production cutover.
+- Monitor delivery failures in application logs. Invitation send failures now reject the invite request; password-reset send failures keep the generic success response but do not leave a live reset token behind.
 
 ## Database and storage
 
