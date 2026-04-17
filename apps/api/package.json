@@ -9,12 +9,14 @@
     "start": "dotenv -e ../../.env -- node dist/index.js",
     "lint": "eslint src --ext .ts",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test tests/results-api.test.ts",
+    "test": "prisma migrate deploy && node --import tsx --test tests/results-api.test.ts",
+    "test:security": "prisma migrate deploy && node --import tsx --test tests/security-api.test.ts",
     "db:generate": "prisma generate",
     "db:migrate:dev": "prisma migrate dev",
     "db:migrate:deploy": "prisma migrate deploy",
     "db:studio": "prisma studio",
-    "db:seed": "tsx prisma/seed.ts"
+    "db:seed": "tsx prisma/seed.ts",
+    "db:seed:admin": "tsx prisma/seed-admin-only.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.888.0",

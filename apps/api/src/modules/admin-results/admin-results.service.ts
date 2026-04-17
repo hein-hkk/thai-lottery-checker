@@ -1,7 +1,8 @@
-import { ZodError } from "zod";
-import { adminResultWriteRequestSchema, prizeTypeSchema } from "@thai-lottery-checker/schemas";
+import { z, ZodError } from "zod";
+import { adminResultListQuerySchema, adminResultWriteRequestSchema, prizeTypeSchema } from "@thai-lottery-checker/schemas";
 import type {
   AdminResultDetailResponse,
+  AdminResultListQuery,
   AdminResultListResponse,
   AdminResultPublishResponse,
   AdminResultWriteRequest,
@@ -72,7 +73,7 @@ async function createAuditLog(input: {
 }
 
 export interface AdminResultsService {
-  listResults(actor: AuthenticatedAdmin): Promise<AdminResultListResponse>;
+  listResults(actor: AuthenticatedAdmin, query: unknown): Promise<AdminResultListResponse>;
   getResultDetail(actor: AuthenticatedAdmin, drawId: string): Promise<AdminResultDetailResponse>;
   createDraft(actor: AuthenticatedAdmin, input: unknown): Promise<AdminResultDetailResponse>;
   updateDraft(actor: AuthenticatedAdmin, drawId: string, input: unknown): Promise<AdminResultDetailResponse>;
@@ -87,15 +88,17 @@ export function createAdminResultsService(
   cache: AdminResultsCache = noopAdminResultsCache
 ): AdminResultsService {
   return {
-    async listResults(actor) {
+    async listResults(actor, query) {
       requireAdminPermission(actor, "manage_results");
-      const draws = await repository.listAdminResults();
-      return mapAdminResultListResponse(draws);
+      const parsed = parseListQuery(query);
+      const payload = await repository.listAdminResults(parsed.page, parsed.limit);
+      return mapAdminResultListResponse(payload.items, parsed.page, parsed.limit, payload.total);
     },
 
     async getResultDetail(actor, drawId) {
       requireAdminPermission(actor, "manage_results");
-      const draw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const draw = await repository.findDrawById(parsedDrawId);
 
       if (!draw) {
         throw adminResultNotFoundError();
@@ -147,7 +150,8 @@ export function createAdminResultsService(
 
     async updateDraft(actor, drawId, input) {
       requireAdminPermission(actor, "manage_results");
-      const existingDraw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const existingDraw = await repository.findDrawById(parsedDrawId);
 
       if (!existingDraw) {
         throw adminResultNotFoundError();
@@ -196,7 +200,8 @@ export function createAdminResultsService(
 
     async releaseGroup(actor, drawId, prizeType) {
       requireAdminPermission(actor, "manage_results");
-      const existingDraw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const existingDraw = await repository.findDrawById(parsedDrawId);
 
       if (!existingDraw) {
         throw adminResultNotFoundError();
@@ -245,7 +250,8 @@ export function createAdminResultsService(
 
     async unreleaseGroup(actor, drawId, prizeType) {
       requireAdminPermission(actor, "manage_results");
-      const existingDraw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const existingDraw = await repository.findDrawById(parsedDrawId);
 
       if (!existingDraw) {
         throw adminResultNotFoundError();
@@ -292,7 +298,8 @@ export function createAdminResultsService(
 
     async publishDraft(actor, drawId) {
       requireAdminPermission(actor, "manage_results");
-      const existingDraw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const existingDraw = await repository.findDrawById(parsedDrawId);
 
       if (!existingDraw) {
         throw adminResultNotFoundError();
@@ -333,7 +340,8 @@ export function createAdminResultsService(
 
     async correctPublished(actor, drawId, input) {
       requireAdminPermission(actor, "manage_results");
-      const existingDraw = await repository.findDrawById(drawId);
+      const parsedDrawId = parseUuidParam(drawId, "Result id");
+      const existingDraw = await repository.findDrawById(parsedDrawId);
 
       if (!existingDraw) {
         throw adminResultNotFoundError();
@@ -378,6 +386,30 @@ export function createAdminResultsService(
       return mapAdminResultDetailResponse(correctedDraw, correctedRows, correctedReleases);
     }
   };
+}
+
+function parseListQuery(input: unknown): Required<AdminResultListQuery> {
+  try {
+    return adminResultListQuerySchema.parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminResultRequestError("Admin result list query is invalid");
+    }
+
+    throw error;
+  }
+}
+
+function parseUuidParam(input: string, label: string): string {
+  try {
+    return z.string().uuid().parse(input);
+  } catch (error) {
+    if (error instanceof ZodError) {
+      throw invalidAdminResultRequestError(`${label} is invalid`);
+    }
+
+    throw error;
+  }
 }
 
 function parseWriteRequest(input: unknown): AdminResultWriteRequest {

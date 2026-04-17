@@ -3,7 +3,10 @@ import type { CurrentAdminContext } from "../modules/admin-auth/admin-auth.mappe
 declare global {
   namespace Express {
     interface Request {
+      clientIp?: string;
       currentAdmin?: CurrentAdminContext;
+      currentAdminSessionId?: string;
+      requestId?: string;
     }
   }
 }

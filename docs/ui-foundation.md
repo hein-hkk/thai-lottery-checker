@@ -449,6 +449,7 @@ Rules:
 - buttons, tabs, and nav items must tolerate longer translated labels without truncation by default
 - do not rely on text length for layout alignment
 - when locale is represented visually, use consistent SVG flag assets rather than emoji glyphs
+- locale-sensitive dates and times rendered during SSR must use deterministic formatting logic so hydration does not drift between server and browser implementations
 
 ## 12. Content and Data Presentation
 
@@ -457,6 +458,7 @@ Rules:
 - dates and times must be formatted in a locale-aware way
 - data should remain understandable when rendered in English, Thai, or Burmese/Myanmar
 - admin timestamps may be denser than public-facing date presentation, but still need clear formatting
+- public locale-facing date formatting must remain deterministic across SSR and hydration, especially for Burmese/Myanmar rendering
 
 ### 11.2 Lottery Numbers
 
@@ -527,6 +529,34 @@ Rules:
 - locale switcher uses flag plus text on desktop and compact flag-only presentation on mobile
 - locale flags should use real SVG assets for visual consistency
 - detailed header and drawer behavior is owned by [docs/menu-component.md](/Users/hkk/Documents/Playground/thai-lottery-checker/docs/menu-component.md), not by this foundation doc
+
+#### Public Shell Structure
+
+The public shell now includes:
+
+- global header
+- main content container
+- shared global footer
+
+The admin shell may use different structure and should not be forced to mirror the public footer.
+
+#### Global Footer
+
+Contains:
+
+- lightweight legal copy
+- utility navigation links
+
+Rules:
+
+- belongs to public routes only
+- uses a restrained utility treatment rather than a heavy promotional block
+- top border required for separation from main content
+- compact spacing and muted text keep result/blog content primary
+- below `768px`, footer content is centered and stacked with navigation above copyright
+- from `768px` upward, footer uses a split row with legal copy on the left and links on the right
+- footer links should point only to existing public routes; do not add placeholder legal-policy links
+- footer navigation should reuse the current primary public route labels, with English continuing to use `Blog` unless product copy is intentionally revised later
 
 ### 12.2 Result Card
 
@@ -717,6 +747,7 @@ Both surfaces must reuse the same token and component system. Density is the pri
 - build shared primitives before duplicating per-screen styles
 - use the same structural classes for public and admin when behavior is shared
 - prefer semantic class naming through utility composition rather than visually descriptive one-off patterns
+- prefer custom anchored menu controls for important cross-browser dropdowns, such as admin role selection, when the native select popup cannot match the shared language-switcher interaction pattern
 
 ### 16.4 Migration Priorities
 

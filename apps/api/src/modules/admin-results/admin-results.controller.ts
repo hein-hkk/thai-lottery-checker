@@ -10,7 +10,7 @@ export async function listAdminResults(request: Request, response: Response): Pr
       throw new Error("currentAdmin was not resolved");
     }
 
-    const payload = await adminResultsService.listResults(request.currentAdmin);
+    const payload = await adminResultsService.listResults(request.currentAdmin, request.query);
     response.status(200).json(payload);
   } catch (error) {
     const { statusCode, body } = toAdminResultsErrorResponse(error);

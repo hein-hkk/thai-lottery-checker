@@ -35,6 +35,14 @@ export function passwordResetTokenInvalidError(): AdminGovernanceApiError {
   return createAdminGovernanceError(400, "INVALID_ADMIN_PASSWORD_RESET", "Password reset token is invalid or can no longer be used");
 }
 
+export function emailDeliveryUnavailableError(): AdminGovernanceApiError {
+  return createAdminGovernanceError(503, "ADMIN_EMAIL_DELIVERY_UNAVAILABLE", "Admin email delivery is not configured");
+}
+
+export function emailDeliveryFailedError(): AdminGovernanceApiError {
+  return createAdminGovernanceError(503, "ADMIN_EMAIL_DELIVERY_FAILED", "Failed to deliver admin email");
+}
+
 export function adminNotFoundError(): AdminGovernanceApiError {
   return createAdminGovernanceError(404, "ADMIN_NOT_FOUND", "Admin was not found");
 }

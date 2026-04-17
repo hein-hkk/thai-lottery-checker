@@ -4,7 +4,13 @@
 
 Implement Slice 2 as the production-ready admin platform foundation for the final product, limited to secure admin access, admin governance basics, and lottery result management. Keep the existing architecture and boundaries unchanged: Next.js web app with protected admin routes, Express API backend, PostgreSQL via Prisma as source of truth, and a cache-invalidation seam for publish/correction with full Redis wiring deferred to the performance-hardening slice.
 
-Recommended auth choice for this slice: use an HTTP-only secure cookie carrying the admin session token. The backend remains the source of truth by resolving the current admin on each protected request and re-checking `is_active`, role, permissions, and password/session validity against PostgreSQL. This avoids adding a separate auth service or session table in Slice 2.
+Recommended auth choice for this slice: use an HTTP-only secure cookie carrying the admin session token. The backend remains the source of truth by resolving the current admin on each protected request and re-checking `is_active`, role, permissions, and password/session validity against PostgreSQL.
+
+Historical note:
+
+- this Slice 2 plan intentionally avoided a dedicated session table
+- the shipped repository later evolved that design during production hardening and now includes `admin_sessions` for server-enforced expiry and revocation
+- treat the current implementation docs as the source of truth for present-day behavior
 
 ## Key Changes
 
@@ -245,8 +251,9 @@ Recommended auth choice for this slice: use an HTTP-only secure cookie carrying 
 
 ## Assumptions
 
-- Admin session implementation uses an HTTP-only secure cookie and backend-side current-admin resolution; no dedicated admin session table is introduced in Slice 2.
-- Logout clears the session cookie; no cross-device session management is included in Slice 2.
+- Admin session implementation in the original Slice 2 plan used an HTTP-only secure cookie and backend-side current-admin resolution without a dedicated session table.
+- The current repository has since added `admin_sessions` plus server-side revocation as a later hardening step.
+- The original Slice 2 scope still assumed simple logout cookie clearing rather than full session revocation.
 - Invitation acceptance creates the admin record directly rather than creating a pre-user account first.
 - Result list API for admin can include both draft and published draws; public APIs remain published-only until Slice 3 introduces staged prize-group visibility.
 - Blog permissions and navigation can exist in the auth model now, but full blog-management workflows remain Slice 6.

@@ -3,6 +3,8 @@
 import { useState, type FormEvent } from "react";
 import { AdminApiError, requestAdminPasswordReset } from "../../admin/api";
 
+const shouldShowManualAdminLinks = process.env.NODE_ENV !== "production";
+
 export function ResetPasswordRequestForm() {
   const [email, setEmail] = useState("");
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -18,7 +20,7 @@ export function ResetPasswordRequestForm() {
     try {
       const response = await requestAdminPasswordReset({ email });
       setSuccessMessage("If the account exists and is active, password reset instructions have been created.");
-      setResetUrl(response.resetUrl ?? null);
+      setResetUrl(shouldShowManualAdminLinks ? response.resetUrl ?? null : null);
     } catch (error) {
       setErrorMessage(error instanceof AdminApiError ? error.message : "Reset request failed");
     } finally {

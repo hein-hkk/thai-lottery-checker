@@ -8,15 +8,19 @@ import type {
   SupportedLocale
 } from "@thai-lottery-checker/types";
 import { formatIsoTimestamp } from "@thai-lottery-checker/utils";
-import type { AdminBlogRepositoryPost, AdminBlogRepositoryTranslation } from "./admin-blogs.repository.js";
+import type {
+  AdminBlogRepositoryListPost,
+  AdminBlogRepositoryPost,
+  AdminBlogRepositoryTranslation
+} from "./admin-blogs.repository.js";
 
 const localePriority: SupportedLocale[] = ["en", "th", "my"];
 
-function getAvailableLocales(post: AdminBlogRepositoryPost): SupportedLocale[] {
+function getAvailableLocales(post: AdminBlogRepositoryListPost | AdminBlogRepositoryPost): SupportedLocale[] {
   return localePriority.filter((locale) => post.translations.some((translation) => translation.locale === locale));
 }
 
-function getDisplayTitle(post: AdminBlogRepositoryPost): string {
+function getDisplayTitle(post: AdminBlogRepositoryListPost | AdminBlogRepositoryPost): string {
   for (const locale of localePriority) {
     const translation = post.translations.find((item) => item.locale === locale);
     const title = translation?.title.trim();
@@ -58,7 +62,7 @@ function buildPublishReadiness(post: AdminBlogRepositoryPost): AdminBlogPublishR
   };
 }
 
-export function mapAdminBlogListItem(post: AdminBlogRepositoryPost): AdminBlogListItem {
+export function mapAdminBlogListItem(post: AdminBlogRepositoryListPost): AdminBlogListItem {
   return {
     id: post.id,
     slug: post.slug,
@@ -71,9 +75,17 @@ export function mapAdminBlogListItem(post: AdminBlogRepositoryPost): AdminBlogLi
   };
 }
 
-export function mapAdminBlogListResponse(posts: readonly AdminBlogRepositoryPost[]): AdminBlogListResponse {
+export function mapAdminBlogListResponse(
+  posts: readonly AdminBlogRepositoryListPost[],
+  page: number,
+  limit: number,
+  total: number
+): AdminBlogListResponse {
   return {
-    items: posts.map(mapAdminBlogListItem)
+    items: posts.map(mapAdminBlogListItem),
+    page,
+    limit,
+    total
   };
 }
 

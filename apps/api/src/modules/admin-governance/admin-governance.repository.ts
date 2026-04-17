@@ -74,6 +74,7 @@ export interface ConfirmPasswordResetInput {
   adminId: string;
   passwordHash: string;
   passwordUpdatedAt: Date;
+  sessionsRevokedAt: Date;
   usedAt: Date;
 }
 
@@ -95,7 +96,8 @@ export interface AdminGovernanceRepository {
   revokeInvitation(invitationId: string, revokedAt: Date): Promise<void>;
   listAdmins(): Promise<AdminGovernanceAdminRecord[]>;
   acceptInvitation(input: AcceptInvitationInput): Promise<void>;
-  createPasswordReset(input: CreatePasswordResetInput): Promise<void>;
+  createPasswordReset(input: CreatePasswordResetInput): Promise<AdminPasswordResetRecord>;
+  deletePasswordReset(resetId: string): Promise<void>;
   findPasswordResetByTokenHash(tokenHash: string): Promise<AdminPasswordResetRecord | null>;
   confirmPasswordReset(input: ConfirmPasswordResetInput): Promise<void>;
   updateAdmin(input: UpdateAdminInput): Promise<AdminGovernanceAdminRecord>;
@@ -222,12 +224,27 @@ export const prismaAdminGovernanceRepository: AdminGovernanceRepository = {
   },
 
   async createPasswordReset(input) {
-    await prisma.adminPasswordReset.create({
+    return prisma.adminPasswordReset.create({
       data: {
         adminId: input.adminId,
         tokenHash: input.tokenHash,
         expiresAt: input.expiresAt
+      },
+      include: {
+        admin: {
+          select: {
+            id: true,
+            email: true,
+            isActive: true
+          }
+        }
       }
+    });
+  },
+
+  async deletePasswordReset(resetId) {
+    await prisma.adminPasswordReset.delete({
+      where: { id: resetId }
     });
   },
 
@@ -258,6 +275,16 @@ export const prismaAdminGovernanceRepository: AdminGovernanceRepository = {
       prisma.adminPasswordReset.update({
         where: { id: input.resetId },
         data: { usedAt: input.usedAt }
+      }),
+      prisma.adminSession.updateMany({
+        where: {
+          adminId: input.adminId,
+          revokedAt: null
+        },
+        data: {
+          revokedAt: input.sessionsRevokedAt,
+          revokeReason: "password_reset"
+        }
       })
     ]);
   },
@@ -283,6 +310,19 @@ export const prismaAdminGovernanceRepository: AdminGovernanceRepository = {
             adminId: input.adminId,
             permission
           }))
+        });
+      }
+
+      if (!input.isActive) {
+        await tx.adminSession.updateMany({
+          where: {
+            adminId: input.adminId,
+            revokedAt: null
+          },
+          data: {
+            revokedAt: new Date(),
+            revokeReason: "admin_deactivated"
+          }
         });
       }
 

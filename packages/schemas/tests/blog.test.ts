@@ -78,9 +78,14 @@ describe("blog schemas", () => {
   });
 
   it("validates admin list query and response payloads", () => {
-    assert.deepEqual(adminBlogListQuerySchema.parse({}), { status: "all" });
-    assert.deepEqual(adminBlogListQuerySchema.parse({ status: "draft" }), { status: "draft" });
+    assert.deepEqual(adminBlogListQuerySchema.parse({}), { status: "all", page: 1, limit: 5 });
+    assert.deepEqual(adminBlogListQuerySchema.parse({ status: "draft", page: "2", limit: "50" }), {
+      status: "draft",
+      page: 2,
+      limit: 50
+    });
     assert.throws(() => adminBlogListQuerySchema.parse({ status: "archived" }));
+    assert.throws(() => adminBlogListQuerySchema.parse({ limit: "51" }));
 
     assert.ok(
       adminBlogListResponseSchema.parse({
@@ -95,7 +100,10 @@ describe("blog schemas", () => {
             createdAt: "2026-03-30T08:00:00.000Z",
             availableLocales: ["en", "th", "my"]
           }
-        ]
+        ],
+        page: 1,
+        limit: 5,
+        total: 1
       })
     );
   });

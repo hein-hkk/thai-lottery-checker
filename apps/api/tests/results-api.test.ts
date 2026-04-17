@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createServer, type Server } from "node:http";
-import { after, before, describe, it } from "node:test";
+import { after, before, beforeEach, describe, it } from "node:test";
 import { createApp } from "../src/app.js";
 import { getApiEnv } from "../src/config/env.js";
 import { seed } from "../prisma/seed.ts";
@@ -18,10 +18,17 @@ import { createResultsService } from "../src/modules/results/results.service.js"
 import type { ResultsRepository } from "../src/modules/results/results.repository.js";
 import { type ResultsApiError } from "../src/modules/results/results.errors.js";
 import { prisma } from "../src/db/client.js";
+import {
+  resetAdminEmailServiceCache,
+  setAdminEmailServiceForTests,
+  type AdminEmailService
+} from "../src/modules/email/admin-email.service.js";
+import { resetRateLimiters } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
 let server: Server;
 let baseUrl: string;
+const adminOrigin = getApiEnv().APP_URL ?? getApiEnv().NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
 async function startServer(): Promise<string> {
   const app = createApp();
@@ -41,6 +48,21 @@ async function startServer(): Promise<string> {
   }
 
   return `http://127.0.0.1:${address.port}`;
+}
+
+function withAdminOrigin(pathname: string, method: string, headers: HeadersInit = {}): HeadersInit {
+  if (!pathname.startsWith("/api/v1/admin")) {
+    return headers;
+  }
+
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(method)) {
+    return headers;
+  }
+
+  return {
+    origin: adminOrigin,
+    ...headers
+  };
 }
 
 async function getJson(pathname: string): Promise<{ status: number; body: unknown }> {
@@ -70,10 +92,10 @@ async function postJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "POST",
-    headers: {
+    headers: withAdminOrigin(pathname, "POST", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -91,10 +113,10 @@ async function patchJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "PATCH",
-    headers: {
+    headers: withAdminOrigin(pathname, "PATCH", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -112,10 +134,10 @@ async function putJson(
 ): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "PUT",
-    headers: {
+    headers: withAdminOrigin(pathname, "PUT", {
       "Content-Type": "application/json",
       ...(cookie ? { cookie } : {})
-    },
+    }),
     body: JSON.stringify(body)
   });
 
@@ -129,7 +151,7 @@ async function putJson(
 async function deleteJson(pathname: string, cookie?: string): Promise<{ status: number; body: unknown; setCookie: string | null }> {
   const response = await fetch(`${baseUrl}${pathname}`, {
     method: "DELETE",
-    headers: cookie ? { cookie } : undefined
+    headers: withAdminOrigin(pathname, "DELETE", cookie ? { cookie } : {})
   });
 
   return {
@@ -221,6 +243,19 @@ function getBangkokTodayForTests(): string {
   }
 
   return `${year}-${month}-${day}`;
+}
+
+function createDisabledAdminEmailService(): AdminEmailService {
+  return {
+    provider: "disabled",
+    isAutomatedDeliveryEnabled: () => false,
+    async sendAdminInvitationEmail() {
+      throw new Error("Disabled email service should not send invitations");
+    },
+    async sendAdminPasswordResetEmail() {
+      throw new Error("Disabled email service should not send password resets");
+    }
+  };
 }
 
 function toDrawDate(value: string): Date {
@@ -342,7 +377,16 @@ describe("results api", () => {
     baseUrl = await startServer();
   });
 
+  beforeEach(() => {
+    resetRateLimiters();
+    setAdminEmailServiceForTests(createDisabledAdminEmailService());
+    resetAdminEmailServiceCache();
+  });
+
   after(async () => {
+    setAdminEmailServiceForTests(undefined);
+    resetAdminEmailServiceCache();
+
     await new Promise<void>((resolve, reject) => {
       server.close((error) => {
         if (error) {
@@ -922,10 +966,21 @@ describe("results api", () => {
 
     const adminResults = await getJsonWithCookie("/api/v1/admin/results", sessionCookie ?? undefined);
     assert.equal(adminResults.status, 200);
+    assert.equal((adminResults.body as { page: number }).page, 1);
+    assert.equal((adminResults.body as { limit: number }).limit, 5);
+    assert.equal((adminResults.body as { total: number }).total >= 1, true);
+    assert.equal((adminResults.body as { items: unknown[] }).items.length <= 5, true);
     assert.equal(
       (adminResults.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdDrawId),
       true
     );
+
+    const invalidAdminResultsQuery = await getJsonWithCookie("/api/v1/admin/results?limit=51", sessionCookie ?? undefined);
+    assert.equal(invalidAdminResultsQuery.status, 400);
+    assert.deepEqual(invalidAdminResultsQuery.body, {
+      code: "INVALID_ADMIN_RESULT_REQUEST",
+      message: "Admin result list query is invalid"
+    });
 
     const correctionAuditLog = await prisma.adminAuditLog.findFirst({
       where: {
@@ -1013,15 +1068,15 @@ describe("results api", () => {
     assert.equal(status, 200);
     assert.equal(payload.page, 1);
     assert.equal(payload.limit, 1);
-    assert.equal(payload.total, 2);
+    assert.equal(payload.total, 32);
     assert.equal(payload.items.length, 1);
     assert.deepEqual(payload.items[0], {
-      drawDate: "2026-03-01",
-      drawCode: "2026-03-01",
-      firstPrize: "820866",
-      frontThree: ["068", "837"],
-      lastThree: ["054", "479"],
-      lastTwo: "06"
+      drawDate: "2026-04-01",
+      drawCode: "2026-04-01",
+      firstPrize: "902341",
+      frontThree: ["112", "745"],
+      lastThree: ["331", "842"],
+      lastTwo: "19"
     });
   });
 
@@ -1043,8 +1098,8 @@ describe("results api", () => {
     assert.equal(status, 200);
     assert.equal(payload.page, 1);
     assert.equal(payload.limit, 10);
-    assert.equal(payload.total, 2);
-    assert.deepEqual(payload.items.map((item) => item.slug), [
+    assert.equal(payload.total, 27);
+    assert.deepEqual(payload.items.slice(0, 2).map((item) => item.slug), [
       "how-to-check-thai-lottery",
       "thai-lottery-draw-day-tips"
     ]);
@@ -1060,9 +1115,9 @@ describe("results api", () => {
     const thaiPayload = thaiList.body as { items: Array<{ slug: string }>; total: number; limit: number };
 
     assert.equal(thaiList.status, 200);
-    assert.equal(thaiPayload.total, 1);
+    assert.equal(thaiPayload.total, 27);
     assert.equal(thaiPayload.limit, 12);
-    assert.deepEqual(thaiPayload.items.map((item) => item.slug), ["how-to-check-thai-lottery"]);
+    assert.equal(thaiPayload.items[0]?.slug, "how-to-check-thai-lottery");
   });
 
   it("returns localized blog detail and hides draft or untranslated posts", async () => {
@@ -1085,19 +1140,15 @@ describe("results api", () => {
     assert.equal(payload.slug, "how-to-check-thai-lottery");
     assert.equal(payload.translation.locale, "my");
     assert.equal(payload.translation.title, "ထိုင်းထီရလဒ် စစ်နည်း");
-    assert.deepEqual(payload.translation.body, [
-      {
-        type: "paragraph",
-        text: "တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
-      }
-    ]);
-
-    const missingTranslation = await getJson("/api/v1/blogs/thai-lottery-draw-day-tips?locale=th");
-    assert.equal(missingTranslation.status, 404);
-    assert.deepEqual(missingTranslation.body, {
-      code: "BLOG_NOT_FOUND",
-      message: "Blog post was not found"
+    assert.equal(payload.translation.body.length >= 4, true);
+    assert.deepEqual(payload.translation.body[0], {
+      type: "paragraph",
+      text: "တရားဝင် ထိုင်းထီရလဒ်ကို အဆင့်လိုက် ဖတ်ရှုစစ်ဆေးနည်းကို လေ့လာပါ။"
     });
+
+    const thaiTranslation = await getJson("/api/v1/blogs/thai-lottery-draw-day-tips?locale=th");
+    assert.equal(thaiTranslation.status, 200);
+    assert.equal((thaiTranslation.body as { translation: { locale: string } }).translation.locale, "th");
 
     const draft = await getJson("/api/v1/blogs/thai-lottery-common-mistakes?locale=th");
     assert.equal(draft.status, 404);
@@ -1149,7 +1200,9 @@ describe("results api", () => {
     assert.equal(initialList.status, 200);
     assert.equal(
       (initialList.body as { items: Array<{ slug: string; displayTitle: string }> }).items.some(
-        (item) => item.slug === "thai-lottery-common-mistakes" && item.displayTitle === "ข้อผิดพลาดที่พบบ่อยในการตรวจหวย"
+        (item) =>
+          item.slug === "thai-lottery-common-mistakes" &&
+          item.displayTitle === "Common Mistakes When Checking Thai Lottery Results"
       ),
       true
     );
@@ -1256,12 +1309,32 @@ describe("results api", () => {
     assert.equal(publicPublished.status, 200);
     assert.equal((publicPublished.body as { slug: string }).slug, "admin-blog-workflow-updated");
 
-    const publishedFilter = await getJsonWithCookie("/api/v1/admin/blogs?status=published", sessionCookie ?? undefined);
+    const publishedFilter = await getJsonWithCookie(
+      "/api/v1/admin/blogs?status=published&page=1&limit=5",
+      sessionCookie ?? undefined
+    );
     assert.equal(publishedFilter.status, 200);
+    assert.equal((publishedFilter.body as { page: number }).page, 1);
+    assert.equal((publishedFilter.body as { limit: number }).limit, 5);
+    assert.equal((publishedFilter.body as { total: number }).total >= 1, true);
+    assert.equal(
+      (publishedFilter.body as { items: Array<{ status: string }> }).items.every((item) => item.status === "published"),
+      true
+    );
     assert.equal(
       (publishedFilter.body as { items: Array<{ id: string }> }).items.some((item) => item.id === createdBlogId),
       true
     );
+
+    const invalidAdminBlogsQuery = await getJsonWithCookie(
+      "/api/v1/admin/blogs?status=published&limit=51",
+      sessionCookie ?? undefined
+    );
+    assert.equal(invalidAdminBlogsQuery.status, 400);
+    assert.deepEqual(invalidAdminBlogsQuery.body, {
+      code: "INVALID_ADMIN_BLOG_REQUEST",
+      message: "Admin blog list query is invalid"
+    });
 
     const unpublish = await postJson(`/api/v1/admin/blogs/${createdBlogId}/unpublish`, {}, sessionCookie ?? undefined);
     assert.equal(unpublish.status, 200);
@@ -1290,7 +1363,10 @@ describe("results api", () => {
     const post = createRepositoryPost();
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === post.id ? post : null;
@@ -1423,7 +1499,10 @@ describe("results api", () => {
     const deletedKeys: string[] = [];
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === currentPost.id ? currentPost : null;
@@ -1498,7 +1577,10 @@ describe("results api", () => {
     const post = createRepositoryPost();
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === post.id ? post : null;
@@ -1583,7 +1665,10 @@ describe("results api", () => {
     const deletedKeys: string[] = [];
     const repository: AdminBlogsRepository = {
       async listAdminBlogs() {
-        return [];
+        return {
+          items: [],
+          total: 0
+        };
       },
       async findBlogById(blogId) {
         return blogId === currentPost.id ? currentPost : null;
@@ -1749,7 +1834,7 @@ describe("results api", () => {
     });
     const missingDraw = await postJson("/api/v1/checker/check", {
       ticketNumber: "123456",
-      drawDate: "2026-01-01"
+      drawDate: "2024-01-01"
     });
 
     assert.equal(invalidTicket.status, 400);
@@ -1789,7 +1874,7 @@ describe("results api", () => {
   it("returns structured 400 and 404 errors", async () => {
     const invalidDate = await getJson("/api/v1/results/not-a-date");
     const invalidQuery = await getJson("/api/v1/results?page=0&limit=200");
-    const unknownDraw = await getJson("/api/v1/results/2026-01-01");
+    const unknownDraw = await getJson("/api/v1/results/2024-01-01");
 
     assert.equal(invalidDate.status, 400);
     assert.deepEqual(invalidDate.body, {

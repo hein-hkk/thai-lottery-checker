@@ -23,21 +23,33 @@ export interface LoginResult {
   sessionToken: string;
 }
 
+export interface ResolvedAdminSession {
+  currentAdmin: CurrentAdminContext;
+  sessionId: string;
+}
+
 export interface AdminAuthService {
   login(input: unknown): Promise<LoginResult>;
-  getCurrentAdminFromSession(sessionToken: string | null | undefined): Promise<CurrentAdminContext>;
+  logout(sessionToken: string | null | undefined): Promise<void>;
+  getCurrentAdminFromSession(sessionToken: string | null | undefined): Promise<ResolvedAdminSession>;
 }
 
 function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function toSessionPayload(admin: CurrentAdminContext): AdminSessionPayload {
+function getSessionExpiresAt(from: Date): Date {
+  return new Date(from.getTime() + getApiEnv().ADMIN_SESSION_TTL_HOURS * 60 * 60 * 1000);
+}
+
+function toSessionPayload(admin: CurrentAdminContext, sessionId: string, expiresAt: Date): AdminSessionPayload {
   return {
+    sessionId,
     adminId: admin.id,
     email: admin.email,
     role: admin.role,
-    passwordUpdatedAt: admin.passwordUpdatedAt
+    passwordUpdatedAt: admin.passwordUpdatedAt,
+    expiresAt: expiresAt.toISOString()
   };
 }
 
@@ -74,18 +86,36 @@ export function createAdminAuthService(repository: AdminAuthRepository = prismaA
       }
 
       const loggedInAt = new Date();
-      await repository.recordLogin(admin.id, loggedInAt);
+      const sessionExpiresAt = getSessionExpiresAt(loggedInAt);
+      const session = await repository.rotateLoginSession(admin.id, loggedInAt, sessionExpiresAt);
 
       const currentAdmin = mapCurrentAdmin({
         ...admin,
         email
       });
-      const sessionToken = signAdminSession(toSessionPayload(currentAdmin), getApiEnv().ADMIN_SESSION_SECRET);
+      const sessionToken = signAdminSession(
+        toSessionPayload(currentAdmin, session.id, session.expiresAt),
+        getApiEnv().ADMIN_SESSION_SECRET
+      );
 
       return {
         response: mapAdminAuthResponse(currentAdmin),
         sessionToken
       };
+    },
+
+    async logout(sessionToken) {
+      if (!sessionToken) {
+        return;
+      }
+
+      const payload = verifyAdminSession(sessionToken, getApiEnv().ADMIN_SESSION_SECRET);
+
+      if (!payload) {
+        return;
+      }
+
+      await repository.revokeSession(payload.sessionId, new Date(), "logout");
     },
 
     async getCurrentAdminFromSession(sessionToken: string | null | undefined) {
@@ -94,8 +124,21 @@ export function createAdminAuthService(repository: AdminAuthRepository = prismaA
       }
 
       const payload = verifyAdminSession(sessionToken, getApiEnv().ADMIN_SESSION_SECRET);
+      const now = new Date();
 
-      if (!payload) {
+      if (!payload || new Date(payload.expiresAt) <= now) {
+        throw adminUnauthorizedError();
+      }
+
+      const session = await repository.findSessionById(payload.sessionId);
+
+      if (
+        !session ||
+        session.adminId !== payload.adminId ||
+        session.revokedAt !== null ||
+        session.expiresAt <= now ||
+        session.expiresAt.getTime() !== new Date(payload.expiresAt).getTime()
+      ) {
         throw adminUnauthorizedError();
       }
 
@@ -111,7 +154,10 @@ export function createAdminAuthService(repository: AdminAuthRepository = prismaA
         throw adminUnauthorizedError();
       }
 
-      return currentAdmin;
+      return {
+        currentAdmin,
+        sessionId: session.id
+      };
     }
   };
 }

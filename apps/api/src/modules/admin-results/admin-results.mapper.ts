@@ -31,9 +31,17 @@ export function mapAdminResultListItem(draw: AdminResultRepositoryDraw): AdminRe
   };
 }
 
-export function mapAdminResultListResponse(draws: readonly AdminResultRepositoryDraw[]): AdminResultListResponse {
+export function mapAdminResultListResponse(
+  draws: readonly AdminResultRepositoryDraw[],
+  page: number,
+  limit: number,
+  total: number
+): AdminResultListResponse {
   return {
-    items: draws.map(mapAdminResultListItem)
+    items: draws.map(mapAdminResultListItem),
+    page,
+    limit,
+    total
   };
 }
 

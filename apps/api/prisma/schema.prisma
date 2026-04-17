@@ -67,6 +67,7 @@ model Admin {
   permissions          AdminPermissionGrant[]
   invitationsSent      AdminInvitation[]           @relation("admin_invitation_sender")
   passwordResets       AdminPasswordReset[]
+  sessions             AdminSession[]
   auditLogs            AdminAuditLog[]
   createdDraws         LotteryDraw[]               @relation("draw_created_by_admin")
   updatedDraws         LotteryDraw[]               @relation("draw_updated_by_admin")
@@ -75,6 +76,22 @@ model Admin {
   releasedResultGroups LotteryResultGroupRelease[] @relation("result_group_release_admin")
 
   @@map("admins")
+}
+
+model AdminSession {
+  id           String    @id @default(uuid()) @db.Uuid
+  adminId      String    @db.Uuid @map("admin_id")
+  expiresAt    DateTime  @map("expires_at")
+  revokedAt    DateTime? @map("revoked_at")
+  revokeReason String?   @map("revoke_reason")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+  admin        Admin     @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@index([adminId], map: "admin_sessions_admin_id_idx")
+  @@index([expiresAt], map: "admin_sessions_expires_at_idx")
+  @@index([revokedAt], map: "admin_sessions_revoked_at_idx")
+  @@map("admin_sessions")
 }
 
 model AdminPermissionGrant {
@@ -200,6 +217,8 @@ model BlogPost {
   translations     BlogPostTranslation[]
 
   @@index([status], map: "blog_posts_status_idx")
+  @@index([updatedAt, id], map: "blog_posts_updated_at_id_idx")
+  @@index([status, updatedAt, id], map: "blog_posts_status_updated_at_id_idx")
   @@index([publishedAt], map: "blog_posts_published_at_idx")
   @@map("blog_posts")
 }

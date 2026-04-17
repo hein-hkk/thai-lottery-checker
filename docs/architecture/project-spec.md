@@ -70,10 +70,14 @@ Internal operators who manage:
 - embedded number checker that navigates to the draw-detail overlay state
 - blog list and blog detail pages
 - multilingual routing and localized public content
+- refined public copy for landing, latest-results, checker, and blog entry surfaces
+- route metadata and canonical URLs for landing, latest results, result detail, blog list, and blog detail pages
+- shared public footer on public-facing routes
 
 ### Admin system
 
 - admin authentication
+- server-validated admin session expiry and revocation
 - invitation-based onboarding
 - password reset and recovery
 - admin management for authorized `super_admin` users
@@ -110,13 +114,21 @@ The current repository implementation aligns with the following shipped baseline
 - staged public visibility for current draw-day drafts
 - embedded checker plus draw-detail result overlay flow
 - blog list and blog detail pages
-- admin login and session handling
+- refined public copy across landing, latest-results, checker, and blog entry surfaces
+- route-level metadata for landing, latest results, result detail, blog list, and blog detail pages
+- shared public footer on public routes
+- deterministic localized public date rendering across SSR and hydration, including Myanmar locale handling
+- admin login and server-validated session handling
 - invitation acceptance
 - password reset request and confirmation
+- transactional email delivery for invitation and password-reset links in production
 - admin management for `super_admin`
 - result management with draft, publish, release, unrelease, and correction behavior
 - blog management with slug metadata, managed banner uploads, translations, publish, and unpublish behavior
 - audit logging for admin governance, result workflows, and blog workflows
+- trusted-origin enforcement and rate limiting for sensitive admin API routes
+- production env validation for admin secrets and bootstrap credentials
+- production env validation for transactional email delivery configuration
 
 ## 6. Recommended Technology Stack
 
@@ -217,6 +229,7 @@ Responsible for:
 Responsible for:
 
 - admin authentication
+- admin session issuance, expiry checks, rotation, and revocation
 - invitation and onboarding support
 - password recovery support
 - permission-aware admin governance

@@ -1,9 +1,11 @@
+import type { Metadata } from "next";
 import { getResultsMessages, isSupportedLocale } from "@thai-lottery-checker/i18n";
 import type { SupportedLocale } from "@thai-lottery-checker/types";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EmbeddedChecker } from "../../../../src/components/results/embedded-checker";
 import { CheckerResultOverlay } from "../../../../src/components/results/checker-result-overlay";
+import { getResultDetailMetadata } from "../../../../src/results/metadata";
 import { ResultDetailSections } from "../../../../src/components/results/result-detail-sections";
 import { ResultsPageShell } from "../../../../src/components/results/results-page-shell";
 import { StatusCard } from "../../../../src/components/results/status-card";
@@ -14,6 +16,26 @@ export const dynamic = "force-dynamic";
 interface ResultDetailPageProps {
   params: Promise<{ locale: string; drawDate: string }>;
   searchParams: Promise<{ checker?: string | string[]; ticket?: string | string[] }>;
+}
+
+export async function generateMetadata({ params }: ResultDetailPageProps): Promise<Metadata> {
+  const { locale, drawDate } = await params;
+
+  if (!isSupportedLocale(locale)) {
+    return {};
+  }
+
+  try {
+    const detail = await getResultDetail(drawDate);
+
+    if (!detail) {
+      return {};
+    }
+
+    return getResultDetailMetadata(locale as SupportedLocale, detail, getResultsMessages(locale as SupportedLocale));
+  } catch {
+    return {};
+  }
 }
 
 export default async function ResultDetailPage({ params, searchParams }: ResultDetailPageProps) {

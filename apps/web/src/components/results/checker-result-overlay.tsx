@@ -6,6 +6,7 @@ import type { CheckerCheckResponse, SupportedLocale } from "@thai-lottery-checke
 import { ChevronDown, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
+import { formatLongDate } from "../../lib/locale-date";
 
 interface CheckerResultOverlayProps {
   locale: SupportedLocale;
@@ -202,14 +203,6 @@ function CheckerCoverageDetails({
       </details>
     </div>
   );
-}
-
-function formatLongDate(locale: SupportedLocale, value: string) {
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(new Date(`${value}T12:00:00Z`));
 }
 
 function formatBaht(locale: SupportedLocale | "en", value: number) {

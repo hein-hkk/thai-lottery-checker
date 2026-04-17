@@ -8,7 +8,7 @@ The current shipped baseline includes:
 - public locale landing page with latest preview, history preview, and blog teasers
 - public embedded number checker with draw-detail overlay results
 - public multilingual blog list and detail reading
-- admin auth/session with HTTP-only cookie handling
+- admin auth/session with signed HTTP-only cookies plus server-side expiry and revocation
 - invitation-based admin onboarding
 - admin password reset
 - super-admin account management
@@ -25,11 +25,13 @@ Repo structure:
 For deeper product and architecture details, see:
 
 - [Implementation roadmap](docs/roadmap/implementation-roadmap.md)
+- [Slice 8 delivery notes](docs/roadmap/slice-8-web-refinement-and-production-readiness.md)
 - [Slice 7 plan](docs/roadmap/slice-7-blog-banner-uploads-and-home-page-teasers.md)
 - [Slice 5 plan](docs/roadmap/slice-5-blog-public-reading.md)
 - [Slice 6 plan](docs/roadmap/slice-6-admin-blog-management.md)
 - [Slice 2 plan](docs/roadmap/slice-2-admin-platform-foundation-and-result-management.md)
 - [Blog banner storage setup](docs/architecture/blog-banner-storage.md)
+- [Production security runbook](docs/operations/production-security-runbook.md)
 - [System architecture](docs/architecture/system-architecture.md)
 
 ## Requirements
@@ -57,15 +59,32 @@ cp .env.example .env
 At minimum, check:
 
 - `DATABASE_URL`
+- `APP_URL`
 - `ADMIN_SESSION_SECRET`
+- `ADMIN_SESSION_TTL_HOURS`
 - `ADMIN_BOOTSTRAP_EMAIL`
 - `ADMIN_BOOTSTRAP_PASSWORD`
 - `ADMIN_BOOTSTRAP_NAME`
+- `API_TRUST_PROXY`
 
 See [.env.example](.env.example) for the full local-development baseline.
 
 If you want managed blog banner uploads in admin, also configure the `BLOG_BANNER_STORAGE_*` variables.
 For AWS S3, leave `BLOG_BANNER_STORAGE_ENDPOINT` blank and set `BLOG_BANNER_STORAGE_PUBLIC_BASE_URL`.
+
+If you want production invitation and password-reset emails, also configure:
+
+- `EMAIL_PROVIDER=resend`
+- `RESEND_API_KEY`
+- `EMAIL_FROM_ADDRESS`
+- `EMAIL_FROM_NAME`
+- optional `EMAIL_REPLY_TO_ADDRESS`
+
+Behavior notes:
+
+- `EMAIL_PROVIDER=disabled` keeps local/dev manual-link behavior for admin invitations and password resets.
+- In production, the API does not expose live invitation/reset URLs in responses.
+- With `EMAIL_PROVIDER=resend`, the API sends invitation and password-reset links by email and requires `APP_URL` to point at the deployed HTTPS web origin.
 
 4. Generate the Prisma client:
 
@@ -88,10 +107,18 @@ pnpm db:seed
 The seed creates:
 
 - 1 bootstrap `super_admin` from env
-- 2 published draws for public browsing
+- 32 published draws for public browsing and checker/history pagination
 - 1 draft draw for admin workflows
-- 2 published blog posts for public reading
-- 1 draft blog post for admin/blog workflow preparation
+- 27 published multilingual blog posts for public reading
+- 3 draft multilingual blog posts for admin/blog workflow preparation
+
+For a production-like empty database with only the bootstrap `super_admin`, use:
+
+```bash
+pnpm db:seed:admin
+```
+
+This removes lottery results, blog posts, admin audit/reset/invitation records, and non-bootstrap admins, then upserts the bootstrap `super_admin` from `.env`.
 
 ## Run the apps
 
@@ -113,6 +140,14 @@ Default local URLs:
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:4000`
+
+Development compiler note:
+
+- The web app intentionally runs `next dev --webpack` in local development.
+- Next 16's Turbopack dev server was observed to get stuck showing `Compiling...` on `/admin/blogs`, with the `next-server` Node process CPU and memory growing over time.
+- The same admin blog workflow was stable under `next start`, so this was treated as a dev-compiler/HMR issue rather than an API or production runtime leak.
+- The admin blog list also disables prefetching to editor routes and keeps its list API query limited to table fields to reduce unnecessary dev compile pressure.
+- Re-test Turbopack explicitly with `pnpm --filter @thai-lottery-checker/web exec dotenv -e ../../.env -- next dev` before removing `--webpack`.
 
 ## Public Web Routes
 
@@ -143,6 +178,19 @@ Current public route roles:
 
 The public checker is embedded on the public pages above and navigates to the selected draw detail page for result presentation.
 
+Current public shell behavior:
+
+- public routes render a shared header, main content shell, and footer
+- the footer appears on public pages only, not in `/admin`
+- below `768px`, the footer centers its content and stacks nav links above the copyright line
+- from `768px` upward, the footer uses a split row with legal copy on the left and links on the right
+- route-level metadata now exists for:
+  - `/{locale}`
+  - `/{locale}/results`
+  - `/{locale}/results/{drawDate}`
+  - `/{locale}/blog`
+  - `/{locale}/blog/{slug}`
+
 ## Admin Web Routes
 
 Main admin routes:
@@ -158,6 +206,11 @@ Main admin routes:
 - `/admin/reset-password/confirm`
 
 Use the seeded bootstrap admin credentials from `.env` to sign in at `/admin/login`.
+
+Admin onboarding and recovery delivery:
+
+- local/dev with `EMAIL_PROVIDER=disabled`: the API may return manual invitation/reset URLs
+- staging/production with `EMAIL_PROVIDER=resend`: invitations and password resets are delivered by email instead
 
 ## Public API
 
@@ -257,9 +310,25 @@ Main admin route groups:
 
 These endpoints are protected by the admin auth and permission model. Public result endpoints continue to expose published draws only.
 
+Admin result endpoints:
+
+- `GET /api/v1/admin/results?page={page}&limit={limit}`
+- `GET /api/v1/admin/results/:id`
+- `POST /api/v1/admin/results`
+- `PATCH /api/v1/admin/results/:id`
+- `POST /api/v1/admin/results/:id/prize-groups/:prizeType/release`
+- `POST /api/v1/admin/results/:id/prize-groups/:prizeType/unrelease`
+- `POST /api/v1/admin/results/:id/publish`
+- `PATCH /api/v1/admin/results/:id/correct`
+
+Admin result behavior:
+
+- every endpoint requires admin auth and `manage_results`
+- list pagination defaults to `page=1` and `limit=5`, with `limit` capped at `50`
+
 Admin blog endpoints:
 
-- `GET /api/v1/admin/blogs?status={all|draft|published}`
+- `GET /api/v1/admin/blogs?status={all|draft|published}&page={page}&limit={limit}`
 - `GET /api/v1/admin/blogs/:id`
 - `POST /api/v1/admin/blogs`
 - `PATCH /api/v1/admin/blogs/:id`
@@ -273,6 +342,7 @@ Admin blog endpoints:
 Admin blog behavior:
 
 - every endpoint requires admin auth and `manage_blogs`
+- list pagination defaults to `page=1` and `limit=5`, with `limit` capped at `50`
 - drafts start with `status: "draft"` and `publishedAt: null`
 - metadata writes are slug-only; banner uploads use dedicated endpoints
 - publishing requires at least one valid translation with a title and paragraph body
@@ -300,22 +370,33 @@ Manual checks:
 
 - Open `http://localhost:3000/en`
 - Confirm the primary public header shows `Home`, `Latest results`, and `Blog`
-- Confirm the landing page latest section shows a trust-focused localized title/description with latest draw metadata below it
+- Confirm the landing page latest section shows the refined title `Check the Latest Thai Lottery Results` and description `View official results and check your ticket instantly.`
+- Confirm the landing page latest section still shows latest draw metadata below the section copy
 - Confirm the landing page history preview appears before the blog teaser section
-- Confirm the landing page blog teaser section shows up to 3 localized published posts and links to `/{locale}/blog`
+- Confirm the checker panel uses `Check Your Ticket` and `Check Ticket`
+- Confirm the landing page blog teaser section shows the refined helper copy `Learn how Thai lottery works and how to check results`, uses `View more` for the section CTA, and links to `/{locale}/blog`
+- Confirm the public footer appears below the main content on public pages and does not appear on `/admin`
+- Confirm on narrow screens the footer centers its content, shows nav links above the copyright line, and keeps desktop split layout from `768px` upward
+- Inspect the page source or browser metadata for `/{locale}` and confirm it has explicit localized title, description, and canonical URL
 - Open `http://localhost:3000/en/results`
 - Confirm the latest page shows the same localized trust-focused title/description plus latest draw metadata
+- Inspect the page source or browser metadata for `/{locale}/results` and confirm it has explicit localized title, description, and canonical URL
 - Open `http://localhost:3000/en/results/history`
 - Confirm history remains directly reachable but is no longer a primary nav item
 - Open `http://localhost:3000/en/blog`
+- Confirm the blog list page title reads `Thai Lottery Guides & Tips`
+- Confirm the blog list page description reads `Learn how Thai lottery results work, how to check your ticket, and what each prize means.`
 - Confirm the blog list page renders published English posts with localized metadata and pagination controls
 - Open `http://localhost:3000/th/blog`
 - Confirm locale-specific filtering hides English-only posts from the Thai blog list
 - Open `http://localhost:3000/en/blog/how-to-check-thai-lottery`
 - Confirm the blog detail page renders paragraph content, banner image, and localized metadata fallback behavior
 - Open `http://localhost:3000/en/results/2026-03-01`
+- Inspect the page source or browser metadata for `/{locale}/results/{drawDate}` and confirm it has a draw-specific title, description, and canonical URL
 - Use the embedded checker on a public page and confirm it navigates to the selected draw detail page with `checker` and `ticket` query params
 - Confirm the draw detail page opens the checker overlay and keeps the official draw numbers visible behind it
+- Open `http://localhost:3000/my`
+- Confirm the page renders without a hydration mismatch and that localized dates stay stable between server render and client hydration
 - Open `http://localhost:3000/admin/login`
 - Sign in with the bootstrap admin from `.env`
 - Open `http://localhost:3000/admin/admins`
@@ -338,8 +419,45 @@ pnpm db:generate
 pnpm db:migrate:dev
 pnpm db:migrate:deploy
 pnpm db:seed
+pnpm db:seed:admin
 pnpm db:studio
+pnpm test:security
 ```
+
+## Security Checks
+
+Run the practical MVP security suite before production-like verification:
+
+```bash
+pnpm test:security
+```
+
+The suite covers admin authentication, session expiry and revocation, permission boundaries, public/admin data visibility, validation errors, CORS/origin behavior, admin and public-route rate limiting, production secret validation, and blog banner upload safety.
+
+Before a release, also run a dependency audit and review production secrets/configuration:
+
+```bash
+pnpm audit --prod
+```
+
+Confirm committed files do not contain real secrets, `ADMIN_SESSION_SECRET` and `ADMIN_BOOTSTRAP_PASSWORD` are not using development defaults, `APP_URL` matches the deployed web origin, and any configured blog banner bucket has the expected CORS policy.
+
+The API now also enforces:
+
+- signed admin sessions with explicit server-checked expiry and logout revocation
+- rate limits for login, password reset, invitation acceptance, and authenticated admin writes
+- rate limits for public result/blog reads and checker submissions
+- origin validation for admin `POST`/`PUT`/`PATCH`/`DELETE` routes
+- stricter HTTP response headers and request IDs in security logs
+- production env validation that rejects development-default admin secrets
+
+Production configuration should set:
+
+- `APP_URL` and/or `NEXT_PUBLIC_APP_URL` to the deployed HTTPS origin
+- `API_TRUST_PROXY` for the production reverse proxy/load balancer
+- session, admin rate-limit, and public/checker rate-limit env values appropriate for your threat model and traffic
+
+For the non-code operational checklist, use the [production security runbook](docs/operations/production-security-runbook.md).
 
 ## Workspace Layout
 

@@ -10,7 +10,9 @@ export async function createInvitation(request: Request, response: Response): Pr
       throw new Error("currentAdmin was not resolved");
     }
 
-    const payload = await adminGovernanceService.createInvitation(request.currentAdmin, request.body);
+    const payload = await adminGovernanceService.createInvitation(request.currentAdmin, request.body, {
+      requestId: request.requestId
+    });
     response.status(201).json(payload);
   } catch (error) {
     const { statusCode, body } = toAdminGovernanceErrorResponse(error);
@@ -44,7 +46,9 @@ export async function revokeInvitation(request: Request, response: Response): Pr
 
 export async function requestPasswordReset(request: Request, response: Response): Promise<void> {
   try {
-    const payload = await adminGovernanceService.requestPasswordReset(request.body);
+    const payload = await adminGovernanceService.requestPasswordReset(request.body, {
+      requestId: request.requestId
+    });
     response.status(200).json(payload);
   } catch (error) {
     const { statusCode, body } = toAdminGovernanceErrorResponse(error);

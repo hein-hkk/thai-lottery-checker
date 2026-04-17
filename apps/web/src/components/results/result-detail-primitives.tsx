@@ -3,6 +3,7 @@ import type { ResultsMessages } from "@thai-lottery-checker/i18n";
 import type { PrizeGroup, PrizeType, SupportedLocale } from "@thai-lottery-checker/types";
 import { CircleCheck, Clock3 } from "lucide-react";
 import type { CSSProperties } from "react";
+import { formatBangkokTime, formatLongDate } from "../../lib/locale-date";
 
 export function ResultDetailHeader({
   drawDate,
@@ -212,29 +213,6 @@ function chipGridStyle(columnsMobile: number, columnsDesktop: number) {
   } as CSSProperties;
 }
 
-function formatLongDate(locale: SupportedLocale, value: string) {
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
-    day: "numeric",
-    month: "long",
-    year: "numeric"
-  }).format(new Date(`${value}T12:00:00Z`));
-}
-
 function formatPublishedAt(locale: SupportedLocale, value: string) {
-  return new Intl.DateTimeFormat(toIntlLocale(locale), {
-    hour: "numeric",
-    minute: "2-digit"
-  }).format(new Date(value));
-}
-
-function toIntlLocale(locale: SupportedLocale) {
-  switch (locale) {
-    case "th":
-      return "th-TH";
-    case "my":
-      return "my-MM";
-    case "en":
-    default:
-      return "en-GB";
-  }
+  return formatBangkokTime(locale, value);
 }

@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { adminPermissions } from "@thai-lottery-checker/types";
 import type { AdminListItem, AdminPermission, AdminRole } from "@thai-lottery-checker/types";
+import { Check, ChevronDown } from "lucide-react";
 import { AdminApiError, createAdminInvitation, updateAdminAccount } from "../../admin/api";
+
+const shouldShowManualAdminLinks = process.env.NODE_ENV !== "production";
 
 interface AdminManagementPanelProps {
   initialAdmins: AdminListItem[];
@@ -20,6 +23,91 @@ const defaultInvitationState: InvitationFormState = {
   role: "editor",
   permissions: ["manage_results"]
 };
+
+function RoleSelect({
+  disabled = false,
+  onChange,
+  value
+}: {
+  disabled?: boolean;
+  onChange: (role: AdminRole) => void;
+  value: AdminRole;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const roles: AdminRole[] = ["editor", "super_admin"];
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    function handlePointerDown(event: MouseEvent) {
+      if (!wrapperRef.current?.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    }
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsOpen(false);
+      }
+    }
+
+    window.addEventListener("mousedown", handlePointerDown);
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      window.removeEventListener("mousedown", handlePointerDown);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isOpen]);
+
+  function handleRoleSelect(role: AdminRole) {
+    onChange(role);
+    setIsOpen(false);
+  }
+
+  return (
+    <div className="ui-admin-role-menu" ref={wrapperRef}>
+      <button
+        aria-expanded={isOpen}
+        aria-haspopup="listbox"
+        className="ui-button-secondary ui-admin-role-trigger"
+        disabled={disabled}
+        onClick={() => setIsOpen((current) => !current)}
+        type="button"
+      >
+        <span>{value}</span>
+        <span aria-hidden="true" className="ui-admin-role-icon">
+          <ChevronDown />
+        </span>
+      </button>
+
+      {isOpen ? (
+        <div aria-label="Role" className="ui-admin-role-popover" role="listbox">
+          {roles.map((role) => (
+            <button
+              aria-selected={role === value}
+              className={`ui-admin-role-option ${role === value ? "ui-admin-role-option-active" : ""}`}
+              key={role}
+              onClick={() => handleRoleSelect(role)}
+              role="option"
+              type="button"
+            >
+              <span>{role}</span>
+              {role === value ? (
+                <span aria-hidden="true" className="ui-admin-role-option-icon">
+                  <Check />
+                </span>
+              ) : null}
+            </button>
+          ))}
+        </div>
+      ) : null}
+    </div>
+  );
+}
 
 export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProps) {
   const [admins, setAdmins] = useState(initialAdmins);
@@ -42,7 +130,7 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
     try {
       const response = await createAdminInvitation(inviteForm);
       setInviteMessage(`Invitation created for ${response.email}.`);
-      setInviteUrl(response.inviteUrl ?? null);
+      setInviteUrl(shouldShowManualAdminLinks ? response.inviteUrl ?? null : null);
       setInviteForm(defaultInvitationState);
     } catch (error) {
       setInviteError(error instanceof AdminApiError ? error.message : "Failed to create invitation");
@@ -138,20 +226,16 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
 
             <label className="ui-field">
               <span className="ui-field-label">Role</span>
-              <select
-                className="ui-select"
-                onChange={(event) =>
+              <RoleSelect
+                value={inviteForm.role}
+                onChange={(role) =>
                   setInviteForm((current) => ({
                     ...current,
-                    role: event.target.value as AdminRole,
-                    permissions: event.target.value === "editor" ? current.permissions : []
+                    role,
+                    permissions: role === "editor" ? current.permissions : []
                   }))
                 }
-                value={inviteForm.role}
-              >
-                <option value="editor">editor</option>
-                <option value="super_admin">super_admin</option>
-              </select>
+              />
             </label>
           </div>
 
@@ -234,15 +318,11 @@ export function AdminManagementPanel({ initialAdmins }: AdminManagementPanelProp
                   <div className="grid gap-3 md:grid-cols-3">
                     <label className="ui-field text-sm">
                       <span className="ui-field-label">Role</span>
-                      <select
-                        className="ui-select"
+                      <RoleSelect
                         disabled={isUpdating}
-                        onChange={(event) => void handleRoleChange(admin, event.target.value as AdminRole)}
                         value={admin.role}
-                      >
-                        <option value="editor">editor</option>
-                        <option value="super_admin">super_admin</option>
-                      </select>
+                        onChange={(role) => void handleRoleChange(admin, role)}
+                      />
                     </label>
 
                     <div className="space-y-2 text-sm md:col-span-2">

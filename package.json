@@ -13,7 +13,9 @@
     "db:migrate:deploy": "dotenv -e .env -- pnpm --filter @thai-lottery-checker/api db:migrate:deploy",
     "db:studio": "dotenv -e .env -- pnpm --filter @thai-lottery-checker/api db:studio",
     "db:seed": "dotenv -e .env -- pnpm --filter @thai-lottery-checker/api db:seed",
-    "test": "pnpm build:packages && pnpm exec dotenv -e .env -- pnpm --filter @thai-lottery-checker/api exec node --import tsx --test tests/results-api.test.ts ../../packages/domain/tests/results.test.ts ../../packages/schemas/tests/results.test.ts ../../packages/schemas/tests/blog.test.ts"
+    "db:seed:admin": "dotenv -e .env -- pnpm --filter @thai-lottery-checker/api db:seed:admin",
+    "test": "pnpm build:packages && pnpm exec dotenv -e .env -- pnpm --filter @thai-lottery-checker/api exec node --import tsx --test tests/results-api.test.ts ../../packages/domain/tests/results.test.ts ../../packages/schemas/tests/results.test.ts ../../packages/schemas/tests/blog.test.ts",
+    "test:security": "pnpm build:packages && pnpm exec dotenv -e .env -- pnpm --filter @thai-lottery-checker/api test:security"
   },
   "devDependencies": {
     "@eslint/js": "^9.23.0",
