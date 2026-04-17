@@ -13,6 +13,8 @@ import type {
 } from "../src/modules/admin-blogs/admin-blogs.repository.js";
 import type { BlogBannerStorage } from "../src/modules/admin-blogs/admin-blog-banner-storage.js";
 import {
+  getAdminEmailService,
+  maskEmailAddress,
   resetAdminEmailServiceCache,
   setAdminEmailServiceForTests,
   type AdminEmailRequestContext,
@@ -20,7 +22,7 @@ import {
   type SendAdminInvitationEmailInput,
   type SendAdminPasswordResetEmailInput
 } from "../src/modules/email/admin-email.service.js";
-import { resetRateLimiters } from "../src/security/http.js";
+import { getSafeLoggedPath, resetRateLimiters, shouldSkipSecurityLog } from "../src/security/http.js";
 import type { AuthenticatedAdmin } from "@thai-lottery-checker/types";
 
 const bootstrapAdminEmail = getApiEnv().ADMIN_BOOTSTRAP_EMAIL.toLowerCase();
@@ -348,6 +350,39 @@ function createDisabledAdminEmailService(): AdminEmailService {
       throw new Error("Disabled email service should not send password resets");
     }
   };
+}
+
+async function captureConsole<T>(
+  callback: () => Promise<T> | T
+): Promise<{ result: T; info: string[]; warn: string[]; error: string[] }> {
+  const originalInfo = console.info;
+  const originalWarn = console.warn;
+  const originalError = console.error;
+  const info: string[] = [];
+  const warn: string[] = [];
+  const error: string[] = [];
+
+  console.info = (...args: unknown[]) => {
+    info.push(args.map((value) => String(value)).join(" "));
+  };
+  console.warn = (...args: unknown[]) => {
+    warn.push(args.map((value) => String(value)).join(" "));
+  };
+  console.error = (...args: unknown[]) => {
+    error.push(args.map((value) => String(value)).join(" "));
+  };
+
+  try {
+    const result = await callback();
+    await new Promise<void>((resolve) => {
+      setImmediate(() => resolve());
+    });
+    return { result, info, warn, error };
+  } finally {
+    console.info = originalInfo;
+    console.warn = originalWarn;
+    console.error = originalError;
+  }
 }
 
 function createFakeResendEmailService(options: {
@@ -760,6 +795,13 @@ describe("security api", () => {
     expectError(response, 403, "INVALID_ADMIN_ORIGIN");
   });
 
+  it("redacts sensitive admin route paths and skips noisy admin preflight logs", () => {
+    assert.equal(shouldSkipSecurityLog("OPTIONS", "/api/v1/admin/password-resets/request"), true);
+    assert.equal(shouldSkipSecurityLog("POST", "/api/v1/admin/password-resets/request"), false);
+    assert.equal(getSafeLoggedPath("/api/v1/admin/password-resets/confirm?token=super-secret-token"), "/api/v1/admin/password-resets/confirm");
+    assert.equal(getSafeLoggedPath("/api/v1/admin/invitations/accept?token=invite-token"), "/api/v1/admin/invitations/accept");
+  });
+
   it("restricts credentialed CORS headers and hides Express implementation details", async () => {
     const allowedOrigin = getApiEnv().APP_URL ?? getApiEnv().NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
     const allowed = await getJson("/health", undefined, { origin: allowedOrigin });
@@ -901,6 +943,86 @@ describe("security api", () => {
     process.env.EMAIL_FROM_NAME = originalFromName;
     resetApiEnvCache();
     resetAdminEmailServiceCache();
+  });
+
+  it("masks recipient emails in provider delivery logs", async () => {
+    const originalEmailProvider = process.env.EMAIL_PROVIDER;
+    const originalResendApiKey = process.env.RESEND_API_KEY;
+    const originalFromAddress = process.env.EMAIL_FROM_ADDRESS;
+    const originalFromName = process.env.EMAIL_FROM_NAME;
+    const originalFetch = globalThis.fetch;
+    const recipient = "williamaung1701@gmail.com";
+    const maskedRecipient = maskEmailAddress(recipient);
+
+    process.env.EMAIL_PROVIDER = "resend";
+    process.env.RESEND_API_KEY = "test-resend-api-key";
+    process.env.EMAIL_FROM_ADDRESS = "noreply@example.com";
+    process.env.EMAIL_FROM_NAME = "LottoKai";
+    setAdminEmailServiceForTests(undefined);
+    resetApiEnvCache();
+    resetAdminEmailServiceCache();
+
+    globalThis.fetch = (async () =>
+      new Response(JSON.stringify({ id: "message-1" }), {
+        status: 200,
+        headers: {
+          "Content-Type": "application/json"
+        }
+      })) as typeof fetch;
+
+    try {
+      const captured = await captureConsole(async () =>
+        getAdminEmailService().sendAdminPasswordResetEmail(
+          {
+            to: recipient,
+            resetUrl: "https://example.com/admin/reset-password/confirm?token=topsecret",
+            expiresAt: new Date("2026-04-18T08:00:00.000Z").toISOString()
+          },
+          {
+            requestId: "req-log-mask",
+            entityId: "entity-log-mask"
+          }
+        )
+      );
+
+      assert.equal(captured.info.some((line) => line.includes(recipient)), false);
+      assert.equal(captured.info.some((line) => line.includes(maskedRecipient)), true);
+      assert.equal(captured.info.some((line) => line.includes("topsecret")), false);
+    } finally {
+      globalThis.fetch = originalFetch;
+      process.env.EMAIL_PROVIDER = originalEmailProvider;
+      process.env.RESEND_API_KEY = originalResendApiKey;
+      process.env.EMAIL_FROM_ADDRESS = originalFromAddress;
+      process.env.EMAIL_FROM_NAME = originalFromName;
+      resetApiEnvCache();
+      resetAdminEmailServiceCache();
+    }
+  });
+
+  it("masks recipient emails in governance fallback logs", async () => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const email = "williamaung1701@gmail.com";
+    const password = await ensureEditorAdmin(email, ["manage_results"]);
+    const maskedRecipient = maskEmailAddress(email);
+    await login(email, password);
+    setAdminEmailServiceForTests(createDisabledAdminEmailService());
+    process.env.NODE_ENV = "production";
+
+    try {
+      const captured = await captureConsole(async () =>
+        postJson("/api/v1/admin/password-resets/request", {
+          email
+        })
+      );
+
+      assert.equal(captured.result.status, 200);
+      assert.deepEqual(captured.result.body, { success: true });
+      assert.equal(captured.warn.some((line) => line.includes(email)), false);
+      assert.equal(captured.warn.some((line) => line.includes(maskedRecipient)), true);
+      assert.equal(captured.warn.some((line) => line.includes('"outcome":"delivery_unavailable"')), true);
+    } finally {
+      process.env.NODE_ENV = originalNodeEnv;
+    }
   });
 
   it("rejects unsafe banner upload requests and object-key mismatches", async () => {

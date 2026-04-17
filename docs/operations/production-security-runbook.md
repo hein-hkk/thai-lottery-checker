@@ -45,6 +45,7 @@ Use this checklist before exposing the API publicly.
 ## Monitoring and response
 
 - Collect API logs with request IDs so security events can be traced across the proxy and application.
+- Redact or suppress query strings in proxy, CDN, APM, and access logs for token-bearing routes such as `/admin/invitations/accept` and `/admin/reset-password/confirm`.
 - Alert on repeated login failures, repeated password-reset traffic, repeated invitation-accept failures, and unusual bursts of admin writes.
 - Keep a rollback and secret-rotation procedure ready before each release.
 

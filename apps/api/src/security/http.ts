@@ -31,6 +31,15 @@ const securityHeaders = {
 } as const;
 const unsafeMethods = new Set(["POST", "PUT", "PATCH", "DELETE"]);
 
+export function shouldSkipSecurityLog(method: string, path: string): boolean {
+  return method === "OPTIONS" && path.startsWith("/api/v1/admin");
+}
+
+export function getSafeLoggedPath(path: string): string {
+  const [safePath] = path.split("?");
+  return safePath || path;
+}
+
 function getResponseLocals(response: Response): { securityOutcome?: string } {
   return response.locals as { securityOutcome?: string };
 }
@@ -147,6 +156,10 @@ export function applyRequestContext(request: Request, response: Response, next: 
       return;
     }
 
+    if (shouldSkipSecurityLog(request.method, request.path)) {
+      return;
+    }
+
     const outcome = deriveSecurityOutcome(request, response);
     const level = response.statusCode >= 500 ? "error" : response.statusCode >= 400 ? "warn" : "info";
 
@@ -155,7 +168,7 @@ export function applyRequestContext(request: Request, response: Response, next: 
       adminId: request.currentAdmin?.id ?? null,
       ip: getRequestIp(request),
       method: request.method,
-      path: request.originalUrl,
+      path: getSafeLoggedPath(request.originalUrl),
       statusCode: response.statusCode,
       outcome
     });
