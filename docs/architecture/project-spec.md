@@ -121,12 +121,14 @@ The current repository implementation aligns with the following shipped baseline
 - admin login and server-validated session handling
 - invitation acceptance
 - password reset request and confirmation
+- transactional email delivery for invitation and password-reset links in production
 - admin management for `super_admin`
 - result management with draft, publish, release, unrelease, and correction behavior
 - blog management with slug metadata, managed banner uploads, translations, publish, and unpublish behavior
 - audit logging for admin governance, result workflows, and blog workflows
 - trusted-origin enforcement and rate limiting for sensitive admin API routes
 - production env validation for admin secrets and bootstrap credentials
+- production env validation for transactional email delivery configuration
 
 ## 6. Recommended Technology Stack
 

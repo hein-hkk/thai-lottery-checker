@@ -213,8 +213,8 @@ Responsibilities include:
 - admin login handling
 - current-admin session resolution
 - server-enforced admin session expiry and revocation
-- invitation creation and acceptance
-- password reset request and token consumption
+- invitation creation, email delivery, and acceptance
+- password reset request, transactional email delivery, and token consumption
 - admin creation and deactivation flows
 - permission assignment and enforcement
 
@@ -235,6 +235,15 @@ Current security controls in the API:
 - rate limiting on login, invitation acceptance, password-reset flows, and authenticated admin writes
 - structured security logging with request IDs and resolved admin identity when available
 - production startup validation that rejects development-default admin secrets
+
+Current delivery behavior for admin onboarding and recovery:
+
+- local/dev can run with manual-link fallback when email delivery is disabled
+- production invitation and password-reset flows are designed to use transactional email delivery
+- the current implementation supports a provider abstraction with `disabled` and `resend` modes
+- invitation and password-reset links are built from `APP_URL`
+- production API responses do not expose live invitation or reset URLs
+- password reset requests for missing or inactive admins return the same generic success response without sending email
 
 ## 6. Core Backend Services
 

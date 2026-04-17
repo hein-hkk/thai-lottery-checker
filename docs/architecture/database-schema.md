@@ -164,7 +164,8 @@ Notes:
 
 - invitation tokens are stored hashed, not as plaintext
 - invitation links are single-use and expiring
-- development flows may return the invitation link for manual sharing
+- development flows may return the invitation link for manual sharing when email delivery is disabled
+- production invitation flows deliver the accept link by transactional email rather than exposing it in the API response
 - accepting an invitation creates the admin account and any required permission rows
 
 ### 3.5 `admin_password_resets`
@@ -184,7 +185,9 @@ Notes:
 
 - reset tokens are stored hashed
 - reset tokens are single-use and expiring
-- development flows may expose reset-link output before any email delivery integration exists
+- development flows may expose reset-link output when email delivery is disabled
+- production reset flows deliver the reset link by transactional email rather than exposing it in the API response
+- reset requests for missing, inactive, or deactivated admins return generic success without creating a live reset token or sending email
 
 ### 3.6 `admin_audit_logs`
 
@@ -484,6 +487,7 @@ Main relationships:
 - session records must be revoked or expired before a previously issued cookie is considered invalid
 - invitation and password-reset tokens are stored as hashes, not plaintext tokens
 - development-only invitation/reset link exposure must remain disabled in production responses
+- production onboarding and recovery flows may rely on transactional email delivery, but only hashed tokens are persisted in PostgreSQL
 
 ### Prize digit rules
 

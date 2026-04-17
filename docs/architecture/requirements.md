@@ -139,6 +139,8 @@ FR-23: The system must support invitation-based admin onboarding.
 
 FR-24: The system must support admin password reset and recovery.
 
+FR-24a: Production invitation and admin password-reset flows must support transactional email delivery without exposing live tokens in API responses.
+
 FR-25: Authorized `super_admin` users must be able to manage admin accounts and permission assignments.
 
 FR-26: Admin users with `manage_results` permission must be able to create, update, release, unrelease, publish, and correct result data.
@@ -180,6 +182,8 @@ NFR-9: Sensitive admin flows such as invitations, password resets, and result co
 NFR-10: Production configuration must reject development-default admin secrets and bootstrap credentials.
 
 NFR-11: Admin authentication and security events must be observable through structured logs and request identifiers.
+
+NFR-11a: Production email delivery configuration for admin onboarding and recovery must fail fast when required sender credentials or origin settings are missing.
 
 ### 4.4 Maintainability
 
