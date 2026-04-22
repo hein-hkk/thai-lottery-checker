@@ -56,6 +56,23 @@ export class AdminEmailDeliveryError extends Error {
 let cachedAdminEmailService: AdminEmailService | undefined;
 let adminEmailServiceOverride: AdminEmailService | undefined;
 
+export function maskEmailAddress(email: string): string {
+  const [localPart, domain = ""] = email.trim().toLowerCase().split("@");
+
+  if (!localPart || !domain) {
+    return "[redacted-email]";
+  }
+
+  const visiblePrefixLength = Math.min(2, localPart.length);
+  return `${localPart.slice(0, visiblePrefixLength)}***@${domain}`;
+}
+
+export function sanitizeSensitiveLogText(value: string): string {
+  return value
+    .replaceAll(/token=[^&\s"]+/gi, "token=[REDACTED]")
+    .replaceAll(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, (match) => maskEmailAddress(match));
+}
+
 function escapeHtml(value: string): string {
   return value
     .replaceAll("&", "&amp;")
@@ -78,10 +95,15 @@ function formatFromHeader(emailFromName: string, emailFromAddress: string): stri
 }
 
 function logEmailEvent(level: "info" | "warn" | "error", event: Record<string, unknown>): void {
+  const sanitizedEvent = {
+    ...event,
+    ...(typeof event.recipient === "string" ? { recipient: maskEmailAddress(event.recipient) } : {}),
+    ...(typeof event.message === "string" ? { message: sanitizeSensitiveLogText(event.message) } : {})
+  };
   const payload = JSON.stringify({
     category: "email",
     timestamp: new Date().toISOString(),
-    ...event
+    ...sanitizedEvent
   });
 
   if (level === "warn") {

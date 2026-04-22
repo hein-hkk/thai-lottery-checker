@@ -61,6 +61,7 @@ At minimum, check:
 - `DATABASE_URL`
 - `APP_URL`
 - `ADMIN_SESSION_SECRET`
+- `ADMIN_SESSION_COOKIE_DOMAIN` when web and API use different subdomains in production
 - `ADMIN_SESSION_TTL_HOURS`
 - `ADMIN_BOOTSTRAP_EMAIL`
 - `ADMIN_BOOTSTRAP_PASSWORD`
@@ -85,6 +86,7 @@ Behavior notes:
 - `EMAIL_PROVIDER=disabled` keeps local/dev manual-link behavior for admin invitations and password resets.
 - In production, the API does not expose live invitation/reset URLs in responses.
 - With `EMAIL_PROVIDER=resend`, the API sends invitation and password-reset links by email and requires `APP_URL` to point at the deployed HTTPS web origin.
+- If the web app and API run on sibling subdomains such as `lottokai.com` and `api.lottokai.com`, set `ADMIN_SESSION_COOKIE_DOMAIN=lottokai.com` so the admin session cookie is available to both origins.
 
 4. Generate the Prisma client:
 

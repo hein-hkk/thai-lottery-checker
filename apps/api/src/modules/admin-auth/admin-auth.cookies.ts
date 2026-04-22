@@ -10,8 +10,13 @@ function getSessionMaxAgeMs(): number {
   return getApiEnv().ADMIN_SESSION_TTL_HOURS * 60 * 60 * 1000;
 }
 
+function getSessionCookieDomain(): string | undefined {
+  return getApiEnv().ADMIN_SESSION_COOKIE_DOMAIN;
+}
+
 export function setAdminSessionCookie(response: Response, sessionToken: string): void {
   response.cookie(ADMIN_SESSION_COOKIE_NAME, sessionToken, {
+    domain: getSessionCookieDomain(),
     httpOnly: true,
     maxAge: getSessionMaxAgeMs(),
     sameSite: "lax",
@@ -22,6 +27,7 @@ export function setAdminSessionCookie(response: Response, sessionToken: string):
 
 export function clearAdminSessionCookie(response: Response): void {
   response.clearCookie(ADMIN_SESSION_COOKIE_NAME, {
+    domain: getSessionCookieDomain(),
     httpOnly: true,
     sameSite: "lax",
     secure: isSecureCookie(),

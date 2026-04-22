@@ -25,7 +25,9 @@ import { requireSuperAdmin } from "../admin-auth/admin-auth.service.js";
 import {
   getAdminEmailService,
   type AdminEmailRequestContext,
-  type AdminEmailService
+  type AdminEmailService,
+  maskEmailAddress,
+  sanitizeSensitiveLogText
 } from "../email/admin-email.service.js";
 import {
   activeInvitationExistsError,
@@ -115,9 +117,9 @@ function logGovernanceEmailFallback(
     entityId: context?.entityId ?? null,
     provider: event.provider,
     emailType: event.emailType,
-    recipient: event.email,
+    recipient: maskEmailAddress(event.email),
     outcome: event.outcome,
-    error: event.error ?? null
+    error: event.error ? sanitizeSensitiveLogText(event.error) : null
   });
 
   if (event.outcome === "delivery_failed") {
