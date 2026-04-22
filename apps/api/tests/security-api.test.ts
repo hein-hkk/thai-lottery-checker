@@ -578,6 +578,21 @@ describe("security api", () => {
     assert.match(productionLogin.setCookie ?? "", /;\s*Secure/i);
   });
 
+  it("uses the configured shared cookie domain when present", async () => {
+    process.env.ADMIN_SESSION_COOKIE_DOMAIN = "lottokai.com";
+    resetApiEnvCache();
+
+    const loginResponse = await postJson("/api/v1/admin/auth/login", {
+      email: bootstrapAdminEmail,
+      password: bootstrapAdminPassword
+    });
+
+    delete process.env.ADMIN_SESSION_COOKIE_DOMAIN;
+    resetApiEnvCache();
+
+    assert.match(loginResponse.setCookie ?? "", /;\s*Domain=lottokai\.com/i);
+  });
+
   it("enforces super admin governance and editor permission boundaries", async () => {
     const superAdminCookie = await loginBootstrapAdmin();
     const noPermissionPassword = await ensureEditorAdmin("no-permission-security@thai-lottery-checker.local", []);
